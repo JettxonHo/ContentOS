@@ -1,3 +1,13 @@
+## DEC-036
+
+### Status
+
+Accepted
+
+### Title
+
+MVP 采用端到端 Vertical Slice
+
 ### Decision
 
 ContentOS MVP 优先完成从信息源输入，到 Blog Draft、小红书内容和渲染图片导出的完整闭环。
