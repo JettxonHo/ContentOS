@@ -90,9 +90,9 @@ M0-A does not create business code, application skeletons, dependencies, a datab
 
 ### Current Status
 
-The documentation foundation is present and accepted through M0-DOC-007: the Decision Register, Product, Domain and Versioning, Technical and Repository Architecture, Workflow/Runtime/Rendering, Security, and Quality documents exist. `AGENTS.md` is present and usable. `README.md` exists but is currently empty, so it is not a completed usable M0-A deliverable.
+**Completed.** The M0-A Exit Review record at [m0-a-exit-review.md](m0-a-exit-review.md) records a Passed decision for the Canonical Decision Register, Product, Domain and Versioning, Technical and Repository Architecture, Workflow/Runtime/Rendering, Security, Quality, implementation governance, repository-entry rules, and GitHub intake templates.
 
-M0-DOC-008 supplies this roadmap, the Exit Criteria, and the Work Item Template and remains **In Review** until human acceptance. A usable `README.md`, `CONTRIBUTING.md`, and Pull Request / Issue templates remain bounded M0-A documentation work and must not be treated as complete. Their absence does not authorize an implementation task to invent governance rules beyond the Current-truth set.
+M0-B Engineering Baseline is ready to begin with the bounded `M0-ENG-001 — Workspace and TypeScript Baseline` Work Item. Completion does not authorize an implementation task to invent governance rules beyond the Current-truth set.
 
 ## 6. M0-B — Engineering Baseline
 
