@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0-A Documentation Runway closing; M0-B Engineering Baseline has not begun.
+**Current stage:** M0-A Documentation Runway completed; M0-B Engineering Baseline is ready to begin.
 **Last updated:** 2026-07-27
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository is finishing **M0-A Documentation Runway**. Current-truth specifications and implementation governance exist; M0-GOV-001 is the remaining repository-entry work before M0-A Exit Review. There is no business-feature implementation yet. Formal engineering work begins with M0-B, only after M0-A is accepted.
+The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. There is no business-feature implementation yet. Formal engineering work may begin with the bounded `M0-ENG-001 — Workspace and TypeScript Baseline` Work Item.
 
 ## 2. Product goal and MVP boundary
 
