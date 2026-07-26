@@ -1,0 +1,74 @@
+name: Decision Review
+description: Propose a change to an accepted product, architecture, security, workflow, or release boundary.
+title: "[Decision Review] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form only for a possible change to MVP Scope, Domain Semantics, Workflow,
+        Security Boundary, Agent Responsibility, Technical Architecture, or Release Gate.
+        Ordinary Bugs and ordinary Implementation Details do not use Decision Review.
+  - type: dropdown
+    id: category
+    attributes:
+      label: Change Category
+      options:
+        - MVP Scope
+        - Domain Semantics
+        - Workflow
+        - Security Boundary
+        - Agent Responsibility
+        - Technical Architecture
+        - Release Gate
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-change
+    attributes:
+      label: Proposed Change
+    validations:
+      required: true
+  - type: textarea
+    id: current-rule
+    attributes:
+      label: Current Accepted Rule and Evidence
+      description: Cite the relevant Accepted DEC and Current-truth specification.
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Problem and Rationale
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Options Considered
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-decision
+    attributes:
+      label: Proposed Decision
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Cover product/scope, contracts/migration, security/operations, and quality/release effects.
+    validations:
+      required: true
+  - type: textarea
+    id: affected-work
+    attributes:
+      label: Affected Documents and Work Items
+    validations:
+      required: true
+  - type: textarea
+    id: review
+    attributes:
+      label: Required Review
+    validations:
+      required: true
