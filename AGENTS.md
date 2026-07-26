@@ -1,499 +1,137 @@
 # AGENTS.md
 
-**Version:** 0.1  
-**Status:** Active  
-**Project Stage:** Product Discovery and Architecture Definition  
-**Last Updated:** 2026-07-26
+**Status:** Active repository guidance
+**Current stage:** M0-A Documentation Runway closing; M0-B Engineering Baseline has not begun.
+**Last updated:** 2026-07-27
 
----
+## 1. Project identity and current stage
 
-## 1. Project Overview
+ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-ContentOS is an AI-powered content operating system for individual creators.
+The repository is finishing **M0-A Documentation Runway**. Current-truth specifications and implementation governance exist; M0-GOV-001 is the remaining repository-entry work before M0-A Exit Review. There is no business-feature implementation yet. Formal engineering work begins with M0-B, only after M0-A is accepted.
 
-It helps a creator transform valuable external information, such as X posts, articles, newsletters, research papers, product announcements, and technical documentation, into original multi-platform content assets.
+## 2. Product goal and MVP boundary
 
-The initial product outputs are:
-
-- Personal blog articles
-- Xiaohongshu carousel posts
-
-ContentOS is designed as a personal web application with:
-
-- A combined Dashboard and Chat experience
-- A Chief Editor coordination layer
-- A team of specialized AI agents
-- A shared Content Package
-- A Knowledge Layer
-- A Model Router
-- A component-based rendering system
-- Human approval at important checkpoints
-
-ContentOS is not a bulk AI writing tool or a fully autonomous publishing bot.
-
----
-
-## 2. Current Project Stage
-
-The project is currently in:
+The formal MVP follows this bounded flow:
 
 ```text
-Product Discovery
-+
-Architecture Definition
+Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Render → Export
 ```
 
-Do not begin full product implementation unless the user explicitly requests it.
+It is a private web application with human review. Blog and Xiaohongshu are independent outputs from the same Content Foundation; both are required for the formal MVP. Publishing is manual. Do not duplicate the full scope here—read the [MVP Scope](docs/product/mvp-scope.md).
 
-The current work should prioritize:
+## 3. Authoritative documents
 
-- Product requirements
-- Content Package design
-- Agent responsibility definitions
-- Data contracts
-- Memory architecture
-- RAG boundaries
-- Orchestration design
-- MVP scope
-- Acceptance criteria
+Read only the documents relevant to the Work Item, in this order:
 
-Avoid prematurely introducing:
+- [Canonical Decision Register](docs/decisions/decisions.md): accepted decisions and historical decision navigation.
+- Product Current-truth: [product definition](docs/product/product-definition.md), [users and jobs](docs/product/user-and-jobs.md), [MVP scope](docs/product/mvp-scope.md).
+- Architecture Current-truth: [domain](docs/architecture/domain-overview.md), [versioning](docs/architecture/artifact-versioning.md), [technical architecture](docs/architecture/technical-architecture.md), [topology](docs/architecture/process-topology.md), [repository structure](docs/architecture/repository-structure.md), [workflow](docs/architecture/workflow-overview.md), [agent runtime](docs/architecture/agent-runtime.md), and [rendering](docs/architecture/rendering.md).
+- Security Current-truth: [data classification](docs/security/data-classification.md), [security baseline](docs/security/security-baseline.md), [source fetcher](docs/security/source-fetcher.md), and [secret management](docs/security/secret-management.md).
+- Quality Current-truth: [test strategy](docs/quality/test-strategy.md), [vertical-slice acceptance](docs/quality/vertical-slice-acceptance.md), and [release gates](docs/quality/release-gates.md).
+- Implementation governance: [roadmap](docs/implementation/roadmap.md), [milestone exit criteria](docs/implementation/milestone-exit-criteria.md), and [Work Item template](docs/implementation/work-item-template.md).
 
-- Complex infrastructure
-- Multi-tenant SaaS architecture
-- Autonomous agent loops
-- Unnecessary vector databases
-- Message queues
-- Large framework dependencies
-- Automatic public publishing
+[Sessions](docs/sessions/) preserve historical discussion; [vision.md](docs/product/vision.md) preserves product background. Neither is the normal implementation entry point.
 
----
+## 4. Document precedence
 
-## 3. Sources of Truth
-
-Before making product, architecture, or implementation decisions, read the relevant repository documentation.
-
-### Current product truth
-
-- `docs/product/vision.md`
-
-### Accepted decisions
-
-- `docs/decisions/decisions.md`
-
-### Documentation and governance rules
-
-- `docs/governance/documentation-rules.md`
-
-### Historical context
-
-- `docs/sessions/`
-
-Session documents explain how the product evolved, but they are historical records rather than the current product specification.
-
-Future authoritative documents may include:
-
-- `docs/product/prd.md`
-- `docs/product/mvp-scope.md`
-- `docs/product/user-flow.md`
-- `docs/agents/*.md`
-- `docs/architecture/*.md`
-- `docs/platform/*.md`
-
-Do not assume an empty or missing future document already defines behavior.
-
----
-
-## 4. Document Precedence
-
-When documents conflict, use the following order of precedence:
-
-1. The user’s explicit instruction in the current task
-2. The latest accepted entry in `docs/decisions/decisions.md`
-3. Current product, agent, and architecture specifications
-4. `docs/product/vision.md`
-5. Governance documentation
-6. Historical session documents
-7. Archived conversations or informal notes
-
-Do not treat an older session idea as current product truth when a later accepted decision has replaced it.
-
-When a conflict remains unresolved:
-
-- Identify the conflict
-- Do not silently choose one interpretation
-- Record the assumption
-- Avoid irreversible implementation decisions
-
----
-
-## 5. Core Product Principles
-
-All work must preserve the following principles.
-
-### 5.1 AI enhances human judgment
-
-AI assists research, organization, writing, packaging, and visual communication.
-
-It must not replace the creator’s final judgment or invent personal experiences.
-
-### 5.2 Source, AI analysis, and human opinion remain separate
-
-Preserve three distinct layers:
+Use this implementation chain:
 
 ```text
-Original Source
-AI Analysis
-Human Opinion
+Later Accepted DEC → Current-truth Specification → Work Item → Implementation
 ```
 
-Do not silently merge them.
+The user’s explicit current instruction is the task-level authority. A Work Item never overrides an Accepted DEC or Current-truth specification. If they conflict or the conflict cannot be resolved from the register, stop implementation, report the conflict, and request a Decision Review where required. Do not silently choose an interpretation.
 
-### 5.3 The Content Package is the central product object
+## 5. Approved technical stack
 
-The system should not be designed only around individual articles.
+The approved direction is: TypeScript; Node.js 24 LTS; pnpm Workspace; Next.js App Router; NestJS + Fastify; REST + OpenAPI; PostgreSQL + Drizzle; Redis + BullMQ; S3-compatible Object Storage; JSON Schema 2020-12 + Ajv; Playwright + pinned Chromium; Docker Compose; and OpenTelemetry.
 
-Blog posts, Xiaohongshu posts, visual assets, publishing metadata, and performance data are outputs or states belonging to a Content Package.
+Do not select packages, versions, providers, images, or CI products unless a Ready Work Item authorizes the bounded choice.
 
-### 5.4 Blog and Xiaohongshu are different outputs
+## 6. Architecture and process boundaries
 
-Do not create Xiaohongshu content by simply shortening a blog article.
+- Build a TypeScript **modular monolith** with isolated `web`, `api`, `worker`, `fetcher`, and `renderer` processes—not microservices with independent databases.
+- PostgreSQL is the authoritative state source. Redis/BullMQ transports work; it is not Workflow truth.
+- Domain Core must not depend on a framework, ORM, queue, or provider SDK.
+- Fetcher and Renderer have separate least-privilege identities. Renderer has no public network access and no LLM access.
+- API owns domain-state changes. Web, workers, and tools do not bypass API/domain rules by writing state directly.
 
-Each platform requires its own structure, packaging, and success criteria.
+## 7. Domain and versioning invariants
 
-### 5.5 Quality is more important than volume
+- A Working Copy is mutable; a Version is immutable.
+- Approval binds one precise immutable Version and its validation result.
+- Dependencies bind exact upstream Versions; downstream work becomes outdated when relevant inputs change.
+- Restore creates a new Version; it never overwrites history.
+- Artifact Head distinguishes Working Copy, Latest Version, Review Candidate, and Approved Version; it is not one “current” pointer.
+- Outdated is not Deleted. Historical Versions remain readable and cannot be overwritten.
 
-ContentOS should help turn one valuable source into one high-quality content package.
+## 8. Workflow and agent rules
 
-Do not optimize the product for mass production of low-quality posts.
+- Chief Editor coordinates bounded work; it is not a super-agent.
+- AI produces Proposals or Candidates. Workflow Commands require structured validation; model output has no execution authority.
+- Human Approval is never created or substituted by an Agent.
+- Task, Agent Run, and Model Attempt are separate records. Raw Output is not automatically an Artifact.
+- Tools are disabled by default and opened only by an approved capability boundary.
+- A Cancelled or stale late result cannot be promoted.
 
-### 5.6 Human approval is required at important checkpoints
+## 9. Security rules
 
-The MVP uses semi-automated orchestration.
+- Keep product data private by default. Authentication and Authorization are separate; enforce owner scope.
+- Treat external input as untrusted. The only MVP upload formats are `.md` and `.txt`.
+- Never place Secrets in Git, logs, Queue payloads, Prompts, exports, or diagnostic evidence. Use Secret References and least privilege.
+- Preserve source safety, Prompt Injection containment, upload quarantine, safe rendering, and scoped private object access.
+- A Security Error has no ordinary bypass. Report it and use the approved failure path.
 
-Human review may be required for:
+## 10. Testing and quality rules
 
-- Execution plans
-- Personal opinions
-- Uncertain factual claims
-- Final titles and packaging
-- Visual direction
-- Public publishing
+- Put deterministic rules behind tests and validators.
+- Evaluate Agent quality with versioned Evals when that milestone introduces Agent Eval; M0 needs only baseline quality entry points.
+- An LLM Judge may inform evaluation but cannot replace a deterministic Gate.
+- A Critical Failure is not offset by average scores. Do not silence or skip a failing required test to obtain a pass.
+- Use the applicable test layers, recovery tests, security tests, and render checks from the [Test Strategy](docs/quality/test-strategy.md).
 
-### 5.7 Agent responsibilities remain separated
+## 11. Work Item contract
 
-Do not create one all-purpose agent that performs research, writing, packaging, visual design, rendering, publishing, and analytics.
+Every Work Item must state: Task ID, Goal, In Scope, Out of Scope, Relevant DEC, Relevant Documents, Acceptance Criteria, Tests, and Documentation Updates. Use the [Work Item template](docs/implementation/work-item-template.md); it also defines Contracts, file boundaries, security review, migration review, and observability requirements.
 
-Each agent must have a clear boundary and structured contract.
+## 12. Definition of Ready
 
-### 5.8 Planning and execution remain separated
+Start only a Ready Work Item: its scope, dependencies, relevant Accepted DEC, contracts, testable acceptance criteria, fixtures, security and migration impacts, documentation target, and no Blocking Design Question must be known. See [Definition of Ready](docs/implementation/work-item-template.md#17-definition-of-ready).
 
-The Chief Editor follows a hybrid architecture:
+## 13. Definition of Done
 
-```text
-LLM Planner
-+
-Deterministic Executor
-+
-Validators
-```
+Required checks, relevant failure handling, documentation synchronization, and every Acceptance Criterion must be evidenced. A done change has no unrelated edits, skipped required test, or Secret, and has a reviewable diff. See [Definition of Done](docs/implementation/work-item-template.md#18-definition-of-done).
 
-The LLM may propose a plan.
+## 14. Documentation sync
 
-Deterministic application code controls execution.
+Synchronize Current-truth when accepted behavior changes; API and Schema contracts when their boundary changes; runbooks when operation or recovery changes; and `README.md` or this file when repository entry guidance changes. Use Decision Review for a change to scope, domain semantics, workflow, security boundary, agent responsibility, technical architecture, or release gate. An ordinary Bug Fix does not automatically require a new DEC.
 
-### 5.9 Agent communication must be structured
+## 15. Scope change and DEC governance
 
-Important agent inputs and outputs must use typed, validated structures.
+- **Bug:** accepted behavior fails; use the defect flow.
+- **Implementation Detail:** a bounded choice that does not change accepted behavior; use a normal Work Item.
+- **Scope or Architecture Change:** affects MVP scope, domain, workflow, security, agent responsibility, technical architecture, or release gate; stop and create a Decision Review before implementation.
 
-Prefer:
+Do not modify an Accepted DEC. Later Accepted DEC govern an actual conflict.
 
-- JSON Schema
-- Typed application models
-- Explicit status fields
-- Versioned contracts
+## 16. Prohibited actions
 
-Avoid relying on uncontrolled natural-language conversations between agents.
+Do not:
 
-### 5.10 Visual assets and final rendering remain separated
+- expand MVP scope, alter the approved stack, create microservice databases, or add Kubernetes, Kafka, or Temporal;
+- automate Approval or public publishing;
+- bypass API/domain rules to mutate domain state;
+- disable tests to make checks pass, commit a Secret, or create an ownerless `shared` or `utils` area;
+- make broad unrelated refactors; or
+- create a Git Commit unless the task explicitly authorizes one.
 
-The visual production pipeline is:
+## 17. Current commands
 
-```text
-Visual Agent
-→ Design Specification
-→ Image Generation Service, when required
-→ Render Engine
-→ Final Output
-```
+M0-B has not created install, development, build, or application-test commands. Do not invent them or suggest `pnpm install`, `dev`, or `test` as current setup steps.
 
-The Render Engine does not need an image-generation model.
+Current repository checks are limited to real local tooling, such as `git status --short`, `git diff --check`, `git ls-files`, and Markdown/link review with `rg`. Update this section only when an accepted M0-B Work Item establishes reproducible engineering commands.
 
-It receives structured content, visual assets, templates, and brand rules, then produces the final output.
+## 18. Work completion report
 
-### 5.11 Important text must use deterministic rendering
-
-Do not rely on image-generation models to render important Chinese text.
-
-Typography, layout, spacing, branding, and page text must be controlled by the rendering system.
-
-### 5.12 Models must remain replaceable
-
-Do not permanently bind an agent to one LLM provider unless an accepted architecture decision explicitly requires it.
-
-Model selection should eventually be handled through a Model Router.
-
----
-
-## 6. Confirmed High-Level Architecture
-
-The current conceptual architecture is:
-
-```text
-User
-  ↓
-Web Application
-  ↓
-Chief Editor
-  ├── LLM Planner
-  ├── Deterministic Executor
-  └── Validators
-  ↓
-Specialized Agents
-  ├── Research Agent
-  ├── Writer Agent
-  ├── Packaging Agent
-  ├── Visual Agent
-  ├── Publisher Agent
-  └── Analytics Agent
-  ↓
-Content Package
-  ↓
-Knowledge Layer
-  ├── Content Memory
-  ├── Brand Memory
-  ├── Platform Intelligence
-  └── User Preferences
-  ↓
-Model Router
-  ↓
-LLM and Image Providers
-```
-
-The rendering subsystem is conceptually separate:
-
-```text
-Structured Content
-+
-Design Specification
-+
-Optional Image Assets
-+
-Brand Rules
-  ↓
-Component-based Render Engine
-  ↓
-Blog Output or Xiaohongshu Images
-```
-
-This is a conceptual direction, not yet a final implementation specification.
-
-Do not select frameworks or infrastructure solely from this diagram.
-
----
-
-## 7. Confirmed Product Decisions
-
-The following directions have already been accepted:
-
-- ContentOS is a content operating system, not a generic AI writing tool.
-- Source, AI analysis, and human opinion are separate data layers.
-- Blog and Xiaohongshu are separate platform outputs.
-- The MVP prioritizes an end-to-end content cycle over full automation.
-- The Content Package is the central product object.
-- Agent outputs should be structured.
-- ContentOS uses specialized agents rather than one super-agent.
-- Packaging is an independent responsibility.
-- ContentOS requires human-in-the-loop checkpoints.
-- The final product direction is a Web App with a multi-agent backend.
-- The first version is a single-user personal AI content studio.
-- Agents and model providers remain decoupled.
-- Platform Intelligence is a shared system capability.
-- Platform title, cover title, and page headings are separate fields.
-- The Chief Editor is the coordination core.
-- The Chief Editor uses an LLM Planner and deterministic execution.
-- The MVP uses semi-automated orchestration.
-- Visual production is driven by a Design Specification.
-- Xiaohongshu rendering uses a component-based rendering system.
-- Blog and Xiaohongshu belong to the Content Package Output Layer.
-- Formal decisions follow a standard Decision Record format.
-
-Read `docs/decisions/decisions.md` for the complete records and reasons.
-
----
-
-## 8. Before Starting a Task
-
-Before making changes:
-
-1. Identify the user goal.
-2. Determine whether the task is product discovery, specification, architecture, implementation, testing, or documentation.
-3. Read `docs/product/vision.md`.
-4. Read the relevant decisions.
-5. Read governance rules.
-6. Read relevant product, agent, architecture, or platform documents if they exist.
-7. Check whether the requested work belongs to the MVP.
-8. List assumptions that are not supported by existing documents.
-9. Prefer a small end-to-end solution over a broad incomplete solution.
-10. Do not begin implementation when the requested task is still a product discussion.
-
----
-
-## 9. Implementation Rules
-
-When implementation begins:
-
-- Use typed data structures.
-- Validate all external model outputs.
-- Preserve source URLs, authorship, and attribution.
-- Store raw source content separately from derived content.
-- Store human opinions separately from model-generated analysis.
-- Make workflow state visible.
-- Support pause and resume at approval checkpoints.
-- Make agent failures observable.
-- Add clear retry and error-handling rules.
-- Avoid hidden autonomous loops.
-- Keep prompts versioned.
-- Keep model configurations separate from business logic.
-- Keep rendering deterministic.
-- Write tests for schemas, validators, orchestration transitions, and render outputs.
-- Do not add a framework only because it is popular.
-- Do not use LLM reasoning where deterministic application logic is sufficient.
-
----
-
-## 10. Documentation Rules
-
-All meaningful product or architecture changes must be reflected in repository documentation.
-
-### Session documents
-
-Use:
-
-```text
-docs/sessions/session-XXX.md
-```
-
-Session documents preserve discussion context, alternatives, decisions, unresolved questions, and documentation updates.
-
-### Decision records
-
-Accepted decisions must be added to:
-
-```text
-docs/decisions/decisions.md
-```
-
-Every formal decision must contain:
-
-- Title
-- Decision
-- Reason
-- Impact
-
-Decision identifiers are globally unique and must not be reused.
-
-### Current specifications
-
-Current product truth belongs in:
-
-- `docs/product/`
-- `docs/agents/`
-- `docs/architecture/`
-- `docs/platform/`
-
-Do not use session documents as the only location for current behavior.
-
-### Documentation synchronization
-
-After changing behavior or architecture:
-
-1. Update the relevant specification.
-2. Add or amend a decision when the change is meaningful.
-3. Update affected diagrams or schemas.
-4. Note unresolved limitations.
-5. Do not leave documentation describing behavior that no longer exists.
-
----
-
-## 11. Working With Historical Sessions
-
-Do not read every historical session by default.
-
-Read a session when:
-
-- The reason behind a decision is unclear
-- A current specification references it
-- The user asks about product evolution
-- Conflicting historical ideas need to be traced
-- A rejected alternative is being reconsidered
-
-Historical sessions may contain:
-
-- Early assumptions
-- Rejected ideas
-- Superseded architecture
-- Exploratory examples
-
-They must not override current accepted decisions.
-
----
-
-## 12. Current Next Design Area
-
-The next planned design area is:
-
-```text
-Content Package data model
-+
-Database design
-+
-Memory Layer
-+
-RAG boundaries
-```
-
-Before implementation, this area should define:
-
-- Core entities
-- Entity relationships
-- Mutable and immutable data
-- Versioning
-- Workflow state
-- Human approval state
-- Short-term task context
-- Long-term memory
-- Retrieval requirements
-- What does not require RAG
-- Data ownership and traceability
-
-Do not introduce a vector database before these requirements are defined.
-
----
-
-## 13. Expected Task Completion Format
-
-After completing a repository task, report:
-
-- What changed
-- Which files changed
-- Why the change was made
-- Tests or validation performed
-- Assumptions
-- Known limitations
-- Documentation updates
-- Recommended next step
-
-Do not claim that tests passed unless they were actually run.
-
-Do not claim that a document or implementation is complete when known sections remain unresolved.
+Report: Summary; Files changed; Commands; Tests; Acceptance Criteria; Security impact; Known limitations; Incomplete items; Documentation updates; Possible new DEC; and Git status. State failures and unresolved blockers plainly. Do not claim a check passed unless it was run.
