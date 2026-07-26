@@ -1,0 +1,120 @@
+name: Work Item
+description: Plan one bounded, independently reviewable ContentOS change.
+title: "[Work Item] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form adapts the authoritative `docs/implementation/work-item-template.md`.
+        It does not replace Accepted DEC or Current-truth specifications.
+  - type: input
+    id: task-id
+    attributes:
+      label: Task ID
+      placeholder: M0-GOV-002
+    validations:
+      required: true
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: Milestone
+      options:
+        - M0
+        - M1
+        - M2
+        - M3
+        - M4
+        - M5
+        - M6
+        - M7
+        - M8
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: State one clear resulting user or system capability.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Explain why this is needed now and which accepted rules apply.
+    validations:
+      required: true
+  - type: textarea
+    id: in-scope
+    attributes:
+      label: In Scope
+      description: List explicit allowed behavior and modifications.
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of Scope
+      description: List adjacent features and changes that are excluded.
+    validations:
+      required: true
+  - type: textarea
+    id: decisions
+    attributes:
+      label: Relevant DEC
+      placeholder: DEC-287, DEC-291
+    validations:
+      required: true
+  - type: textarea
+    id: documents
+    attributes:
+      label: Relevant Documents
+      placeholder: docs/implementation/work-item-template.md
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+    validations:
+      required: true
+  - type: textarea
+    id: contracts
+    attributes:
+      label: Contracts
+      description: Name applicable domain, API, schema, queue, migration, configuration, error, or security contracts.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Required Tests
+      description: Name the relevant test layers and expected evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security Impact
+      description: Record impact and required controls, or state why none applies.
+    validations:
+      required: true
+  - type: textarea
+    id: migration
+    attributes:
+      label: Migration Impact
+      description: Record compatibility, backfill, and rollback implications, or state why none applies.
+    validations:
+      required: true
+  - type: textarea
+    id: documentation
+    attributes:
+      label: Documentation Updates
+    validations:
+      required: true

@@ -1,0 +1,71 @@
+name: Bug Report
+description: Report a failure to implement accepted behavior.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for a failure of accepted behavior. Do not include private content,
+        full Prompts, Raw Model Output, temporary URLs, or Secrets.
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed Behavior
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Steps
+      placeholder: |
+        1.
+        2.
+    validations:
+      required: true
+  - type: input
+    id: affected-version
+    attributes:
+      label: Affected Commit or Version
+      placeholder: Commit SHA, tag, or Artifact Version
+    validations:
+      required: true
+  - type: textarea
+    id: data-impact
+    attributes:
+      label: Data Impact
+      description: State affected data, lineage, Version, or whether no impact is known.
+    validations:
+      required: true
+  - type: textarea
+    id: security-impact
+    attributes:
+      label: Security Impact
+      description: State exposure or security impact, or why none is known.
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround
+    validations:
+      required: true
+  - type: textarea
+    id: sanitized-logs
+    attributes:
+      label: Sanitized Logs
+      description: Remove private data, Prompts, Raw Output, temporary URLs, and Secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: accepted-reference
+    attributes:
+      label: Accepted Behavior Reference
+      description: Link a DEC or Current-truth rule, or explain why expected behavior is not yet clear.
+    validations:
+      required: true

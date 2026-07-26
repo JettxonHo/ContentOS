@@ -48,6 +48,10 @@ Work Item → Plan → Implementation → Verification → Review → Commit
 
 A Work Item must be Ready before implementation, and a commit is never implicit. Accepted DEC and Current-truth specifications take precedence over a Work Item when they conflict.
 
+## GitHub workflow
+
+The repository is privately hosted on GitHub. Create a bounded Work Item, Bug, or Decision Review with the matching [GitHub Issue Form](.github/ISSUE_TEMPLATE/); work on a branch associated with that Issue; then open a Pull Request using the [GitHub PR template](.github/pull_request_template.md). GitHub forms are an adaptation layer: the [Work Item contract](docs/implementation/work-item-template.md) and platform-neutral templates remain authoritative.
+
 ## Current setup
 
 There are currently no engineering dependencies to install and no `pnpm install`, development, or application-test command to run. At this stage, contributors need Git and Markdown review only. Useful current checks include `git status --short`, `git diff --check`, `git ls-files`, and local-link review with `rg`.

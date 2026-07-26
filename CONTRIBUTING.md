@@ -34,7 +34,9 @@ Keep each commit focused on one Work Item and use a clear conventional-style sub
 
 ## 6. Pull request expectations
 
-Use the [pull-request template](docs/implementation/templates/pull-request-template.md). A review must identify the Work Item ID, Goal, scope, relevant DEC, verification, security impact, migration impact, documentation changes, known limitations, and confirmation that no unrelated change or Secret is included.
+Use the [pull-request template](docs/implementation/templates/pull-request-template.md). On GitHub, open the matching native [Pull Request template](.github/pull_request_template.md) after creating the applicable Work Item, Bug, or Decision Review Issue. GitHub forms are an adaptation layer, not a replacement for the authoritative Work Item Contract. A review must identify the Work Item ID, Goal, scope, relevant DEC, verification, security impact, migration impact, documentation changes, known limitations, and confirmation that no unrelated change or Secret is included.
+
+Associate each GitHub branch and Pull Request with one bounded Issue or Work Item. Do not use GitHub automation, branch-protection settings, or a broad branch strategy unless a later authorized Work Item introduces them.
 
 ## 7. Bug versus decision change
 
