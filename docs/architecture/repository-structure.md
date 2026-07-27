@@ -6,7 +6,7 @@
 
 **Last Updated:** 2026-07-27
 
-This document specifies the planned Repository structure. The M0-ENG-001 workspace baseline currently creates only `packages/core`, `packages/contracts`, `packages/config`, and `packages/testing`; the listed application, schema, migration, Docker, and remaining package paths are still planned.
+This document specifies the planned Repository structure. The M0-ENG-001 workspace baseline creates four package skeletons, and M0-ENG-002 creates the five approved application entry-point skeletons; schema, migration, Docker, and remaining package paths are still planned.
 
 Related documents:
 
@@ -68,7 +68,7 @@ contentos/
 
 This is a planned destination, not a claim that the paths already exist. M0 Engineering may create only the subset required by its bounded Work Items. Later packages are created when their Milestone first needs them.
 
-### Current M0-ENG-001 baseline
+### Current M0 engineering baseline
 
 The repository now has a Node.js 24.18.0 / pnpm 11.17.0 workspace with one lockfile and these four private ESM package skeletons:
 
@@ -79,7 +79,19 @@ packages/config
 packages/testing
 ```
 
-Each has only package identity and strict TypeScript checking. It does not expose a domain model, Contract, runtime configuration reader, Fixture, test runner, or build output. No `apps/`, `schemas/`, `migrations/`, Docker, or other planned package exists yet.
+Each has only package identity and strict TypeScript checking. It does not expose a domain model, Contract, runtime configuration reader, Fixture, test runner, or build output.
+
+M0-ENG-002 adds only these deployable-process skeletons:
+
+```text
+apps/web
+apps/api
+apps/worker
+apps/fetcher
+apps/renderer
+```
+
+The Web skeleton is a baseline page; API has only a Fastify-backed liveness endpoint; worker, fetcher, and renderer have only buildable process lifecycle entry points. They do not create product features, state-service connections, Queue behavior, fetch behavior, rendering behavior, or shared infrastructure packages. `schemas/`, `migrations/`, Docker, and every other planned package remain absent.
 
 ## 3. `apps` Responsibilities
 
