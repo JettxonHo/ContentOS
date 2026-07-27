@@ -32,6 +32,10 @@ The MVP has five deployable processes:
 
 The processes share one Repository, one authoritative Domain model, one primary PostgreSQL database, and one coordinated release context.
 
+### Current M0-ENG-002 skeleton boundary
+
+M0-ENG-002 creates only independently buildable and startable entry points. The Web page is not a product Workspace; API exposes only liveness and has no external state connection; worker, fetcher, and renderer only report lifecycle events. These skeletons do not yet implement the responsibility tables or communication paths described below.
+
 ## 2. Runtime Topology Diagram
 
 ```mermaid

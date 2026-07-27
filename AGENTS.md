@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0-B Engineering Baseline in progress; M0-ENG-001 is in review.
+**Current stage:** M0-B Engineering Baseline in progress; M0-ENG-002 is in review.
 **Last updated:** 2026-07-27
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. M0-B is in progress with `M0-ENG-001 — Workspace and TypeScript Baseline` in review. There is no business-feature implementation yet.
+The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. M0-B is in progress: `M0-ENG-001 — Workspace and TypeScript Baseline` is merged, and `M0-ENG-002 — Application Skeletons` is in review. There is no business-feature implementation yet.
 
 ## 2. Product goal and MVP boundary
 
@@ -128,14 +128,16 @@ Do not:
 
 ## 17. Current commands
 
-M0-ENG-001 establishes the following real workspace commands with Node.js 24.18.0 and Corepack-managed pnpm 11.17.0:
+M0-ENG-002 extends the real workspace commands with Node.js 24.18.0 and Corepack-managed pnpm 11.17.0:
 
 - `corepack pnpm install` installs the single workspace lockfile.
 - `corepack pnpm install --frozen-lockfile` verifies reproducible installation.
 - `corepack pnpm typecheck` runs strict TypeScript checking in each current package.
-- `corepack pnpm workspace:check` confirms that pnpm resolves exactly the four current workspace packages.
+- `corepack pnpm build` creates the five application build outputs.
+- `corepack pnpm workspace:check` confirms that pnpm resolves exactly the five current applications and four current packages.
+- `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, and `start:renderer` start their respective built applications.
 
-There is still no `dev`, `build`, `test`, `lint`, `format`, Docker, or application-start command. Do not invent or suggest them before their bounded M0 Work Items establish them.
+There is still no `dev`, `test`, `lint`, `format`, Docker, database, Queue, or application-feature command. Do not invent or suggest them before their bounded M0 Work Items establish them.
 
 ## 18. Work completion report
 

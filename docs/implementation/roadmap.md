@@ -98,12 +98,12 @@ M0-B Engineering Baseline is ready to begin with the bounded `M0-ENG-001 — Wor
 
 M0-B creates a reproducible engineering runway only after M0-A has passed. It contains separate Work Items rather than one broad bootstrap task:
 
-**Current status: In Progress.** `M0-ENG-001 — Workspace and TypeScript Baseline` is in review. It establishes Node.js 24.18.0, pnpm 11.17.0, one workspace lockfile, strict TypeScript, and only the `core`, `contracts`, `config`, and `testing` package skeletons. It does not establish application skeletons, local state services, linting, formatting, tests, Docker, or CI.
+**Current status: In Progress.** `M0-ENG-001 — Workspace and TypeScript Baseline` is merged. It establishes Node.js 24.18.0, pnpm 11.17.0, one workspace lockfile, strict TypeScript, and only the `core`, `contracts`, `config`, and `testing` package skeletons. `M0-ENG-002 — Application Skeletons` is in review and adds the five process entry points without business behavior, state services, Queue behavior, linting, formatting, tests, Docker, or CI.
 
 | Planned Work Item | High-level goal | Depends on | Boundary |
 |---|---|---|---|
-| `M0-ENG-001 — Workspace and TypeScript Baseline` | Establish the approved Node.js 24, pnpm Workspace, lockfile, TypeScript strict, and root engineering baseline. | M0-A | **In Review.** No Domain or product behavior. |
-| `M0-ENG-002 — Application Skeletons` | Create bounded entry-point skeletons for web, API, worker, fetcher, and renderer. | `M0-ENG-001` | No Source, Workflow, Agent, Render, or product implementation. |
+| `M0-ENG-001 — Workspace and TypeScript Baseline` | Establish the approved Node.js 24, pnpm Workspace, lockfile, TypeScript strict, and root engineering baseline. | M0-A | **Completed.** No Domain or product behavior. |
+| `M0-ENG-002 — Application Skeletons` | Create bounded entry-point skeletons for web, API, worker, fetcher, and renderer. | `M0-ENG-001` | **In Review.** No Source, Workflow, Agent, Render, or product implementation. |
 | `M0-INFRA-001 — Local State Services` | Define local Compose services for PostgreSQL, Redis, and S3-compatible Object Storage. | `M0-ENG-001` | No production vendor selection or business schema. |
 | `M0-QUAL-001 — Local Quality Toolchain` | Make format, lint, typecheck, and baseline tests executable locally. | `M0-ENG-001` | Tool choice remains bounded by Current-truth and needs its own review. |
 | `M0-QUAL-002 — Integration Smoke Harness` | Verify application skeletons can use local state dependencies through a minimal non-business smoke path. | `M0-ENG-002`, `M0-INFRA-001`, `M0-QUAL-001` | No product E2E, Agent Eval, or recovery drill. |

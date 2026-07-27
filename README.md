@@ -10,9 +10,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. **M0-B Engineering Baseline is in progress**, with `M0-ENG-001 — Workspace and TypeScript Baseline` in review. There is no runnable Web Application and no business-code implementation yet.
+The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. **M0-B Engineering Baseline is in progress**: `M0-ENG-001 — Workspace and TypeScript Baseline` is merged, while `M0-ENG-002 — Application Skeletons` is in review. There is no business-code implementation yet.
 
-This repository now provides workspace installation and strict TypeScript checks, but no development server, build, application test, or runnable application.
+This repository now provides workspace installation, strict TypeScript checks, builds, and five minimal process skeletons. It does not provide product functionality, local state services, tests, Docker, or a development server.
 
 ## MVP boundary
 
@@ -27,7 +27,7 @@ The repository currently contains:
 - Product, Architecture, Security, and Quality Current-truth specifications;
 - Implementation governance: [Roadmap](docs/implementation/roadmap.md), [Milestone Exit Criteria](docs/implementation/milestone-exit-criteria.md), and [Work Item template](docs/implementation/work-item-template.md).
 
-M0-ENG-001 creates only the `packages/core`, `packages/contracts`, `packages/config`, and `packages/testing` skeletons. Application directories and all other planned packages remain absent until their bounded Work Items.
+M0-ENG-001 creates the `packages/core`, `packages/contracts`, `packages/config`, and `packages/testing` skeletons. M0-ENG-002 adds only five application skeletons: `apps/web`, `apps/api`, `apps/worker`, `apps/fetcher`, and `apps/renderer`. All other planned packages and infrastructure remain absent until their bounded Work Items.
 
 ## Authoritative documentation map
 
@@ -60,14 +60,17 @@ Use Node.js 24.18.0 (declared in `.node-version`) and Corepack-managed pnpm 11.1
 corepack pnpm install
 corepack pnpm install --frozen-lockfile
 corepack pnpm typecheck
+corepack pnpm build
 corepack pnpm workspace:check
 ```
 
-These commands are the current engineering baseline only. There is no `dev`, `build`, `test`, `lint`, `format`, Docker, or application-start command yet.
+After a successful build, the individual skeleton processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web is a baseline page; API provides only `GET /health/live`; worker, fetcher, and renderer only demonstrate process startup and graceful shutdown.
+
+These commands are the current engineering baseline only. There is no `dev`, `test`, `lint`, `format`, Docker, database, Queue, or product-feature command yet.
 
 ## Next implementation steps
 
-1. Complete human review of `M0-ENG-001 — Workspace and TypeScript Baseline`.
+1. Complete human review of `M0-ENG-002 — Application Skeletons`.
 2. Progress through the remaining bounded M0 engineering Work Items in the [Roadmap](docs/implementation/roadmap.md).
 
 No completion date is committed by this repository.

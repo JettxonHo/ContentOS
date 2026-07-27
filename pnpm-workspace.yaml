@@ -1,5 +1,15 @@
 packages:
+  - apps/web
+  - apps/api
+  - apps/worker
+  - apps/fetcher
+  - apps/renderer
   - packages/core
   - packages/contracts
   - packages/config
   - packages/testing
+
+onlyBuiltDependencies:
+  - sharp
+allowBuilds:
+  sharp: set this to true or false

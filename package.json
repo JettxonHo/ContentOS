@@ -9,9 +9,16 @@
   },
   "scripts": {
     "typecheck": "corepack pnpm -r --workspace-concurrency=1 run typecheck",
-    "workspace:check": "corepack pnpm --filter @contentos/core --filter @contentos/contracts --filter @contentos/config --filter @contentos/testing --fail-if-no-match exec node --version"
+    "build": "corepack pnpm --filter @contentos/web --filter @contentos/api --filter @contentos/worker --filter @contentos/fetcher --filter @contentos/renderer -r --workspace-concurrency=1 run build",
+    "workspace:check": "corepack pnpm --filter @contentos/web --filter @contentos/api --filter @contentos/worker --filter @contentos/fetcher --filter @contentos/renderer --filter @contentos/core --filter @contentos/contracts --filter @contentos/config --filter @contentos/testing --fail-if-no-match exec node --version",
+    "start:web": "corepack pnpm --filter @contentos/web start",
+    "start:api": "corepack pnpm --filter @contentos/api start",
+    "start:worker": "corepack pnpm --filter @contentos/worker start",
+    "start:fetcher": "corepack pnpm --filter @contentos/fetcher start",
+    "start:renderer": "corepack pnpm --filter @contentos/renderer start"
   },
   "devDependencies": {
+    "@types/node": "24.10.1",
     "typescript": "5.9.3"
   }
 }
