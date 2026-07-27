@@ -36,7 +36,7 @@ M0-ENG-001 creates the `packages/core`, `packages/contracts`, `packages/config`,
 - Architecture: [domain overview](docs/architecture/domain-overview.md), [technical architecture](docs/architecture/technical-architecture.md), [repository structure](docs/architecture/repository-structure.md), [workflow overview](docs/architecture/workflow-overview.md)
 - Security: [security baseline](docs/security/security-baseline.md)
 - Quality: [test strategy](docs/quality/test-strategy.md), [release gates](docs/quality/release-gates.md), [local quality toolchain](docs/quality/local-quality-toolchain.md)
-- Implementation: [roadmap](docs/implementation/roadmap.md), [exit criteria](docs/implementation/milestone-exit-criteria.md), [Work Item template](docs/implementation/work-item-template.md)
+- Implementation: [roadmap](docs/implementation/roadmap.md), [exit criteria](docs/implementation/milestone-exit-criteria.md), [Work Item template](docs/implementation/work-item-template.md), and [agent collaboration workflow](docs/implementation/agent-collaboration-workflow.md)
 - [Decision Register](docs/decisions/decisions.md)
 - [Contribution guide](CONTRIBUTING.md)
 
