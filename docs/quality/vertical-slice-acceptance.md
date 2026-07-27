@@ -178,17 +178,17 @@ This requirement does not define a persistence Schema or evidence-record format.
 
 ## 18. Milestone Application
 
-| Milestone | Acceptance focus |
-|---|---|
-| M0 | Development environment and quality entry points only |
-| M1 | Content Package Thin Slice |
-| M2 | Source plus Workflow foundation |
-| M3 | Research |
-| M4 | Human Opinion plus Blog |
-| M5 | Xiaohongshu Content |
-| M6 | Complete functional Happy Path including Design, Render, and Export |
-| M7 | Failure, Security, Recovery, and Release hardening |
-| M8 | Formal Private MVP Release Acceptance |
+| Milestone | Acceptance focus                                                    |
+| --------- | ------------------------------------------------------------------- |
+| M0        | Development environment and quality entry points only               |
+| M1        | Content Package Thin Slice                                          |
+| M2        | Source plus Workflow foundation                                     |
+| M3        | Research                                                            |
+| M4        | Human Opinion plus Blog                                             |
+| M5        | Xiaohongshu Content                                                 |
+| M6        | Complete functional Happy Path including Design, Render, and Export |
+| M7        | Failure, Security, Recovery, and Release hardening                  |
+| M8        | Formal Private MVP Release Acceptance                               |
 
 M6 Happy Path does not satisfy M7 Hardening, and no internal milestone represents formal MVP completion by itself.
 
@@ -202,12 +202,12 @@ The following remain open: Acceptance Fixture content; Acceptance execution tool
 
 ## 21. Decision Traceability
 
-| Area | Accepted Decisions | Primary Sessions |
-|---|---|---|
+| Area                                                              | Accepted Decisions               | Primary Sessions                                                                    |
+| ----------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------- |
 | Source, Research, Human Opinion, Blog, and Xiaohongshu acceptance | DEC-051–DEC-110, DEC-125–DEC-139 | [Session-010](../sessions/session-010.md)–[Session-017](../sessions/session-017.md) |
-| Design, Final Render, and Export | DEC-111–DEC-124 | [Session-016](../sessions/session-016.md) |
-| Runtime, security, recovery, and topology | DEC-177–DEC-243 | [Session-020](../sessions/session-020.md)–[Session-022](../sessions/session-022.md) |
-| Quality and full Vertical Slice | DEC-244–DEC-266 | [Session-023](../sessions/session-023.md) |
-| Formal MVP, milestones, release boundary, and completion | DEC-267–DEC-285, DEC-293 | [Session-024](../sessions/session-024.md) |
+| Design, Final Render, and Export                                  | DEC-111–DEC-124                  | [Session-016](../sessions/session-016.md)                                           |
+| Runtime, security, recovery, and topology                         | DEC-177–DEC-243                  | [Session-020](../sessions/session-020.md)–[Session-022](../sessions/session-022.md) |
+| Quality and full Vertical Slice                                   | DEC-244–DEC-266                  | [Session-023](../sessions/session-023.md)                                           |
+| Formal MVP, milestones, release boundary, and completion          | DEC-267–DEC-285, DEC-293         | [Session-024](../sessions/session-024.md)                                           |
 
 The authoritative status and wording of Decisions remains in the [Canonical Decision Register Index](../decisions/decisions.md).

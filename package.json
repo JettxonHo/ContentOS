@@ -8,8 +8,13 @@
     "pnpm": "11.17.0"
   },
   "scripts": {
+    "format": "prettier --write --ignore-unknown AGENTS.md README.md CONTRIBUTING.md package.json pnpm-workspace.yaml tsconfig.base.json apps packages docs/quality docs/implementation/roadmap.md",
+    "format:check": "prettier --check --ignore-unknown AGENTS.md README.md CONTRIBUTING.md package.json pnpm-workspace.yaml tsconfig.base.json apps packages docs/quality docs/implementation/roadmap.md",
+    "lint": "eslint .",
     "typecheck": "corepack pnpm -r --workspace-concurrency=1 run typecheck",
+    "test": "vitest run --config vitest.config.ts",
     "build": "corepack pnpm --filter @contentos/web --filter @contentos/api --filter @contentos/worker --filter @contentos/fetcher --filter @contentos/renderer -r --workspace-concurrency=1 run build",
+    "check": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build",
     "workspace:check": "corepack pnpm --filter @contentos/web --filter @contentos/api --filter @contentos/worker --filter @contentos/fetcher --filter @contentos/renderer --filter @contentos/core --filter @contentos/contracts --filter @contentos/config --filter @contentos/testing --fail-if-no-match exec node --version",
     "start:web": "corepack pnpm --filter @contentos/web start",
     "start:api": "corepack pnpm --filter @contentos/api start",
@@ -24,7 +29,14 @@
     "infra:down": "docker compose down"
   },
   "devDependencies": {
+    "@eslint/js": "9.39.3",
     "@types/node": "24.10.1",
-    "typescript": "5.9.3"
+    "eslint": "9.39.3",
+    "eslint-config-next": "16.2.12",
+    "globals": "16.4.0",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.65.0",
+    "vitest": "4.1.10"
   }
 }

@@ -10,9 +10,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. **M0-B Engineering Baseline is in progress**: `M0-ENG-001 — Workspace and TypeScript Baseline` and `M0-ENG-002 — Application Skeletons` are merged, while `M0-INFRA-001 — Local State Services` remains in progress. There is no business-code implementation yet.
+The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. **M0-B Engineering Baseline is in progress**: `M0-ENG-001 — Workspace and TypeScript Baseline`, `M0-ENG-002 — Application Skeletons`, and `M0-INFRA-001 — Local State Services` are merged; `M0-QUAL-001 — Local Quality Toolchain` is in review. There is no business-code implementation yet.
 
-This repository now provides workspace installation, strict TypeScript checks, builds, five minimal process skeletons, and local state-service containers. It does not provide product functionality, application-to-service integration, tests, or a development server.
+This repository now provides workspace installation, local format/lint/typecheck/unit-test commands, builds, five minimal process skeletons, and local state-service containers. It does not provide product functionality, application-to-service integration, remote CI, or a development server.
 
 ## MVP boundary
 
@@ -35,7 +35,7 @@ M0-ENG-001 creates the `packages/core`, `packages/contracts`, `packages/config`,
 - Product: [definition](docs/product/product-definition.md), [users and jobs](docs/product/user-and-jobs.md), [MVP scope](docs/product/mvp-scope.md)
 - Architecture: [domain overview](docs/architecture/domain-overview.md), [technical architecture](docs/architecture/technical-architecture.md), [repository structure](docs/architecture/repository-structure.md), [workflow overview](docs/architecture/workflow-overview.md)
 - Security: [security baseline](docs/security/security-baseline.md)
-- Quality: [test strategy](docs/quality/test-strategy.md), [release gates](docs/quality/release-gates.md)
+- Quality: [test strategy](docs/quality/test-strategy.md), [release gates](docs/quality/release-gates.md), [local quality toolchain](docs/quality/local-quality-toolchain.md)
 - Implementation: [roadmap](docs/implementation/roadmap.md), [exit criteria](docs/implementation/milestone-exit-criteria.md), [Work Item template](docs/implementation/work-item-template.md)
 - [Decision Register](docs/decisions/decisions.md)
 - [Contribution guide](CONTRIBUTING.md)
@@ -59,10 +59,17 @@ Use Node.js 24.18.0 (declared in `.node-version`) and Corepack-managed pnpm 11.1
 ```bash
 corepack pnpm install
 corepack pnpm install --frozen-lockfile
+corepack pnpm format
+corepack pnpm format:check
+corepack pnpm lint
 corepack pnpm typecheck
+corepack pnpm test
 corepack pnpm build
+corepack pnpm check
 corepack pnpm workspace:check
 ```
+
+Before a commit, run `corepack pnpm check`. It runs `format:check`, `lint`, `typecheck`, `test`, and `build` without starting Docker services, reaching the network, or reading Secrets. The local quality gate covers the engineering baseline only; GitHub Actions and other remote CI have not been created.
 
 After a successful build, the individual skeleton processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web is a baseline page; API provides only `GET /health/live`; worker, fetcher, and renderer only demonstrate process startup and graceful shutdown.
 
@@ -79,11 +86,11 @@ corepack pnpm infra:down
 
 The Compose baseline runs PostgreSQL on `127.0.0.1:5432`, Redis on `127.0.0.1:6379`, and SeaweedFS `weed mini` S3-compatible object storage on `127.0.0.1:8333` unless overridden in `.env`. Its other internal component ports are not exposed to the Host. The local image is fixed to SeaweedFS `4.29` and its verified manifest digest; it is Apache-2.0 licensed and is a local-development implementation detail, not a production Object Storage provider decision. `infra:down` retains named volumes; it does not delete data. No ContentOS application currently connects to these services, and no schema, migration, queue, bucket, adapter, or production deployment exists.
 
-These commands are the current engineering baseline only. There is no `dev`, `test`, `lint`, `format`, or product-feature command yet.
+These commands are the current engineering baseline only. There is no `dev`, browser or E2E test, database test, remote CI, or product-feature command yet.
 
 ## Next implementation steps
 
-1. Complete `M0-INFRA-001 — Local State Services` verification and human review.
+1. Review `M0-QUAL-001 — Local Quality Toolchain`.
 2. Progress through the remaining bounded M0 engineering Work Items in the [Roadmap](docs/implementation/roadmap.md).
 
 No completion date is committed by this repository.
