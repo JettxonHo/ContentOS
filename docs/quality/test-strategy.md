@@ -14,12 +14,12 @@ Related current-truth documents: [MVP Scope](../product/mvp-scope.md), [Artifact
 
 ContentOS has four related but non-interchangeable quality mechanisms:
 
-| Mechanism | Question answered | Authority |
-|---|---|---|
-| **Tests** | Does deterministic system behavior obey its Contract and invariants? | Deterministic code and controlled fixtures |
-| **Agent Evals** | Is a versioned generative configuration sufficiently useful and safe on representative cases? | Versioned Eval evidence, deterministic checks, calibrated Judge assistance, and human review |
-| **Acceptance Gates** | Is a milestone, release candidate, or configuration change eligible to advance? | Recorded Gate evidence and required human approval |
-| **Production Monitoring** | Did quality, cost, reliability, or inputs regress after release? | Operational signals; it detects rather than retroactively approves a release |
+| Mechanism                 | Question answered                                                                             | Authority                                                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Tests**                 | Does deterministic system behavior obey its Contract and invariants?                          | Deterministic code and controlled fixtures                                                   |
+| **Agent Evals**           | Is a versioned generative configuration sufficiently useful and safe on representative cases? | Versioned Eval evidence, deterministic checks, calibrated Judge assistance, and human review |
+| **Acceptance Gates**      | Is a milestone, release candidate, or configuration change eligible to advance?               | Recorded Gate evidence and required human approval                                           |
+| **Production Monitoring** | Did quality, cost, reliability, or inputs regress after release?                              | Operational signals; it detects rather than retroactively approves a release                 |
 
 Tests verify deterministic behavior. Agent Evals assess generative quality. Acceptance Gates decide progression or release eligibility. Production Monitoring detects production regression and input drift. None substitutes for another.
 
@@ -149,12 +149,12 @@ An Eval Configuration identifies the Agent Spec, Prompt Template, Model Configur
 
 ContentOS distinguishes four groups:
 
-| Group | Use |
-|---|---|
-| Core Regression Set | Regular development and known high-value cases |
-| Adversarial Set | Injection, conflict, malformed output, provenance, density, and other high-risk cases |
-| Holdout Set | Independent release validation; not daily targeted Prompt tuning |
-| Production-derived Regression Set | Reviewed, permitted, de-identified patterns derived from production problems |
+| Group                             | Use                                                                                   |
+| --------------------------------- | ------------------------------------------------------------------------------------- |
+| Core Regression Set               | Regular development and known high-value cases                                        |
+| Adversarial Set                   | Injection, conflict, malformed output, provenance, density, and other high-risk cases |
+| Holdout Set                       | Independent release validation; not daily targeted Prompt tuning                      |
+| Production-derived Regression Set | Reviewed, permitted, de-identified patterns derived from production problems          |
 
 Production user data is excluded by default. A production issue becomes a Regression Case only after explicit authorization, de-identification, usage review, and approval; it never enters by automatic telemetry or feedback collection.
 
@@ -166,13 +166,13 @@ Exact Match is reserved for suitable deterministic values: structure, IDs, enums
 
 ## 15. Agent-specific Eval
 
-| Agent | Principal dimensions |
-|---|---|
-| Research | Coverage, Evidence Precision, Evidence Recall, Unsupported Claim, Conflict Handling, Injection Resistance |
-| Human Opinion | Question Relevance, Non-leading behavior, Interpretation Fidelity, Confirmation boundary, First-person eligibility |
-| Writer | Grounding, Human Opinion Fidelity, First-person Integrity, Synthesis, Structure, Citation, Source-overlap |
-| Packaging | Content Fidelity, Narrative Flow, Page Purpose, Density, Title Separation, Caption Complementarity, Platform Profile Compliance |
-| Visual | Content Binding, Component Validity, Semantic Fit, Hierarchy, Asset Policy, Theme Compliance, Fit Risk |
+| Agent         | Principal dimensions                                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Research      | Coverage, Evidence Precision, Evidence Recall, Unsupported Claim, Conflict Handling, Injection Resistance                       |
+| Human Opinion | Question Relevance, Non-leading behavior, Interpretation Fidelity, Confirmation boundary, First-person eligibility              |
+| Writer        | Grounding, Human Opinion Fidelity, First-person Integrity, Synthesis, Structure, Citation, Source-overlap                       |
+| Packaging     | Content Fidelity, Narrative Flow, Page Purpose, Density, Title Separation, Caption Complementarity, Platform Profile Compliance |
+| Visual        | Content Binding, Component Validity, Semantic Fit, Hierarchy, Asset Policy, Theme Compliance, Fit Risk                          |
 
 Each Agent Spec uses its relevant Eval Profile; a generic helpfulness score cannot replace role-specific failures or Contracts.
 
@@ -206,11 +206,11 @@ Latency is decomposed into Queue Wait, Context Build, Provider, Parse, Validatio
 
 ## 20. CI Test Tiers
 
-| Tier | Purpose | Typical scope |
-|---|---|---|
-| Tier 1 — Pull Request Fast Gate | Fast deterministic feedback | Static, Contract, Domain/Validator, selected Repository, and Fake Provider checks |
-| Tier 2 — Main Integration Gate | Verify the merged system | PostgreSQL, Queue, Workflow, Render, Migration, API, and integration security checks |
-| Tier 3 — Release Gate | Decide release eligibility | affected Agent Eval, Holdout, Security, Performance, Recovery, Render Regression, and complete Vertical Slice |
+| Tier                            | Purpose                     | Typical scope                                                                                                 |
+| ------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Tier 1 — Pull Request Fast Gate | Fast deterministic feedback | Static, Contract, Domain/Validator, selected Repository, and Fake Provider checks                             |
+| Tier 2 — Main Integration Gate  | Verify the merged system    | PostgreSQL, Queue, Workflow, Render, Migration, API, and integration security checks                          |
+| Tier 3 — Release Gate           | Decide release eligibility  | affected Agent Eval, Holdout, Security, Performance, Recovery, Render Regression, and complete Vertical Slice |
 
 This specification does not create CI configuration.
 
@@ -244,11 +244,11 @@ The following remain open: Test Runner; lint/formatter; property-based test libr
 
 ## 24. Decision Traceability
 
-| Area | Accepted Decisions | Primary Sessions |
-|---|---|---|
-| Deterministic tests, Evals, and Gates | DEC-244–DEC-258 | [Session-023](../sessions/session-023.md) |
-| Zero-tolerance, render, Vertical Slice, recovery, CI, configuration releases | DEC-259–DEC-266 | [Session-023](../sessions/session-023.md) |
-| Versions, approval, dependencies, workflow, runtime, and rendering | DEC-051–DEC-139, DEC-177–DEC-198 | [Session-010](../sessions/session-010.md)–[Session-020](../sessions/session-020.md) |
-| Security and MVP release boundary | DEC-199–DEC-220, DEC-269–DEC-285, DEC-293 | [Session-021](../sessions/session-021.md), [Session-024](../sessions/session-024.md) |
+| Area                                                                         | Accepted Decisions                        | Primary Sessions                                                                     |
+| ---------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------ |
+| Deterministic tests, Evals, and Gates                                        | DEC-244–DEC-258                           | [Session-023](../sessions/session-023.md)                                            |
+| Zero-tolerance, render, Vertical Slice, recovery, CI, configuration releases | DEC-259–DEC-266                           | [Session-023](../sessions/session-023.md)                                            |
+| Versions, approval, dependencies, workflow, runtime, and rendering           | DEC-051–DEC-139, DEC-177–DEC-198          | [Session-010](../sessions/session-010.md)–[Session-020](../sessions/session-020.md)  |
+| Security and MVP release boundary                                            | DEC-199–DEC-220, DEC-269–DEC-285, DEC-293 | [Session-021](../sessions/session-021.md), [Session-024](../sessions/session-024.md) |
 
 The authoritative status and wording of Decisions remains in the [Canonical Decision Register Index](../decisions/decisions.md).

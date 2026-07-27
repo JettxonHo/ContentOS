@@ -1,7 +1,6 @@
-.DS_Store
-**/.DS_Store
 node_modules/
+pnpm-lock.yaml
 apps/*/dist/
 apps/web/.next/
+apps/web/next-env.d.ts
 coverage/
-.env

@@ -32,10 +32,10 @@ Different Release Units may have different affected checks, decisions, and rollb
 
 ## 3. Gate Categories
 
-| Category | Meaning |
-|---|---|
-| **Blocking** | Failure prevents progression or release. |
-| **Conditional** | Release requires explicit human approval, documented risk, monitoring, a review/expiry point, and rollback condition. |
+| Category          | Meaning                                                                                                                |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Blocking**      | Failure prevents progression or release.                                                                               |
+| **Conditional**   | Release requires explicit human approval, documented risk, monitoring, a review/expiry point, and rollback condition.  |
 | **Informational** | Recorded for learning and optimization; it does not determine deterministic correctness or override a Blocking result. |
 
 ## 4. Zero-tolerance Blocking Conditions
@@ -100,11 +100,11 @@ Examples include Title preference, Caption length, edit distance, Approval time,
 
 ## 13. CI and Release Tiers
 
-| Tier | Usual Gate role |
-|---|---|
-| Tier 1 — Pull Request Gate | fast deterministic static, Contract, Domain, Validator, and Fake Provider checks |
-| Tier 2 — Main Integration Gate | database, Queue, API, Workflow, Render, Migration, and security integration evidence |
-| Tier 3 — Release Gate | affected Evals, Holdout, security, performance, recovery, Render Regression, and Vertical Slice evidence |
+| Tier                           | Usual Gate role                                                                                          |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Tier 1 — Pull Request Gate     | fast deterministic static, Contract, Domain, Validator, and Fake Provider checks                         |
+| Tier 2 — Main Integration Gate | database, Queue, API, Workflow, Render, Migration, and security integration evidence                     |
+| Tier 3 — Release Gate          | affected Evals, Holdout, security, performance, recovery, Render Regression, and Vertical Slice evidence |
 
 The tier design describes governance only and does not create a CI configuration.
 
@@ -178,10 +178,10 @@ The following remain open: Release Evaluation storage location; approver model; 
 
 ## 21. Decision Traceability
 
-| Area | Accepted Decisions | Primary Sessions |
-|---|---|---|
-| Tests, Evals, Hard Gates, CI, and release records | DEC-244–DEC-266 | [Session-023](../sessions/session-023.md) |
+| Area                                                             | Accepted Decisions               | Primary Sessions                                                                    |
+| ---------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------- |
+| Tests, Evals, Hard Gates, CI, and release records                | DEC-244–DEC-266                  | [Session-023](../sessions/session-023.md)                                           |
 | Agent Runtime, Workflow, Render, and security release boundaries | DEC-125–DEC-139, DEC-177–DEC-243 | [Session-017](../sessions/session-017.md)–[Session-022](../sessions/session-022.md) |
-| M0, M7, M8, and formal MVP completion | DEC-275–DEC-285, DEC-291–DEC-293 | [Session-024](../sessions/session-024.md) |
+| M0, M7, M8, and formal MVP completion                            | DEC-275–DEC-285, DEC-291–DEC-293 | [Session-024](../sessions/session-024.md)                                           |
 
 The authoritative status and wording of Decisions remains in the [Canonical Decision Register Index](../decisions/decisions.md).
