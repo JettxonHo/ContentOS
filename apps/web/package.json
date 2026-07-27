@@ -5,7 +5,7 @@
   "scripts": {
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "build": "next build",
-    "start": "next start"
+    "start": "next start -H 127.0.0.1"
   },
   "dependencies": {
     "next": "16.2.12",
