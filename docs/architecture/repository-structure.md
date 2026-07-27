@@ -6,7 +6,7 @@
 
 **Last Updated:** 2026-07-27
 
-This document specifies the planned Repository structure. The M0-ENG-001 workspace baseline creates four package skeletons, and M0-ENG-002 creates the five approved application entry-point skeletons; schema, migration, Docker, and remaining package paths are still planned.
+This document specifies the planned Repository structure. The M0-ENG-001 workspace baseline creates four package skeletons, M0-ENG-002 creates the five approved application entry-point skeletons, and M0-INFRA-001 adds only the root Compose baseline for local PostgreSQL, Redis, and SeaweedFS S3-compatible Object Storage. Schema, migration, Docker build paths, and remaining package paths are still planned.
 
 Related documents:
 

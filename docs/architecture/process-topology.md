@@ -194,6 +194,8 @@ Redis and BullMQ provide Queue delivery, delayed work, retry timing, Worker coor
 
 Private S3-compatible Object Storage contains files, large objects, quarantine content, immutable snapshots, Assets, Render Outputs, and Export Packages. PostgreSQL retains durable references and lifecycle metadata.
 
+For local development only, the M0 Compose baseline uses one SeaweedFS `weed mini` container with an authenticated S3 endpoint. Its internal master, volume, filer, and administration capabilities remain inside that one container and are not separate ContentOS services or a production topology. No ContentOS process connects to it in M0-INFRA-001.
+
 ## 9. Process Identity and Least Privilege
 
 | Process | Allowed services | Minimum data scope | Credentials it must not have | Network boundary |

@@ -15,7 +15,13 @@
     "start:api": "corepack pnpm --filter @contentos/api start",
     "start:worker": "corepack pnpm --filter @contentos/worker start",
     "start:fetcher": "corepack pnpm --filter @contentos/fetcher start",
-    "start:renderer": "corepack pnpm --filter @contentos/renderer start"
+    "start:renderer": "corepack pnpm --filter @contentos/renderer start",
+    "infra:config": "docker compose config",
+    "infra:pull": "docker compose pull",
+    "infra:up": "docker compose up --detach --wait",
+    "infra:status": "docker compose ps",
+    "infra:logs": "docker compose logs --tail=200",
+    "infra:down": "docker compose down"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
