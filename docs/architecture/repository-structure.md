@@ -6,7 +6,7 @@
 
 **Last Updated:** 2026-07-27
 
-This document specifies the planned Repository structure. Except for existing documentation paths, the listed application, package, schema, migration, Docker, and configuration paths are a plan; this task does not create them.
+This document specifies the planned Repository structure. The M0-ENG-001 workspace baseline currently creates only `packages/core`, `packages/contracts`, `packages/config`, and `packages/testing`; the listed application, schema, migration, Docker, and remaining package paths are still planned.
 
 Related documents:
 
@@ -67,6 +67,19 @@ contentos/
 ```
 
 This is a planned destination, not a claim that the paths already exist. M0 Engineering may create only the subset required by its bounded Work Items. Later packages are created when their Milestone first needs them.
+
+### Current M0-ENG-001 baseline
+
+The repository now has a Node.js 24.18.0 / pnpm 11.17.0 workspace with one lockfile and these four private ESM package skeletons:
+
+```text
+packages/core
+packages/contracts
+packages/config
+packages/testing
+```
+
+Each has only package identity and strict TypeScript checking. It does not expose a domain model, Contract, runtime configuration reader, Fixture, test runner, or build output. No `apps/`, `schemas/`, `migrations/`, Docker, or other planned package exists yet.
 
 ## 3. `apps` Responsibilities
 
@@ -241,7 +254,7 @@ The `contracts` package must not become a route for infrastructure concepts to l
 
 Package and module naming must remain consistent with the Domain language in [Domain Overview](domain-overview.md). Every package exposes a stable, intentional public API; internal implementation paths are not supported imports.
 
-The exact npm Scope, ESM/CJS strategy, export-map shape, and package build strategy are not yet approved. They remain Open Implementation Decisions and must not be inferred from the planned directory names.
+M0-ENG-001 selects the `@contentos` npm scope and ESM (`NodeNext`) module baseline for the initial private packages. It deliberately does not select an export-map shape or a package build strategy; those remain Open Implementation Decisions until a bounded Work Item requires them.
 
 ## 13. Tests Placement
 
@@ -308,9 +321,6 @@ The Repository plan excludes:
 
 The Repository plan does not yet select:
 
-- Exact pnpm version;
-- npm Scope;
-- ESM or CJS strategy;
 - Build Orchestrator;
 - package build strategy;
 - import-boundary enforcement mechanism;
