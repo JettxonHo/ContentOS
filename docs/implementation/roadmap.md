@@ -6,7 +6,7 @@
 
 This roadmap turns the accepted product and architecture direction into an ordered implementation path. It does not create a calendar plan, engineering tickets, code, CI configuration, or an alternative architecture.
 
-Related documents: [MVP Scope](../product/mvp-scope.md), [Technical Architecture](../architecture/technical-architecture.md), [Repository Structure](../architecture/repository-structure.md), [Test Strategy](../quality/test-strategy.md), [Vertical Slice Acceptance](../quality/vertical-slice-acceptance.md), [Release Gates](../quality/release-gates.md), and [Milestone Exit Criteria](milestone-exit-criteria.md).
+Related documents: [MVP Scope](../product/mvp-scope.md), [Technical Architecture](../architecture/technical-architecture.md), [Repository Structure](../architecture/repository-structure.md), [Test Strategy](../quality/test-strategy.md), [Vertical Slice Acceptance](../quality/vertical-slice-acceptance.md), [Release Gates](../quality/release-gates.md), [Milestone Exit Criteria](milestone-exit-criteria.md), and [Agent Collaboration Workflow](agent-collaboration-workflow.md).
 
 ---
 
