@@ -267,7 +267,7 @@ The approved local baseline consists of:
 - a Fake Model Adapter;
 - deterministic Fixtures and Seed Data.
 
-Local development must be repeatable without real model cost or network availability. Real Providers are enabled only for explicit integration or manual testing. Actual commands, ports, images, and environment files belong to later Repository implementation and README work.
+Local development must be repeatable without real model cost or network availability. Real Providers are enabled only for explicit integration or manual testing. The current M0 Compose baseline uses SeaweedFS `weed mini` only as its local S3-compatible implementation; commands, ports, image pinning, and environment-file requirements belong to the Repository and README guidance. This does not select a production Object Storage provider.
 
 ## 14. Initial Production Deployment
 
@@ -322,7 +322,7 @@ Accepted Decisions do not yet select:
 - Test runner;
 - PostgreSQL major version;
 - Redis deployment mode;
-- Local Object Storage product;
+- Production or managed Object Storage provider;
 - Authentication library;
 - Reverse proxy;
 - CI platform;

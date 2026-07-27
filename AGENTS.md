@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0-B Engineering Baseline in progress; M0-ENG-002 is in review.
+**Current stage:** M0-B Engineering Baseline in progress; M0-INFRA-001 is in progress.
 **Last updated:** 2026-07-27
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. M0-B is in progress: `M0-ENG-001 — Workspace and TypeScript Baseline` is merged, and `M0-ENG-002 — Application Skeletons` is in review. There is no business-feature implementation yet.
+The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. M0-B is in progress: `M0-ENG-001` and `M0-ENG-002` are merged, and `M0-INFRA-001 — Local State Services` is in progress. There is no business-feature implementation yet.
 
 ## 2. Product goal and MVP boundary
 
@@ -128,7 +128,7 @@ Do not:
 
 ## 17. Current commands
 
-M0-ENG-002 extends the real workspace commands with Node.js 24.18.0 and Corepack-managed pnpm 11.17.0:
+M0-INFRA-001 extends the real workspace commands with local state-service controls. Node.js remains 24.18.0 and pnpm remains Corepack-managed at 11.17.0:
 
 - `corepack pnpm install` installs the single workspace lockfile.
 - `corepack pnpm install --frozen-lockfile` verifies reproducible installation.
@@ -136,8 +136,11 @@ M0-ENG-002 extends the real workspace commands with Node.js 24.18.0 and Corepack
 - `corepack pnpm build` creates the five application build outputs.
 - `corepack pnpm workspace:check` confirms that pnpm resolves exactly the five current applications and four current packages.
 - `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, and `start:renderer` start their respective built applications.
+- `corepack pnpm infra:config`, `infra:pull`, `infra:up`, `infra:status`, `infra:logs`, and `infra:down` manage only local PostgreSQL, Redis, and S3-compatible Object Storage through Compose. `infra:down` retains named volumes.
 
-There is still no `dev`, `test`, `lint`, `format`, Docker, database, Queue, or application-feature command. Do not invent or suggest them before their bounded M0 Work Items establish them.
+The current local S3-compatible implementation is SeaweedFS `weed mini`, pinned to its verified `4.29` image manifest. It is a local-development baseline only; it does not select a production Object Storage provider or add a vendor dependency to the Domain or application packages.
+
+No application connects to local state services yet. There is still no `dev`, `test`, `lint`, `format`, database schema, Queue, or application-feature command. Do not invent or suggest them before their bounded M0 Work Items establish them.
 
 ## 18. Work completion report
 
