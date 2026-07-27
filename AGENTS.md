@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0-A Documentation Runway completed; M0-B Engineering Baseline is ready to begin.
+**Current stage:** M0-B Engineering Baseline in progress; M0-ENG-001 is in review.
 **Last updated:** 2026-07-27
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. There is no business-feature implementation yet. Formal engineering work may begin with the bounded `M0-ENG-001 — Workspace and TypeScript Baseline` Work Item.
+The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. M0-B is in progress with `M0-ENG-001 — Workspace and TypeScript Baseline` in review. There is no business-feature implementation yet.
 
 ## 2. Product goal and MVP boundary
 
@@ -128,9 +128,14 @@ Do not:
 
 ## 17. Current commands
 
-M0-B has not created install, development, build, or application-test commands. Do not invent them or suggest `pnpm install`, `dev`, or `test` as current setup steps.
+M0-ENG-001 establishes the following real workspace commands with Node.js 24.18.0 and Corepack-managed pnpm 11.17.0:
 
-Current repository checks are limited to real local tooling, such as `git status --short`, `git diff --check`, `git ls-files`, and Markdown/link review with `rg`. Update this section only when an accepted M0-B Work Item establishes reproducible engineering commands.
+- `corepack pnpm install` installs the single workspace lockfile.
+- `corepack pnpm install --frozen-lockfile` verifies reproducible installation.
+- `corepack pnpm typecheck` runs strict TypeScript checking in each current package.
+- `corepack pnpm workspace:check` confirms that pnpm resolves exactly the four current workspace packages.
+
+There is still no `dev`, `build`, `test`, `lint`, `format`, Docker, or application-start command. Do not invent or suggest them before their bounded M0 Work Items establish them.
 
 ## 18. Work completion report
 

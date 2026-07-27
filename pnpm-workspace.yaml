@@ -1,0 +1,5 @@
+packages:
+  - packages/core
+  - packages/contracts
+  - packages/config
+  - packages/testing

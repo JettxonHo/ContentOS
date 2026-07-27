@@ -1,0 +1,17 @@
+{
+  "name": "contentos",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=24.18.0 <25.0.0",
+    "pnpm": "11.17.0"
+  },
+  "scripts": {
+    "typecheck": "corepack pnpm -r --workspace-concurrency=1 run typecheck",
+    "workspace:check": "corepack pnpm --filter @contentos/core --filter @contentos/contracts --filter @contentos/config --filter @contentos/testing --fail-if-no-match exec node --version"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

@@ -10,9 +10,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. There is no runnable Web Application and no business-code implementation yet.
+The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. **M0-B Engineering Baseline is in progress**, with `M0-ENG-001 — Workspace and TypeScript Baseline` in review. There is no runnable Web Application and no business-code implementation yet.
 
-The next formal engineering stage is **M0-B Engineering Baseline**. Its first authorized Work Item is `M0-ENG-001 — Workspace and TypeScript Baseline`. This repository does not yet provide a dependency installation, development server, build, or application-test command.
+This repository now provides workspace installation and strict TypeScript checks, but no development server, build, application test, or runnable application.
 
 ## MVP boundary
 
@@ -27,7 +27,7 @@ The repository currently contains:
 - Product, Architecture, Security, and Quality Current-truth specifications;
 - Implementation governance: [Roadmap](docs/implementation/roadmap.md), [Milestone Exit Criteria](docs/implementation/milestone-exit-criteria.md), and [Work Item template](docs/implementation/work-item-template.md).
 
-The planned `apps/` and `packages/` directories do not exist until M0-B creates them through bounded Work Items.
+M0-ENG-001 creates only the `packages/core`, `packages/contracts`, `packages/config`, and `packages/testing` skeletons. Application directories and all other planned packages remain absent until their bounded Work Items.
 
 ## Authoritative documentation map
 
@@ -54,11 +54,20 @@ The repository is privately hosted on GitHub. Create a bounded Work Item, Bug, o
 
 ## Current setup
 
-There are currently no engineering dependencies to install and no `pnpm install`, development, or application-test command to run. At this stage, contributors need Git and Markdown review only. Useful current checks include `git status --short`, `git diff --check`, `git ls-files`, and local-link review with `rg`.
+Use Node.js 24.18.0 (declared in `.node-version`) and Corepack-managed pnpm 11.17.0:
+
+```bash
+corepack pnpm install
+corepack pnpm install --frozen-lockfile
+corepack pnpm typecheck
+corepack pnpm workspace:check
+```
+
+These commands are the current engineering baseline only. There is no `dev`, `build`, `test`, `lint`, `format`, Docker, or application-start command yet.
 
 ## Next implementation steps
 
-1. Start `M0-ENG-001 — Workspace and TypeScript Baseline` as a bounded Work Item.
+1. Complete human review of `M0-ENG-001 — Workspace and TypeScript Baseline`.
 2. Progress through the remaining bounded M0 engineering Work Items in the [Roadmap](docs/implementation/roadmap.md).
 
 No completion date is committed by this repository.
