@@ -9,7 +9,5 @@ packages:
   - packages/config
   - packages/testing
 
-onlyBuiltDependencies:
-  - sharp
 allowBuilds:
-  sharp: set this to true or false
+  sharp: true

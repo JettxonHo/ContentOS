@@ -27,7 +27,7 @@ corepack pnpm install --frozen-lockfile
 | `corepack pnpm build`            | Builds the five application skeletons.                                                                              |
 | `corepack pnpm check`            | Runs `format:check`, `lint`, `typecheck`, `test`, and `build` in order.                                             |
 
-Run `corepack pnpm check` before a commit. It has no Docker, database, Redis, Object Storage, browser, network, API key, Secret, or cloud-service dependency. `test:integration` is the only Docker-dependent command; it is intentionally excluded from `check` and is documented separately.
+Run `corepack pnpm check` before a commit. It has no Docker, database, Redis, Object Storage, browser, network, API key, Secret, or cloud-service dependency. `test:integration` is the only Docker-dependent command; it is intentionally excluded from `check` and is documented separately. The `M0-CI-001` repository-integrity commands (`check:docs`, `check:decisions`, `check:secrets`, `repository:check`) are also Docker-independent and are documented in [CI Skeleton](ci-skeleton.md); they are not part of `check`.
 
 ## 3. Tooling choices
 
@@ -43,7 +43,7 @@ The principal alternatives were ESLint legacy configuration, framework-only lint
 
 ## 5. Scope boundary
 
-This local toolchain is an M0 engineering baseline. GitHub Actions, remote CI, browser and E2E testing, Docker Compose testing, PostgreSQL, Redis, SeaweedFS, API integration, database integration, and Agent evaluation remain outside its scope.
+This local toolchain is an M0 engineering baseline (the `M0-QUAL-001` scope). Browser and E2E testing, Docker Compose testing, PostgreSQL, Redis, SeaweedFS, API integration, database integration, and Agent evaluation remain outside its scope. A bounded GitHub Actions workflow and repository-integrity checks are introduced separately by `M0-CI-001`; see [CI Skeleton](ci-skeleton.md).
 
 ## 6. Decision traceability
 
