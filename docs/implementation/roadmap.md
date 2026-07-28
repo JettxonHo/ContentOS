@@ -132,13 +132,13 @@ M0-C records integration evidence and evaluates M0 exit conditions. It does not 
 
 ## 8. M1 — Product Skeleton and Domain Foundation
 
-**Current status: In Progress.** `M1-SEC-001` and `M1-CP-001` are completed. `M1-WEB-001` is in review with the first private Login → Dashboard → Content Package Workspace loop. M2 has not started.
+**Current status: Completed.** `M1-SEC-001`, `M1-CP-001`, and `M1-WEB-001` are completed. [M1 Acceptance Record 001](m1-acceptance-record-001.md) records the Passed decision for the private Login → Dashboard → Content Package Workspace loop and all M1 Exit Criteria. M2 has not started.
 
 | Work Item                                                            | Goal                                                             | Depends on   | Status boundary                                        |
 | -------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------ | ------------------------------------------------------ |
 | `M1-SEC-001 — Single-user Session and API Foundation`                | Establish the secure owner Session and protected API boundary.   | M0 Passed    | **Completed.** No Content Package or Web product UI.   |
 | `M1-CP-001 — Content Package Domain, Persistence, and Protected API` | Add the first owner-scoped Content Package domain and API slice. | `M1-SEC-001` | **Completed.** No Web product UI, Source, or Workflow. |
-| `M1-WEB-001 — Login, Dashboard, and Workspace Thin Slice`            | Connect the Web UI to the protected Content Package API.         | `M1-CP-001`  | **In Review.** No Source, Workflow, or M2 behavior.    |
+| `M1-WEB-001 — Login, Dashboard, and Workspace Thin Slice`            | Connect the Web UI to the protected Content Package API.         | `M1-CP-001`  | **Completed.** No Source, Workflow, or M2 behavior.    |
 
 ### Goal
 

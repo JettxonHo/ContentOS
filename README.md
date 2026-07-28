@@ -10,7 +10,7 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0-A Documentation Runway**, **M0-B Engineering Baseline**, and **M0-C Integration Gate**. [M0 Acceptance Record 002](docs/implementation/m0-acceptance-record-002.md) records the final Passed decision. M1 is in progress: its Session and Content Package foundations are completed, and `M1-WEB-001` is in review with the first private Login → Dashboard → Workspace loop. M2 has not started.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 has not started.
 
 This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package API, and the M1 Web thin slice. It does not provide Source, Workflow, Agent, Render, publishing behavior, deployment, or a development server.
 
@@ -36,7 +36,7 @@ The current workspace contains five applications and five packages. `M1-SEC-001`
 - Architecture: [domain overview](docs/architecture/domain-overview.md), [Content Package foundation](docs/architecture/content-package-foundation.md), [technical architecture](docs/architecture/technical-architecture.md), [repository structure](docs/architecture/repository-structure.md), [workflow overview](docs/architecture/workflow-overview.md)
 - Security: [security baseline](docs/security/security-baseline.md), [authentication foundation](docs/security/authentication-foundation.md)
 - Quality: [test strategy](docs/quality/test-strategy.md), [release gates](docs/quality/release-gates.md), [local quality toolchain](docs/quality/local-quality-toolchain.md), [integration smoke harness](docs/quality/integration-smoke-harness.md), [M1 browser thin slice](docs/quality/browser-thin-slice.md), [CI skeleton](docs/quality/ci-skeleton.md)
-- Implementation: [roadmap](docs/implementation/roadmap.md), [exit criteria](docs/implementation/milestone-exit-criteria.md), [Work Item template](docs/implementation/work-item-template.md), and [agent collaboration workflow](docs/implementation/agent-collaboration-workflow.md)
+- Implementation: [roadmap](docs/implementation/roadmap.md), [exit criteria](docs/implementation/milestone-exit-criteria.md), [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md), [Work Item template](docs/implementation/work-item-template.md), and [agent collaboration workflow](docs/implementation/agent-collaboration-workflow.md)
 - [Decision Register](docs/decisions/decisions.md)
 - [Contribution guide](CONTRIBUTING.md)
 
@@ -121,12 +121,12 @@ A bounded GitHub Actions workflow at [.github/workflows/ci.yml](.github/workflow
 - a Docker-dependent job: `corepack pnpm test:integration` through the existing isolated smoke harness.
 - an M1 browser job: pinned Playwright Chromium runs `corepack pnpm test:browser` against an isolated runtime.
 
-The workflow references no repository Secrets, persists no credentials, uploads no artifacts, and performs no deployment or release. It is a bounded baseline, not a full release gate. All three jobs must pass before this Work Item can merge. Read [CI Skeleton](docs/quality/ci-skeleton.md) for the full scope.
+The workflow references no repository Secrets, persists no credentials, uploads no artifacts, and performs no deployment or release. It is a bounded baseline, not a full release gate. All three jobs must pass before a change can merge. Read [CI Skeleton](docs/quality/ci-skeleton.md) for the full scope.
 
 ## Next implementation steps
 
-1. Complete the M1 Exit Review and immutable acceptance record only after `M1-WEB-001` passes local and remote gates.
-2. Do not begin M2 Source or Workflow work before M1 is accepted.
+1. Create a separate Ready Work Item before any M2 Source or Workflow implementation.
+2. Do not infer M2 scope or begin an Agent, Research, or publishing path from the M1 acceptance decision.
 
 No completion date is committed by this repository.
 
