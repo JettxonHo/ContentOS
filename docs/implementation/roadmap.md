@@ -92,13 +92,13 @@ M0-A does not create business code, application skeletons, dependencies, a datab
 
 **Completed.** The M0-A Exit Review record at [m0-a-exit-review.md](m0-a-exit-review.md) records a Passed decision for the Canonical Decision Register, Product, Domain and Versioning, Technical and Repository Architecture, Workflow/Runtime/Rendering, Security, Quality, implementation governance, repository-entry rules, and GitHub intake templates.
 
-M0-B Engineering Baseline is ready to begin with the bounded `M0-ENG-001 — Workspace and TypeScript Baseline` Work Item. Completion does not authorize an implementation task to invent governance rules beyond the Current-truth set.
+M0-A enabled the now-completed M0-B Engineering Baseline. Its completion does not authorize an implementation task to invent governance rules beyond the Current-truth set.
 
 ## 6. M0-B — Engineering Baseline
 
 M0-B creates a reproducible engineering runway only after M0-A has passed. It contains separate Work Items rather than one broad bootstrap task:
 
-**Current status: Completed.** All seven planned M0-B engineering Work Items are merged, including `M0-CI-001 — CI Skeleton`. [M0-B Exit Review 001](m0-b-exit-review-001.md) remains the immutable historical Blocked record for the earlier dependency findings. The bounded remediation sequence recorded through PR #22, PR #24, and PR #26 cleared those findings; [M0-B Exit Review 002](m0-b-exit-review-002.md) records passing local, remote CI, Secret, and official-registry audit evidence with no unresolved Blocking Defect. M0-C has not started.
+**Current status: Completed.** All seven planned M0-B engineering Work Items are merged, including `M0-CI-001 — CI Skeleton`. [M0-B Exit Review 001](m0-b-exit-review-001.md) remains the immutable historical Blocked record for the earlier dependency findings. The bounded remediation sequence recorded through PR #22, PR #24, and PR #26 cleared those findings; [M0-B Exit Review 002](m0-b-exit-review-002.md) records passing local, remote CI, Secret, and official-registry audit evidence with no unresolved Blocking Defect. M0-C is also completed through the acceptance records below.
 
 | Planned Work Item                                | High-level goal                                                                                                | Depends on                                  | Boundary                                                                                   |
 | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -114,7 +114,9 @@ The list is a plan, not permission to merge its tasks or select an unapproved st
 
 ## 7. M0-C — M0 Integration Gate
 
-`M0-GATE-001 — M0 Demo and Exit Audit` is the sole planned M0-C Work Item. It verifies that the assembled baseline is usable:
+**Current status: Completed.** [M0 Acceptance Record 001](m0-acceptance-record-001.md) remains the immutable historical Blocked record for the task-created demo-volume residue. The exact Human-authorized cleanup and independent re-review are recorded in [M0 Acceptance Record 002](m0-acceptance-record-002.md), which records a Passed decision with no remaining Blocking Defect. M0 is completed; M1 has not started.
+
+`M0-GATE-001 — M0 Demo and Exit Audit` was the sole planned M0-C delivery Work Item. `M0-GATE-001A — Gate Demo Cleanup Verification and Acceptance Re-review` was added only as the bounded remediation required by its immutable Blocked record. Together they verify that the assembled baseline is usable:
 
 - clean install and runtime pinning;
 - typecheck, lint, formatting, unit test, and integration smoke;

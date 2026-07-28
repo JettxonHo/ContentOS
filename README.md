@@ -10,7 +10,7 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0-A Documentation Runway** and **M0-B Engineering Baseline**. All seven planned M0-B Work Items through `M0-CI-001 — CI Skeleton` are merged, the bounded dependency remediation sequence is complete, and [M0-B Exit Review 002](docs/implementation/m0-b-exit-review-002.md) records a Passed decision. M0-C has not started. There is no business-code implementation yet.
+The repository has completed **M0-A Documentation Runway**, **M0-B Engineering Baseline**, and **M0-C Integration Gate**. [M0 Acceptance Record 001](docs/implementation/m0-acceptance-record-001.md) preserves the initial Blocked review; [M0 Acceptance Record 002](docs/implementation/m0-acceptance-record-002.md) records the final Passed decision after its bounded cleanup remediation. M0 is completed, M1 has not started, and there is no business-code implementation yet.
 
 This repository now provides workspace installation, local and CI quality checks, builds, five minimal process skeletons, and local state-service containers. It does not provide product functionality, application-to-service integration, deployment, or a development server.
 
@@ -112,8 +112,8 @@ The workflow references no repository Secrets, persists no credentials, uploads 
 
 ## Next implementation steps
 
-1. Keep M0-C unstarted until its separate `M0-GATE-001 — M0 Demo and Exit Audit` Work Item is Ready.
-2. Do not begin product implementation before the M0-C gate is independently completed.
+1. Keep M1 unstarted until its first bounded Work Item satisfies the Definition of Ready.
+2. Begin no product implementation outside that independently reviewable M1 Work Item.
 
 No completion date is committed by this repository.
 

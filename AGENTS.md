@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0-B Engineering Baseline completed; M0-C has not started.
+**Current stage:** M0 completed; M1 has not started.
 **Last updated:** 2026-07-28
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0-A Documentation Runway** and **M0-B Engineering Baseline**. All seven planned M0-B engineering Work Items through `M0-CI-001 — CI Skeleton` are merged, the bounded dependency remediation sequence is complete, and [M0-B Exit Review 002](docs/implementation/m0-b-exit-review-002.md) records a Passed decision. M0-C has not started. There is no business-feature implementation yet.
+The repository has completed **M0-A Documentation Runway**, **M0-B Engineering Baseline**, and **M0-C Integration Gate**. [M0 Acceptance Record 001](docs/implementation/m0-acceptance-record-001.md) preserves the initial Blocked review; the bounded cleanup remediation resolved its sole blocker, and [M0 Acceptance Record 002](docs/implementation/m0-acceptance-record-002.md) records the final Passed decision. M0 is completed, M1 has not started, and there is no business-feature implementation yet.
 
 ## 2. Product goal and MVP boundary
 
