@@ -10,7 +10,7 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0-A Documentation Runway**. All seven planned **M0-B Engineering Baseline** Work Items through `M0-CI-001 — CI Skeleton` are merged. The first [M0-B Exit Review](docs/implementation/m0-b-exit-review-001.md) is blocked by unresolved High-severity dependency advisories tracked in GitHub Issue #12, so M0-C has not started. There is no business-code implementation yet.
+The repository has completed **M0-A Documentation Runway** and **M0-B Engineering Baseline**. All seven planned M0-B Work Items through `M0-CI-001 — CI Skeleton` are merged, the bounded dependency remediation sequence is complete, and [M0-B Exit Review 002](docs/implementation/m0-b-exit-review-002.md) records a Passed decision. M0-C has not started. There is no business-code implementation yet.
 
 This repository now provides workspace installation, local and CI quality checks, builds, five minimal process skeletons, and local state-service containers. It does not provide product functionality, application-to-service integration, deployment, or a development server.
 
@@ -112,9 +112,8 @@ The workflow references no repository Secrets, persists no credentials, uploads 
 
 ## Next implementation steps
 
-1. Resolve the High-severity dependency findings through the bounded remediation sequence tracked by GitHub Issue #12.
-2. Produce a new M0-B Exit Review after remediation evidence passes.
-3. Do not begin M0-C until M0-B formally passes.
+1. Keep M0-C unstarted until its separate `M0-GATE-001 — M0 Demo and Exit Audit` Work Item is Ready.
+2. Do not begin product implementation before the M0-C gate is independently completed.
 
 No completion date is committed by this repository.
 

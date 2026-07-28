@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0-B Engineering Baseline blocked at Exit Review; all seven planned engineering Work Items are merged, but unresolved High-severity dependency advisories prevent acceptance.
+**Current stage:** M0-B Engineering Baseline completed; M0-C has not started.
 **Last updated:** 2026-07-28
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0-A Documentation Runway**. All seven planned M0-B engineering Work Items through `M0-CI-001 — CI Skeleton` are merged. The first [M0-B Exit Review](docs/implementation/m0-b-exit-review-001.md) is blocked by unresolved High-severity dependency advisories tracked in GitHub Issue #12; M0-C has not started. There is no business-feature implementation yet.
+The repository has completed **M0-A Documentation Runway** and **M0-B Engineering Baseline**. All seven planned M0-B engineering Work Items through `M0-CI-001 — CI Skeleton` are merged, the bounded dependency remediation sequence is complete, and [M0-B Exit Review 002](docs/implementation/m0-b-exit-review-002.md) records a Passed decision. M0-C has not started. There is no business-feature implementation yet.
 
 ## 2. Product goal and MVP boundary
 
