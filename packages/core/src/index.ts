@@ -1,1 +1,1 @@
-export const corePackage = '@contentos/core' as const;
+export * from './security/authentication.js';

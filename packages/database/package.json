@@ -1,0 +1,29 @@
+{
+  "name": "@contentos/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --project tsconfig.json",
+    "build": "tsc --project tsconfig.build.json",
+    "db:generate": "drizzle-kit generate --config ../../drizzle.config.ts",
+    "db:migrate": "node dist/migrate.js"
+  },
+  "devDependencies": {
+    "@types/pg": "8.20.0",
+    "drizzle-kit": "0.31.10"
+  },
+  "dependencies": {
+    "@contentos/core": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "pg": "8.22.0"
+  }
+}

@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0 completed; M1 has not started.
+**Current stage:** M0 completed; M1 in progress through M1-SEC-001.
 **Last updated:** 2026-07-28
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0-A Documentation Runway**, **M0-B Engineering Baseline**, and **M0-C Integration Gate**. [M0 Acceptance Record 001](docs/implementation/m0-acceptance-record-001.md) preserves the initial Blocked review; the bounded cleanup remediation resolved its sole blocker, and [M0 Acceptance Record 002](docs/implementation/m0-acceptance-record-002.md) records the final Passed decision. M0 is completed, M1 has not started, and there is no business-feature implementation yet.
+The repository has completed **M0-A Documentation Runway**, **M0-B Engineering Baseline**, and **M0-C Integration Gate**. [M0 Acceptance Record 002](docs/implementation/m0-acceptance-record-002.md) records the final Passed decision. M1 is now in progress: `M1-SEC-001` establishes only the single-user Session, owner-principal, API error, OpenAPI, configuration, and PostgreSQL migration foundation. Content Package and Web product behavior are not implemented yet.
 
 ## 2. Product goal and MVP boundary
 
@@ -134,7 +134,7 @@ M0-QUAL-001 extends the real workspace commands with a local quality toolchain. 
 
 - `corepack pnpm install` installs the single workspace lockfile.
 - `corepack pnpm install --frozen-lockfile` verifies reproducible installation.
-- `corepack pnpm typecheck` runs strict TypeScript checking in each current package.
+- `corepack pnpm typecheck` builds the shared package declarations required by consumers, then runs strict TypeScript checking across the workspace. The root strict baseline keeps `skipLibCheck` disabled; only the Drizzle adapter package isolates known third-party declaration noise.
 - `corepack pnpm build` creates the five application build outputs.
 - `corepack pnpm format` formats the active repository baseline; `format:check` verifies it without writes.
 - `corepack pnpm lint` runs the root flat ESLint configuration across source and configuration files.
@@ -142,13 +142,15 @@ M0-QUAL-001 extends the real workspace commands with a local quality toolchain. 
 - `corepack pnpm check` runs `format:check`, `lint`, `typecheck`, `test`, and `build` in that order and stops at the first failure.
 - `corepack pnpm check:docs`, `check:decisions`, and `check:secrets` run the focused dependency-free repository-integrity checks; `corepack pnpm repository:check` runs all three. They validate Git-tracked Markdown local links, the Canonical Decision Register (exactly DEC-001–DEC-294, no missing or duplicate), DEC references, and a bounded high-confidence Secret scan. They are Docker-independent and not part of `check`. Read [CI Skeleton](docs/quality/ci-skeleton.md) for their scope.
 - `corepack pnpm test:integration` is the only Docker-dependent command. It runs the black-box integration smoke harness against the five application skeletons and the local PostgreSQL, Redis, and S3-compatible Object Storage through an isolated `contentos-smoke-*` Compose project that uses `tmpfs`, ephemeral loopback ports, and temporary credentials. It is intentionally excluded from `check`. Read [Integration Smoke Harness](docs/quality/integration-smoke-harness.md) for its scope and isolation design.
-- `corepack pnpm workspace:check` confirms that pnpm resolves exactly the five current applications and four current packages.
+- `corepack pnpm workspace:check` confirms that pnpm resolves exactly the five current applications and five current packages.
+- `corepack pnpm db:generate` generates reviewed SQL from the Drizzle schema; `db:migrate` builds the database adapter and applies committed migrations to the explicitly supplied `DATABASE_URL`.
+- `corepack pnpm auth:hash-password` interactively reads a local owner password and emits only its versioned `scrypt` hash. Never pass the password as a command-line argument.
 - `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, and `start:renderer` start their respective built applications.
 - `corepack pnpm infra:config`, `infra:pull`, `infra:up`, `infra:status`, `infra:logs`, and `infra:down` manage only local PostgreSQL, Redis, and S3-compatible Object Storage through Compose. `infra:down` retains named volumes.
 
 The current local S3-compatible implementation is SeaweedFS `weed mini`, pinned to its verified `4.29` image manifest. It is a local-development baseline only; it does not select a production Object Storage provider or add a vendor dependency to the Domain or application packages.
 
-No application connects to local state services through its own product code yet. The integration smoke harness (`corepack pnpm test:integration`) drives the application skeletons and the local state containers directly from the test process through their real entry points; it does not add a product connection, Adapter, schema, or migration. The local quality toolchain otherwise does not create a `dev` command, browser or E2E tests, database tests, Queue behavior, or application-feature commands. `M0-CI-001` adds a bounded GitHub Actions workflow and the local repository-integrity commands above; both CI jobs pass on the merged `main` baseline. It is not a release platform, deployment, or full release gate. Read [Local Quality Toolchain](docs/quality/local-quality-toolchain.md) for its scope and commands, [Integration Smoke Harness](docs/quality/integration-smoke-harness.md) for the integration baseline, and [CI Skeleton](docs/quality/ci-skeleton.md) for the CI scope.
+The API now connects to PostgreSQL only for server-side authentication Sessions. It exposes `POST /v1/auth/login`, `GET /v1/auth/session`, `POST /v1/auth/logout`, and `/openapi.json`; all other applications remain skeletons. The committed migration creates only `auth_sessions` plus Drizzle migration metadata. No Content Package, Queue, Source, Workflow, Agent, browser test, or deployment exists. Read [Authentication Foundation](docs/security/authentication-foundation.md), [Integration Smoke Harness](docs/quality/integration-smoke-harness.md), and [CI Skeleton](docs/quality/ci-skeleton.md).
 
 ## 18. Work completion report
 

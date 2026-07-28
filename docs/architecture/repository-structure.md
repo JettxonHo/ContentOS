@@ -2,11 +2,11 @@
 
 **Status:** Current Truth
 
-**Scope:** Planned Monorepo layout, package ownership, dependency direction, and M0 creation boundaries
+**Scope:** Planned Monorepo layout, package ownership, dependency direction, and current creation boundaries
 
 **Last Updated:** 2026-07-28
 
-This document specifies the planned Repository structure. The M0-ENG-001 workspace baseline creates four package skeletons, M0-ENG-002 creates the five approved application entry-point skeletons, M0-INFRA-001 adds only the root Compose baseline for local PostgreSQL, Redis, and SeaweedFS S3-compatible Object Storage, M0-QUAL-001 adds the local quality toolchain, M0-QUAL-002 adds the integration smoke harness under `packages/testing`, and M0-CI-001 adds the bounded GitHub Actions workflow and repository-integrity checks. Schema, migration, Docker build paths, and remaining package paths are still planned.
+This document specifies the planned Repository structure and the subset that currently exists. M0 created the five process skeletons, four shared-package skeletons, local services, quality tooling, integration harness, and CI. `M1-SEC-001` creates only the planned `packages/database` boundary, authentication-owned behavior in existing packages, and the first migration. Remaining package and Docker build paths are still planned.
 
 Related documents:
 
@@ -68,18 +68,19 @@ contentos/
 
 This is a planned destination, not a claim that the paths already exist. M0 Engineering may create only the subset required by its bounded Work Items. Later packages are created when their Milestone first needs them.
 
-### Current M0 engineering baseline
+### Current engineering baseline
 
-The repository now has a Node.js 24.18.0 / pnpm 11.17.0 workspace with one lockfile and these four private ESM package skeletons:
+The repository has a Node.js 24.18.0 / pnpm 11.17.0 workspace with one lockfile and these five private ESM packages:
 
 ```text
 packages/core
 packages/contracts
 packages/config
 packages/testing
+packages/database
 ```
 
-Each has only package identity and strict TypeScript checking. It does not expose a domain model, Contract, runtime configuration reader, Fixture, test runner, or build output.
+`core`, `contracts`, and `config` now expose the bounded authentication Ports/use case, versioned HTTP contracts, and validated API configuration. `database` owns the Drizzle Session schema, node-postgres connection, repository adapter, and migration runner. `testing` owns deterministic unit/repository support and the isolated integration harness. Package build outputs are generated under ignored `dist/` directories.
 
 M0-ENG-002 adds only these deployable-process skeletons:
 
@@ -91,7 +92,7 @@ apps/fetcher
 apps/renderer
 ```
 
-The Web skeleton is a baseline page; API has only a Fastify-backed liveness endpoint; worker, fetcher, and renderer have only buildable process lifecycle entry points. They do not create product features, state-service connections, Queue behavior, fetch behavior, rendering behavior, or shared infrastructure packages. `schemas/`, `migrations/`, Docker, and every other planned package remain absent.
+The Web entry point remains a baseline page. API now composes liveness plus the bounded authentication endpoints, exact-Origin guard, common error filter, OpenAPI JSON, and PostgreSQL Session adapter. Worker, fetcher, and renderer remain lifecycle skeletons. The root `migrations/` path contains only the forward authentication migration and Drizzle metadata; every other planned infrastructure package remains absent.
 
 M0-QUAL-002 adds the integration smoke harness inside the existing `packages/testing` package, without adding a new package or application:
 
@@ -100,7 +101,7 @@ packages/testing/fixtures/compose.smoke.yaml
 packages/testing/src/integration/**
 ```
 
-The fixture is a Compose override that combines with the root `compose.yaml` to start an isolated `contentos-smoke-*` project using `tmpfs` and ephemeral loopback ports; the integration source contains the harness, SigV4 signer, and black-box smoke tests. It introduces no product behavior, Adapter, schema, migration, or application-to-service connection. Read [Integration Smoke Harness](../quality/integration-smoke-harness.md) for its scope and isolation design.
+The fixture combines with the root `compose.yaml` to start an isolated `contentos-smoke-*` project using `tmpfs` and ephemeral loopback ports. In M1 it applies the reviewed authentication migration and tests the API Session adapter without touching local named volumes. Read [Integration Smoke Harness](../quality/integration-smoke-harness.md).
 
 M0-CI-001 adds a bounded GitHub Actions workflow and dependency-free repository-integrity checks, without adding a new package or application:
 

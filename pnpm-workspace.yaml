@@ -6,16 +6,21 @@ packages:
   - apps/renderer
   - packages/core
   - packages/contracts
+  - packages/database
   - packages/config
   - packages/testing
 
 overrides:
+  '@esbuild-kit/core-utils@3.3.2>esbuild': 0.25.4
+  '@nestjs/swagger@11.4.6>js-yaml': 5.2.2
   '@nestjs/platform-fastify@11.1.28>find-my-way': 9.7.0
   brace-expansion: 5.0.8
   next@16.2.12>postcss: 8.5.23
   next@16.2.12>sharp: 0.35.3
 
 allowBuilds:
+  '@scarf/scarf': false
+  esbuild: true
   sharp: true
 
 patchedDependencies:
