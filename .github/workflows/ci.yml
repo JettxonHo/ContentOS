@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Read-only workflow: least privilege, no token persistence, no repository
+# credentials referenced, no artifact upload, no deployment or release step.
+permissions:
+  contents: read
+
+jobs:
+  docker-independent:
+    name: Docker-independent quality
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Setup Node from .node-version
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Verify Node version
+        run: |
+          v="$(node --version)"
+          if [ "$v" != "v24.18.0" ]; then
+            echo "Expected Node v24.18.0 from .node-version, got $v" >&2
+            exit 1
+          fi
+      - name: Verify Corepack pnpm version
+        run: |
+          v="$(corepack pnpm --version)"
+          if [ "$v" != "11.17.0" ]; then
+            echo "Expected pnpm 11.17.0 via Corepack, got $v" >&2
+            exit 1
+          fi
+      - name: Install (frozen lockfile)
+        run: corepack pnpm install --frozen-lockfile
+      - name: Workspace resolution
+        run: corepack pnpm workspace:check
+      - name: Docker-independent quality gate (format/lint/typecheck/test/build)
+        run: corepack pnpm check
+      - name: Repository checks (Markdown links, Decision register, Secret scan)
+        run: corepack pnpm repository:check
+
+  integration-smoke:
+    name: Integration smoke (Docker)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Setup Node from .node-version
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Verify Node version
+        run: |
+          v="$(node --version)"
+          if [ "$v" != "v24.18.0" ]; then
+            echo "Expected Node v24.18.0 from .node-version, got $v" >&2
+            exit 1
+          fi
+      - name: Verify Corepack pnpm version
+        run: |
+          v="$(corepack pnpm --version)"
+          if [ "$v" != "11.17.0" ]; then
+            echo "Expected pnpm 11.17.0 via Corepack, got $v" >&2
+            exit 1
+          fi
+      - name: Install (frozen lockfile)
+        run: corepack pnpm install --frozen-lockfile
+      - name: Integration smoke harness (Docker-dependent)
+        run: corepack pnpm test:integration

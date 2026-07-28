@@ -6,7 +6,9 @@
 
 This document records the executable integration smoke baseline introduced by `M0-QUAL-002`. It is the Docker-dependent companion to the [Local Quality Toolchain](local-quality-toolchain.md). It does not create a product feature, a remote CI system, an end-to-end or browser test, a product database, schema, or migration test, a queue test, an Agent Eval, or a release gate.
 
-Related documents: [Local Quality Toolchain](local-quality-toolchain.md), [Test Strategy](test-strategy.md), [Release Gates](release-gates.md), [Repository Structure](../architecture/repository-structure.md), and the [Roadmap](../implementation/roadmap.md).
+Related documents: [Local Quality Toolchain](local-quality-toolchain.md), [CI Skeleton](ci-skeleton.md), [Test Strategy](test-strategy.md), [Release Gates](release-gates.md), [Repository Structure](../architecture/repository-structure.md), and the [Roadmap](../implementation/roadmap.md).
+
+The M0 CI workflow runs `corepack pnpm test:integration` as its own Docker-dependent job, separate from the Docker-independent quality job; see [CI Skeleton](ci-skeleton.md).
 
 ---
 

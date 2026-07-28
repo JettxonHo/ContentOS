@@ -6,7 +6,7 @@
 
 **Last Updated:** 2026-07-28
 
-This document specifies the planned Repository structure. The M0-ENG-001 workspace baseline creates four package skeletons, M0-ENG-002 creates the five approved application entry-point skeletons, M0-INFRA-001 adds only the root Compose baseline for local PostgreSQL, Redis, and SeaweedFS S3-compatible Object Storage, M0-QUAL-001 adds the local quality toolchain, and M0-QUAL-002 adds the integration smoke harness under `packages/testing`. Schema, migration, Docker build paths, and remaining package paths are still planned.
+This document specifies the planned Repository structure. The M0-ENG-001 workspace baseline creates four package skeletons, M0-ENG-002 creates the five approved application entry-point skeletons, M0-INFRA-001 adds only the root Compose baseline for local PostgreSQL, Redis, and SeaweedFS S3-compatible Object Storage, M0-QUAL-001 adds the local quality toolchain, M0-QUAL-002 adds the integration smoke harness under `packages/testing`, and M0-CI-001 adds the bounded GitHub Actions workflow and repository-integrity checks. Schema, migration, Docker build paths, and remaining package paths are still planned.
 
 Related documents:
 
@@ -101,6 +101,15 @@ packages/testing/src/integration/**
 ```
 
 The fixture is a Compose override that combines with the root `compose.yaml` to start an isolated `contentos-smoke-*` project using `tmpfs` and ephemeral loopback ports; the integration source contains the harness, SigV4 signer, and black-box smoke tests. It introduces no product behavior, Adapter, schema, migration, or application-to-service connection. Read [Integration Smoke Harness](../quality/integration-smoke-harness.md) for its scope and isolation design.
+
+M0-CI-001 adds a bounded GitHub Actions workflow and dependency-free repository-integrity checks, without adding a new package or application:
+
+```text
+.github/workflows/ci.yml
+packages/testing/src/repository/**
+```
+
+The workflow runs the existing workspace, Docker-independent quality, repository-integrity, and Docker-dependent integration-smoke checks on the GitHub-hosted `ubuntu-24.04` runner. The repository-check source is a self-contained TypeScript module executed directly by Node's built-in type-stripping (no new dependency, no build step); it provides Markdown local-link, Canonical Decision register, and bounded Secret checks over Git-tracked files. It introduces no product behavior, release platform, or deployment. Read [CI Skeleton](../quality/ci-skeleton.md) for its scope.
 
 ## 3. `apps` Responsibilities
 
@@ -282,6 +291,7 @@ M0-ENG-001 selects the `@contentos` npm scope and ESM (`NodeNext`) module baseli
 - Unit Tests may live near Domain code or follow a later Repository-wide convention.
 - Integration Tests use dedicated test support and real or containerized dependencies where their contract requires it. The M0 integration smoke harness lives in `packages/testing/src/integration/**` and is collected only by `corepack pnpm test:integration`; the ordinary `corepack pnpm test` and `corepack pnpm check` commands exclude it.
 - Reusable Fixtures, fakes, clocks, builders, database factories, and Queue helpers belong in `packages/testing` when genuinely shared. The M0 smoke Compose override lives at `packages/testing/fixtures/compose.smoke.yaml`.
+- Repository-integrity checks (Markdown links, Canonical Decision register, Secret scan) and their deterministic tests live in `packages/testing/src/repository/**`. The checks run locally via `corepack pnpm repository:check` and in the M0 CI workflow; their tests are collected by the ordinary `corepack pnpm test` command.
 - Agent Eval datasets are governed evaluation assets, not ordinary Unit Test Fixtures.
 - Renderer Fixtures and visual baselines are managed separately from general Domain Fixtures.
 - Tests must import packages through the same supported public boundaries as production consumers where practical.
