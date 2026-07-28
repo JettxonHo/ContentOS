@@ -23,7 +23,7 @@ async function bootstrap(): Promise<void> {
   await application.register(fastifyHelmet);
   await application.register(fastifyCors, {
     credentials: true,
-    methods: ['GET', 'HEAD', 'POST', 'OPTIONS'],
+    methods: ['GET', 'HEAD', 'POST', 'PATCH', 'OPTIONS'],
     origin: config.trustedWebOrigin,
   });
 

@@ -6,6 +6,9 @@ export const API_ERROR_CODES = [
   'UNAUTHENTICATED',
   'ORIGIN_DENIED',
   'RATE_LIMITED',
+  'CONTENT_PACKAGE_NOT_FOUND',
+  'REVISION_CONFLICT',
+  'CONTENT_PACKAGE_STATE_CONFLICT',
   'INTERNAL_ERROR',
 ] as const;
 
@@ -26,7 +29,7 @@ export interface ApiErrorResponse {
 
 export interface PortableJsonSchema {
   readonly $schema?: string;
-  readonly type: 'object' | 'array' | 'string' | 'integer';
+  readonly type?: 'object' | 'array' | 'string' | 'integer' | 'null';
   readonly additionalProperties?: boolean;
   readonly required?: string[];
   readonly properties?: Record<string, PortableJsonSchema>;
@@ -34,6 +37,14 @@ export interface PortableJsonSchema {
   readonly enum?: unknown[];
   readonly minLength?: number;
   readonly maxLength?: number;
+  readonly minItems?: number;
+  readonly maxItems?: number;
+  readonly uniqueItems?: boolean;
+  readonly minProperties?: number;
+  readonly minimum?: number;
+  readonly maximum?: number;
+  readonly pattern?: string;
+  readonly anyOf?: PortableJsonSchema[];
 }
 
 export const apiErrorSchema: PortableJsonSchema = {

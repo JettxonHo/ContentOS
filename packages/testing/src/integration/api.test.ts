@@ -14,7 +14,7 @@ describe('api smoke', () => {
     expect(response.headers.get('x-frame-options')).toBe('SAMEORIGIN');
   });
 
-  it('publishes the authentication contract as OpenAPI JSON without a documentation UI dependency', async () => {
+  it('publishes authentication and Content Package contracts as OpenAPI JSON without a documentation UI dependency', async () => {
     const state = requireState();
     const response = await fetch(`${state.apiOrigin}/openapi.json`);
     expect(response.status).toBe(200);
@@ -23,7 +23,14 @@ describe('api smoke', () => {
       components?: { securitySchemes?: Record<string, unknown> };
     };
     expect(Object.keys(document.paths ?? {})).toEqual(
-      expect.arrayContaining(['/v1/auth/login', '/v1/auth/session', '/v1/auth/logout']),
+      expect.arrayContaining([
+        '/v1/auth/login',
+        '/v1/auth/session',
+        '/v1/auth/logout',
+        '/v1/content-packages',
+        '/v1/content-packages/{id}',
+        '/v1/content-packages/{id}/archive',
+      ]),
     );
     expect(document.components?.securitySchemes).toHaveProperty('contentos_session');
   });

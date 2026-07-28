@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0 completed; M1 in progress through M1-SEC-001.
+**Current stage:** M0 completed; M1 in progress through M1-CP-001.
 **Last updated:** 2026-07-28
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0-A Documentation Runway**, **M0-B Engineering Baseline**, and **M0-C Integration Gate**. [M0 Acceptance Record 002](docs/implementation/m0-acceptance-record-002.md) records the final Passed decision. M1 is now in progress: `M1-SEC-001` establishes only the single-user Session, owner-principal, API error, OpenAPI, configuration, and PostgreSQL migration foundation. Content Package and Web product behavior are not implemented yet.
+The repository has completed **M0-A Documentation Runway**, **M0-B Engineering Baseline**, and **M0-C Integration Gate**. [M0 Acceptance Record 002](docs/implementation/m0-acceptance-record-002.md) records the final Passed decision. M1 is now in progress: `M1-SEC-001` is completed, and `M1-CP-001` establishes the first owner-scoped Content Package Domain, persistence, and protected API slice. Web product behavior is not implemented yet.
 
 ## 2. Product goal and MVP boundary
 
@@ -150,7 +150,7 @@ M0-QUAL-001 extends the real workspace commands with a local quality toolchain. 
 
 The current local S3-compatible implementation is SeaweedFS `weed mini`, pinned to its verified `4.29` image manifest. It is a local-development baseline only; it does not select a production Object Storage provider or add a vendor dependency to the Domain or application packages.
 
-The API now connects to PostgreSQL only for server-side authentication Sessions. It exposes `POST /v1/auth/login`, `GET /v1/auth/session`, `POST /v1/auth/logout`, and `/openapi.json`; all other applications remain skeletons. The committed migration creates only `auth_sessions` plus Drizzle migration metadata. No Content Package, Queue, Source, Workflow, Agent, browser test, or deployment exists. Read [Authentication Foundation](docs/security/authentication-foundation.md), [Integration Smoke Harness](docs/quality/integration-smoke-harness.md), and [CI Skeleton](docs/quality/ci-skeleton.md).
+The API connects to PostgreSQL for server-side Sessions and owner-scoped Content Package metadata. It exposes the three `/v1/auth/*` routes, protected `/v1/content-packages` create/list/get/update/archive routes, and `/openapi.json`; all other applications remain skeletons. The committed migrations create `auth_sessions` and `content_packages` plus Drizzle migration metadata. No Web product UI, Queue, Source, Workflow, Agent, browser test, or deployment exists. Read [Authentication Foundation](docs/security/authentication-foundation.md), [Content Package Foundation](docs/architecture/content-package-foundation.md), [Integration Smoke Harness](docs/quality/integration-smoke-harness.md), and [CI Skeleton](docs/quality/ci-skeleton.md).
 
 ## 18. Work completion report
 
