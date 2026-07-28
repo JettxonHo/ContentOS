@@ -3,12 +3,14 @@ import { chmodSync, existsSync, mkdirSync, openSync, rmSync, writeFileSync } fro
 import { join } from 'node:path';
 import { randomBytes, scryptSync } from 'node:crypto';
 
-import { ENV_FILE, readComposeCredentials, SMOKE_DIR, STATE_FILE, type SmokeState } from './env.js';
-import { allocateLoopbackPort, run, waitForHttpOk } from './process.js';
-import { composeDown, composePort, composeUp } from './compose.js';
+import * as smokeEnv from './env.ts';
+import type { SmokeState } from './env.ts';
+import { allocateLoopbackPort, run, waitForHttpOk } from './process.ts';
+import { composeDown, composePort, composeUp } from './compose.ts';
 
 const OVERRIDE_FIXTURE = join('packages', 'testing', 'fixtures', 'compose.smoke.yaml');
 const BASE_COMPOSE = 'compose.yaml';
+const { ENV_FILE, readComposeCredentials, SMOKE_DIR, STATE_FILE } = smokeEnv;
 
 interface HarnessRuntime {
   projectName: string;
@@ -60,7 +62,9 @@ function writeEnvFile(envFile: string): void {
     `OBJECT_STORAGE_ACCESS_KEY=${randomCredential(20)}`,
     `OBJECT_STORAGE_SECRET_KEY=${randomCredential(40)}`,
     'CONTENTOS_OWNER_USER_ID=00000000-0000-4000-8000-000000000001',
-    `CONTENTOS_OWNER_PASSWORD_HASH=${smokePasswordHash(ownerPassword)}`,
+    // Compose treats single-quoted env-file values literally, so the `$`
+    // separators in the scrypt hash cannot be expanded or exposed as warnings.
+    `CONTENTOS_OWNER_PASSWORD_HASH='${smokePasswordHash(ownerPassword)}'`,
     `CONTENTOS_TEST_OWNER_PASSWORD=${ownerPassword}`,
   ];
   writeFileSync(envFile, `${lines.join('\n')}\n`, { mode: 0o600 });
@@ -297,7 +301,12 @@ async function setup(): Promise<void> {
   const webLog = openSync(join(SMOKE_DIR, 'web.log'), 'a');
   const webChild = spawn('corepack', ['pnpm', '--filter', '@contentos/web', 'start'], {
     cwd: repoRoot,
-    env: { ...process.env, PORT: String(webPort) },
+    env: {
+      ...process.env,
+      PORT: String(webPort),
+      CONTENTOS_ENV: 'test',
+      CONTENTOS_API_ORIGIN: runtime.apiOrigin,
+    },
     detached: true,
     stdio: ['ignore', webLog, webLog],
   });

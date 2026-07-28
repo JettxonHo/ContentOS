@@ -5,7 +5,7 @@ import './styles.css';
 
 export const metadata: Metadata = {
   title: 'ContentOS',
-  description: 'ContentOS engineering baseline',
+  description: 'A private, reviewable content studio for one creator',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

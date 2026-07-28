@@ -71,7 +71,9 @@ export function readComposeCredentials(envFile: string): Record<string, string> 
       continue;
     }
     const key = trimmed.slice(0, separator).trim();
-    const value = trimmed.slice(separator + 1).trim();
+    const rawValue = trimmed.slice(separator + 1).trim();
+    const value =
+      rawValue.length >= 2 && rawValue.startsWith("'") && rawValue.endsWith("'") ? rawValue.slice(1, -1) : rawValue;
     if (key !== '') {
       credentials[key] = value;
     }

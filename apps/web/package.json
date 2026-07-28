@@ -8,6 +8,7 @@
     "start": "next start -H 127.0.0.1"
   },
   "dependencies": {
+    "@contentos/contracts": "workspace:*",
     "next": "16.2.12",
     "react": "19.2.8",
     "react-dom": "19.2.8"

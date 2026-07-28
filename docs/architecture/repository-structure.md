@@ -6,7 +6,7 @@
 
 **Last Updated:** 2026-07-28
 
-This document specifies the planned Repository structure and the subset that currently exists. M0 created the five process skeletons, four shared-package skeletons, local services, quality tooling, integration harness, and CI. `M1-SEC-001` created the planned `packages/database` boundary and authentication foundation; `M1-CP-001` adds Content Package Domain, Contract, Drizzle adapter, API composition, and the second migration within those existing boundaries. Remaining package and Docker build paths are still planned.
+This document specifies the planned Repository structure and the subset that currently exists. M0 created the five process skeletons, four shared-package skeletons, local services, quality tooling, integration harness, and CI. M1 adds the database/authentication boundary, Content Package Domain and API slice, and the first Web product loop within those existing boundaries. Remaining package and Docker build paths are still planned.
 
 Related documents:
 
@@ -92,7 +92,7 @@ apps/fetcher
 apps/renderer
 ```
 
-The Web entry point remains a baseline page. API now composes liveness plus the bounded authentication endpoints, exact-Origin guard, common error filter, OpenAPI JSON, and PostgreSQL Session adapter. Worker, fetcher, and renderer remain lifecycle skeletons. The root `migrations/` path contains only the forward authentication migration and Drizzle metadata; every other planned infrastructure package remains absent.
+Web now owns the M1 login, active/archived Dashboard, new-package form, Workspace metadata editor, and typed browser API client; it never accesses PostgreSQL or Secrets. API composes liveness, authentication, exact-Origin enforcement, the Content Package routes, common errors, OpenAPI JSON, and PostgreSQL adapters. Worker, fetcher, and renderer remain lifecycle skeletons. The root `migrations/` path contains the two reviewed forward migrations and Drizzle metadata; every other planned infrastructure package remains absent.
 
 M0-QUAL-002 adds the integration smoke harness inside the existing `packages/testing` package, without adding a new package or application:
 
@@ -291,6 +291,7 @@ M0-ENG-001 selects the `@contentos` npm scope and ESM (`NodeNext`) module baseli
 
 - Unit Tests may live near Domain code or follow a later Repository-wide convention.
 - Integration Tests use dedicated test support and real or containerized dependencies where their contract requires it. The M0 integration smoke harness lives in `packages/testing/src/integration/**` and is collected only by `corepack pnpm test:integration`; the ordinary `corepack pnpm test` and `corepack pnpm check` commands exclude it.
+- The bounded M1 browser scenario lives in `packages/testing/src/browser/**`, uses pinned Playwright Chromium, and is collected only by `corepack pnpm test:browser`. It reuses the isolated smoke runtime and is also excluded from ordinary unit tests and `check`.
 - Reusable Fixtures, fakes, clocks, builders, database factories, and Queue helpers belong in `packages/testing` when genuinely shared. The M0 smoke Compose override lives at `packages/testing/fixtures/compose.smoke.yaml`.
 - Repository-integrity checks (Markdown links, Canonical Decision register, Secret scan) and their deterministic tests live in `packages/testing/src/repository/**`. The checks run locally via `corepack pnpm repository:check` and in the M0 CI workflow; their tests are collected by the ordinary `corepack pnpm test` command.
 - Agent Eval datasets are governed evaluation assets, not ordinary Unit Test Fixtures.

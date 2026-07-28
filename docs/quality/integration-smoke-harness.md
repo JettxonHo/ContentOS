@@ -1,10 +1,10 @@
 # ContentOS Integration Smoke Harness
 
 **Status:** Implementation Baseline
-**Scope:** The single Docker-dependent integration smoke command, its isolation design, what it verifies, and its boundary against the Docker-independent quality gate
+**Scope:** The API/process integration smoke command, its isolation design, what it verifies, and its boundary against other quality entry points
 **Last Updated:** 2026-07-28
 
-This document records the executable integration smoke baseline introduced by `M0-QUAL-002`, extended by `M1-SEC-001` for authentication, and extended by `M1-CP-001` for the bounded Content Package API. It is the Docker-dependent companion to the [Local Quality Toolchain](local-quality-toolchain.md). It is not a browser or full product end-to-end test, a queue test, an Agent Eval, or a release gate.
+This document records the executable integration smoke baseline introduced by `M0-QUAL-002`, extended by `M1-SEC-001` for authentication, and extended by `M1-CP-001` for the bounded Content Package API. It is a Docker-dependent companion to the [Local Quality Toolchain](local-quality-toolchain.md). It does not itself collect browser tests; `M1-WEB-001` reuses its isolated runtime through the separate [M1 Browser Thin Slice](browser-thin-slice.md).
 
 Related documents: [Local Quality Toolchain](local-quality-toolchain.md), [CI Skeleton](ci-skeleton.md), [Test Strategy](test-strategy.md), [Release Gates](release-gates.md), [Repository Structure](../architecture/repository-structure.md), and the [Roadmap](../implementation/roadmap.md).
 
@@ -25,8 +25,9 @@ It proves the baseline is wired together before later Milestones depend on that 
 | `corepack pnpm test`             | No              | Unit tests only; excludes `packages/testing/src/integration/**`.                               |
 | `corepack pnpm check`            | No              | `format:check`, `lint`, `typecheck`, `test`, `build`. Does **not** include `test:integration`. |
 | `corepack pnpm test:integration` | **Yes**         | Only `packages/testing/src/integration/**/*.test.ts`.                                          |
+| `corepack pnpm test:browser`     | **Yes**         | Only `packages/testing/src/browser/**/*.spec.ts`; documented separately.                       |
 
-`test` and `check` remain Docker-, network-, and credential-independent. `test:integration` is the only Docker-dependent entry point. It is deliberately absent from `check` so that the ordinary pre-commit gate never requires Docker.
+`test` and `check` remain Docker-, network-, and credential-independent. The two explicit smoke entry points are deliberately absent from `check` so the ordinary pre-commit gate never requires Docker.
 
 ## 3. Isolation design
 

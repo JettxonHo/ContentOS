@@ -8,6 +8,7 @@ export default defineConfig({
       'apps/web/.next/**',
       'coverage/**',
       'packages/testing/src/integration/**',
+      'packages/testing/src/browser/**',
     ],
     include: ['apps/**/*.{test,spec}.{ts,tsx}', 'packages/**/*.{test,spec}.{ts,tsx}'],
     passWithNoTests: true,
