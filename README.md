@@ -10,9 +10,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. **M0-B Engineering Baseline is in progress**: `M0-ENG-001 — Workspace and TypeScript Baseline`, `M0-ENG-002 — Application Skeletons`, `M0-ENG-003 — Web Skeleton Loopback Binding`, `M0-INFRA-001 — Local State Services`, `M0-QUAL-001 — Local Quality Toolchain`, and `M0-QUAL-002 — Integration Smoke Harness` are merged; `M0-CI-001 — CI Skeleton` is implemented and in review. There is no business-code implementation yet.
+The repository has completed **M0-A Documentation Runway**. All seven planned **M0-B Engineering Baseline** Work Items through `M0-CI-001 — CI Skeleton` are merged. The first [M0-B Exit Review](docs/implementation/m0-b-exit-review-001.md) is blocked by unresolved High-severity dependency advisories tracked in GitHub Issue #12, so M0-C has not started. There is no business-code implementation yet.
 
-This repository now provides workspace installation, local format/lint/typecheck/unit-test commands, builds, five minimal process skeletons, and local state-service containers. It does not provide product functionality, application-to-service integration, remote CI, or a development server.
+This repository now provides workspace installation, local and CI quality checks, builds, five minimal process skeletons, and local state-service containers. It does not provide product functionality, application-to-service integration, deployment, or a development server.
 
 ## MVP boundary
 
@@ -108,12 +108,13 @@ A bounded M0 GitHub Actions workflow at [.github/workflows/ci.yml](.github/workf
 - a Docker-independent job: workspace resolution, `corepack pnpm check`, and `corepack pnpm repository:check` (Markdown local-link, Canonical Decision register, and Secret checks);
 - a Docker-dependent job: `corepack pnpm test:integration` through the existing isolated smoke harness.
 
-The workflow references no repository Secrets, persists no credentials, uploads no artifacts, and performs no deployment or release. It is an M0 skeleton, not a full release gate. Its remote execution still requires independent review, commit, push, and the human merge decision; it has not yet been verified to pass on GitHub. Read [CI Skeleton](docs/quality/ci-skeleton.md) for the full scope.
+The workflow references no repository Secrets, persists no credentials, uploads no artifacts, and performs no deployment or release. It is an M0 skeleton, not a full release gate. Both jobs pass on the merged `main` baseline. Read [CI Skeleton](docs/quality/ci-skeleton.md) for the full scope.
 
 ## Next implementation steps
 
-1. Review `M0-CI-001 — CI Skeleton`.
-2. Progress through the remaining bounded M0 engineering Work Items in the [Roadmap](docs/implementation/roadmap.md).
+1. Resolve the High-severity dependency findings through the bounded remediation sequence tracked by GitHub Issue #12.
+2. Produce a new M0-B Exit Review after remediation evidence passes.
+3. Do not begin M0-C until M0-B formally passes.
 
 No completion date is committed by this repository.
 

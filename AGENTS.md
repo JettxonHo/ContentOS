@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0-B Engineering Baseline in progress; M0-ENG-001, M0-ENG-002, M0-ENG-003, M0-INFRA-001, M0-QUAL-001, and M0-QUAL-002 are merged; M0-CI-001 is implemented and in review.
+**Current stage:** M0-B Engineering Baseline blocked at Exit Review; all seven planned engineering Work Items are merged, but unresolved High-severity dependency advisories prevent acceptance.
 **Last updated:** 2026-07-28
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. M0-B is in progress: `M0-ENG-001`, `M0-ENG-002`, `M0-ENG-003`, `M0-INFRA-001`, `M0-QUAL-001`, and `M0-QUAL-002` are merged; `M0-CI-001 — CI Skeleton` is implemented and in review. There is no business-feature implementation yet.
+The repository has completed **M0-A Documentation Runway**. All seven planned M0-B engineering Work Items through `M0-CI-001 — CI Skeleton` are merged. The first [M0-B Exit Review](docs/implementation/m0-b-exit-review-001.md) is blocked by unresolved High-severity dependency advisories tracked in GitHub Issue #12; M0-C has not started. There is no business-feature implementation yet.
 
 ## 2. Product goal and MVP boundary
 
@@ -148,7 +148,7 @@ M0-QUAL-001 extends the real workspace commands with a local quality toolchain. 
 
 The current local S3-compatible implementation is SeaweedFS `weed mini`, pinned to its verified `4.29` image manifest. It is a local-development baseline only; it does not select a production Object Storage provider or add a vendor dependency to the Domain or application packages.
 
-No application connects to local state services through its own product code yet. The integration smoke harness (`corepack pnpm test:integration`) drives the application skeletons and the local state containers directly from the test process through their real entry points; it does not add a product connection, Adapter, schema, or migration. The local quality toolchain otherwise does not create a `dev` command, browser or E2E tests, database tests, Queue behavior, or application-feature commands. `M0-CI-001` adds a bounded GitHub Actions workflow and the local repository-integrity commands above; it is not a release platform, deployment, or full release gate, and its remote execution is verified only after independent review, commit, push, and the human merge decision. Read [Local Quality Toolchain](docs/quality/local-quality-toolchain.md) for its scope and commands, [Integration Smoke Harness](docs/quality/integration-smoke-harness.md) for the integration baseline, and [CI Skeleton](docs/quality/ci-skeleton.md) for the CI scope.
+No application connects to local state services through its own product code yet. The integration smoke harness (`corepack pnpm test:integration`) drives the application skeletons and the local state containers directly from the test process through their real entry points; it does not add a product connection, Adapter, schema, or migration. The local quality toolchain otherwise does not create a `dev` command, browser or E2E tests, database tests, Queue behavior, or application-feature commands. `M0-CI-001` adds a bounded GitHub Actions workflow and the local repository-integrity commands above; both CI jobs pass on the merged `main` baseline. It is not a release platform, deployment, or full release gate. Read [Local Quality Toolchain](docs/quality/local-quality-toolchain.md) for its scope and commands, [Integration Smoke Harness](docs/quality/integration-smoke-harness.md) for the integration baseline, and [CI Skeleton](docs/quality/ci-skeleton.md) for the CI scope.
 
 ## 18. Work completion report
 
