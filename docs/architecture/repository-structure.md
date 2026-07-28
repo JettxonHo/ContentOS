@@ -6,7 +6,7 @@
 
 **Last Updated:** 2026-07-28
 
-This document specifies the planned Repository structure and the subset that currently exists. M0 created the five process skeletons, four shared-package skeletons, local services, quality tooling, integration harness, and CI. `M1-SEC-001` creates only the planned `packages/database` boundary, authentication-owned behavior in existing packages, and the first migration. Remaining package and Docker build paths are still planned.
+This document specifies the planned Repository structure and the subset that currently exists. M0 created the five process skeletons, four shared-package skeletons, local services, quality tooling, integration harness, and CI. `M1-SEC-001` created the planned `packages/database` boundary and authentication foundation; `M1-CP-001` adds Content Package Domain, Contract, Drizzle adapter, API composition, and the second migration within those existing boundaries. Remaining package and Docker build paths are still planned.
 
 Related documents:
 
@@ -80,7 +80,7 @@ packages/testing
 packages/database
 ```
 
-`core`, `contracts`, and `config` now expose the bounded authentication Ports/use case, versioned HTTP contracts, and validated API configuration. `database` owns the Drizzle Session schema, node-postgres connection, repository adapter, and migration runner. `testing` owns deterministic unit/repository support and the isolated integration harness. Package build outputs are generated under ignored `dist/` directories.
+`core`, `contracts`, and `config` now expose the bounded authentication and Content Package Ports/use cases, versioned HTTP contracts, and validated API configuration. `database` owns the Drizzle Session and Content Package schemas, node-postgres connection, repository adapters, and migration runner. `testing` owns deterministic unit/repository support and the isolated integration harness. Package build outputs are generated under ignored `dist/` directories.
 
 M0-ENG-002 adds only these deployable-process skeletons:
 

@@ -132,13 +132,13 @@ M0-C records integration evidence and evaluates M0 exit conditions. It does not 
 
 ## 8. M1 — Product Skeleton and Domain Foundation
 
-**Current status: In Progress.** The first bounded foundation item, `M1-SEC-001`, establishes authentication, owner-principal, API error, OpenAPI, validated configuration, and PostgreSQL Session persistence only. The planned sequence is:
+**Current status: In Progress.** `M1-SEC-001` is completed. `M1-CP-001` is in review with the first owner-scoped Content Package Domain, persistence, protected API, and Artifact identity foundation. The planned sequence is:
 
-| Work Item                                                            | Goal                                                             | Depends on   | Status boundary                                      |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------ | ---------------------------------------------------- |
-| `M1-SEC-001 — Single-user Session and API Foundation`                | Establish the secure owner Session and protected API boundary.   | M0 Passed    | **In Review.** No Content Package or Web product UI. |
-| `M1-CP-001 — Content Package Domain, Persistence, and Protected API` | Add the first owner-scoped Content Package domain and API slice. | `M1-SEC-001` | Planned; begins only after the dependency is merged. |
-| `M1-WEB-001 — Login, Dashboard, and Workspace Thin Slice`            | Connect the Web UI to the protected Content Package API.         | `M1-CP-001`  | Planned; begins only after the dependency is merged. |
+| Work Item                                                            | Goal                                                             | Depends on   | Status boundary                                        |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------ | ------------------------------------------------------ |
+| `M1-SEC-001 — Single-user Session and API Foundation`                | Establish the secure owner Session and protected API boundary.   | M0 Passed    | **Completed.** No Content Package or Web product UI.   |
+| `M1-CP-001 — Content Package Domain, Persistence, and Protected API` | Add the first owner-scoped Content Package domain and API slice. | `M1-SEC-001` | **In Review.** No Web product UI, Source, or Workflow. |
+| `M1-WEB-001 — Login, Dashboard, and Workspace Thin Slice`            | Connect the Web UI to the protected Content Package API.         | `M1-CP-001`  | Planned; begins only after the dependency is merged.   |
 
 ### Goal
 

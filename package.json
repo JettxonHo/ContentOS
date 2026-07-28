@@ -8,8 +8,8 @@
     "pnpm": "11.17.0"
   },
   "scripts": {
-    "format": "prettier --write --ignore-unknown AGENTS.md README.md CONTRIBUTING.md package.json pnpm-workspace.yaml tsconfig.base.json drizzle.config.ts apps packages migrations docs/quality docs/security/authentication-foundation.md docs/implementation/roadmap.md",
-    "format:check": "prettier --check --ignore-unknown AGENTS.md README.md CONTRIBUTING.md package.json pnpm-workspace.yaml tsconfig.base.json drizzle.config.ts apps packages migrations docs/quality docs/security/authentication-foundation.md docs/implementation/roadmap.md",
+    "format": "prettier --write --ignore-unknown AGENTS.md README.md CONTRIBUTING.md package.json pnpm-workspace.yaml tsconfig.base.json drizzle.config.ts apps packages migrations docs/quality docs/security/authentication-foundation.md docs/architecture/content-package-foundation.md docs/implementation/roadmap.md",
+    "format:check": "prettier --check --ignore-unknown AGENTS.md README.md CONTRIBUTING.md package.json pnpm-workspace.yaml tsconfig.base.json drizzle.config.ts apps packages migrations docs/quality docs/security/authentication-foundation.md docs/architecture/content-package-foundation.md docs/implementation/roadmap.md",
     "lint": "eslint .",
     "typecheck": "corepack pnpm build:packages && corepack pnpm -r --workspace-concurrency=1 run typecheck",
     "test": "vitest run --config vitest.config.ts",

@@ -4,7 +4,7 @@
 **Scope:** The single Docker-dependent integration smoke command, its isolation design, what it verifies, and its boundary against the Docker-independent quality gate
 **Last Updated:** 2026-07-28
 
-This document records the executable integration smoke baseline introduced by `M0-QUAL-002` and extended by `M1-SEC-001` for the authentication boundary. It is the Docker-dependent companion to the [Local Quality Toolchain](local-quality-toolchain.md). It is not an end-to-end or browser test, a Content Package test, a queue test, an Agent Eval, or a release gate.
+This document records the executable integration smoke baseline introduced by `M0-QUAL-002`, extended by `M1-SEC-001` for authentication, and extended by `M1-CP-001` for the bounded Content Package API. It is the Docker-dependent companion to the [Local Quality Toolchain](local-quality-toolchain.md). It is not a browser or full product end-to-end test, a queue test, an Agent Eval, or a release gate.
 
 Related documents: [Local Quality Toolchain](local-quality-toolchain.md), [CI Skeleton](ci-skeleton.md), [Test Strategy](test-strategy.md), [Release Gates](release-gates.md), [Repository Structure](../architecture/repository-structure.md), and the [Roadmap](../implementation/roadmap.md).
 
@@ -14,7 +14,7 @@ The M0 CI workflow runs `corepack pnpm test:integration` as its own Docker-depen
 
 ## 1. Purpose
 
-`corepack pnpm test:integration` is one explicit, repeatable, black-box command that verifies the five application entry points and the local-state baseline through real processes and containers. M1 extends it to apply the reviewed authentication migration and exercise the API's single-user Session boundary against isolated PostgreSQL.
+`corepack pnpm test:integration` is one explicit, repeatable, black-box command that verifies the five application entry points and the local-state baseline through real processes and containers. M1 extends it to apply the reviewed migrations and exercise the API's single-user Session and owner-scoped Content Package boundaries against isolated PostgreSQL.
 
 It proves the baseline is wired together before later Milestones depend on that wiring. It is not a Vertical Slice and does not exercise Domain, Workflow, Agent, Render, or Source behavior.
 
@@ -48,7 +48,7 @@ A Vitest `globalSetup` performs, once per run: a Docker availability check, a bu
 - **web:** responds over loopback with a successful HTTP status.
 - **api:** liveness and security headers; OpenAPI JSON; fail-closed redacted configuration startup; correct/incorrect login; bounded throttling; HttpOnly SameSite cookie behavior; protected Session inspection; exact-Origin denial; persisted token hashing; expiry; revocation; cookie clearing; and replay denial.
 - **worker, fetcher, renderer:** each emits `process.started`, responds to `SIGTERM` with `process.stopping`, and exits cleanly with code `0`.
-- **postgres:** healthy, loopback-reachable, authenticates the correct credential over TCP, rejects a wrong credential, and contains only the reviewed `auth_sessions` product table plus Drizzle's migration journal.
+- **postgres:** healthy, loopback-reachable, authenticates the correct credential over TCP, rejects a wrong credential, and contains only the reviewed `auth_sessions` and `content_packages` product tables plus Drizzle's migration journal.
 - **redis:** healthy, loopback-reachable, returns `PONG` for the correct credential, rejects a wrong credential, and holds no key.
 - **object storage:** healthy, loopback-reachable, accepts a correct AWS SigV4 signature, rejects a wrong signature, rejects anonymous access, and leaves no probe bucket or object after the run.
 
@@ -77,7 +77,7 @@ If Docker is missing or invalid, the harness fails clearly with a non-zero exit 
 
 ## 7. Scope boundary
 
-This harness is local-only. It is not a product end-to-end test, Content Package test, queue behavior test, Renderer or Playwright test, Agent Eval, recovery drill, or release gate. It now verifies the authentication migration, Drizzle Session repository through the API, and PostgreSQL authentication against a disposable `tmpfs` database. It creates no Content Package or other business table, runs no migration against `contentos-local`, and persists no test data beyond the isolated run.
+This harness is local-only. It is not a browser or full product end-to-end test, queue behavior test, Renderer or Playwright test, Agent Eval, recovery drill, or release gate. It verifies both reviewed migrations, the Drizzle Session and Content Package repositories through the API, owner non-disclosure, revision conflicts, Archive, pagination, and PostgreSQL authentication against a disposable `tmpfs` database. It runs no migration against `contentos-local` and persists no test data beyond the isolated run.
 
 ## 8. Decision traceability
 

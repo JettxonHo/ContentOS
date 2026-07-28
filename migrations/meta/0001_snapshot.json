@@ -1,0 +1,254 @@
+{
+  "id": "19742267-e3ed-4fc9-9cef-dff135a580e3",
+  "prevId": "698ee71d-841f-4645-92af-c4b9fadc9a03",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.auth_sessions": {
+      "name": "auth_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "credential_hash": {
+          "name": "credential_hash",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_user_id": {
+          "name": "owner_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "auth_sessions_owner_user_id_idx": {
+          "name": "auth_sessions_owner_user_id_idx",
+          "columns": [
+            {
+              "expression": "owner_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "auth_sessions_expires_at_idx": {
+          "name": "auth_sessions_expires_at_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "auth_sessions_credential_hash_unique": {
+          "name": "auth_sessions_credential_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": ["credential_hash"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.content_packages": {
+      "name": "content_packages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "owner_user_id": {
+          "name": "owner_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content_mode": {
+          "name": "content_mode",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requested_blog": {
+          "name": "requested_blog",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requested_xiaohongshu": {
+          "name": "requested_xiaohongshu",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lifecycle": {
+          "name": "lifecycle",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "content_packages_owner_lifecycle_created_idx": {
+          "name": "content_packages_owner_lifecycle_created_idx",
+          "columns": [
+            {
+              "expression": "owner_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lifecycle",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "content_packages_title_length_check": {
+          "name": "content_packages_title_length_check",
+          "value": "char_length(\"content_packages\".\"title\") BETWEEN 1 AND 200"
+        },
+        "content_packages_description_length_check": {
+          "name": "content_packages_description_length_check",
+          "value": "\"content_packages\".\"description\" IS NULL OR char_length(\"content_packages\".\"description\") <= 2000"
+        },
+        "content_packages_mode_check": {
+          "name": "content_packages_mode_check",
+          "value": "\"content_packages\".\"content_mode\" IN ('deferred', 'creator_led', 'research_based')"
+        },
+        "content_packages_requested_output_check": {
+          "name": "content_packages_requested_output_check",
+          "value": "\"content_packages\".\"requested_blog\" OR \"content_packages\".\"requested_xiaohongshu\""
+        },
+        "content_packages_lifecycle_check": {
+          "name": "content_packages_lifecycle_check",
+          "value": "\"content_packages\".\"lifecycle\" IN ('active', 'archived')"
+        },
+        "content_packages_revision_check": {
+          "name": "content_packages_revision_check",
+          "value": "\"content_packages\".\"revision\" >= 1"
+        },
+        "content_packages_archive_state_check": {
+          "name": "content_packages_archive_state_check",
+          "value": "(\"content_packages\".\"lifecycle\" = 'active' AND \"content_packages\".\"archived_at\" IS NULL) OR (\"content_packages\".\"lifecycle\" = 'archived' AND \"content_packages\".\"archived_at\" IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
