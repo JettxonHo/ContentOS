@@ -1,0 +1,27 @@
+# ContentOS integration smoke Compose override.
+#
+# Combines with the repository compose.yaml under an isolated contentos-smoke-*
+# project. `!reset []` clears the inherited persistent named-volume mounts so the
+# smoke run never reads or changes the existing contentos-local named volumes;
+# `tmpfs` replaces service data with in-memory storage. `!override` rebinds the
+# published host ports to ephemeral loopback-only ports (127.0.0.1:0).
+# No image, digest, credential, healthcheck, or command is changed here.
+services:
+  postgres:
+    volumes: !reset []
+    tmpfs:
+      - /var/lib/postgresql
+    ports: !override
+      - '127.0.0.1:0:5432'
+  redis:
+    volumes: !reset []
+    tmpfs:
+      - /data
+    ports: !override
+      - '127.0.0.1:0:6379'
+  object-storage:
+    volumes: !reset []
+    tmpfs:
+      - /data
+    ports: !override
+      - '127.0.0.1:0:8333'

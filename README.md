@@ -10,7 +10,7 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. **M0-B Engineering Baseline is in progress**: `M0-ENG-001 — Workspace and TypeScript Baseline`, `M0-ENG-002 — Application Skeletons`, and `M0-INFRA-001 — Local State Services` are merged; `M0-QUAL-001 — Local Quality Toolchain` is in review. There is no business-code implementation yet.
+The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. **M0-B Engineering Baseline is in progress**: `M0-ENG-001 — Workspace and TypeScript Baseline`, `M0-ENG-002 — Application Skeletons`, `M0-ENG-003 — Web Skeleton Loopback Binding`, `M0-INFRA-001 — Local State Services`, and `M0-QUAL-001 — Local Quality Toolchain` are merged; `M0-QUAL-002 — Integration Smoke Harness` is implemented and in review. `M0-CI-001 — CI Skeleton` has not started. There is no business-code implementation yet.
 
 This repository now provides workspace installation, local format/lint/typecheck/unit-test commands, builds, five minimal process skeletons, and local state-service containers. It does not provide product functionality, application-to-service integration, remote CI, or a development server.
 
@@ -64,12 +64,13 @@ corepack pnpm format:check
 corepack pnpm lint
 corepack pnpm typecheck
 corepack pnpm test
+corepack pnpm test:integration
 corepack pnpm build
 corepack pnpm check
 corepack pnpm workspace:check
 ```
 
-Before a commit, run `corepack pnpm check`. It runs `format:check`, `lint`, `typecheck`, `test`, and `build` without starting Docker services, reaching the network, or reading Secrets. The local quality gate covers the engineering baseline only; GitHub Actions and other remote CI have not been created.
+Before a commit, run `corepack pnpm check`. It runs `format:check`, `lint`, `typecheck`, `test`, and `build` without starting Docker services, reaching the network, or reading Secrets. `corepack pnpm test:integration` is the only Docker-dependent command; it is excluded from `check`. The local quality gate covers the engineering baseline only; GitHub Actions and other remote CI have not been created.
 
 After a successful build, the individual skeleton processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web is a baseline page; API provides only `GET /health/live`; worker, fetcher, and renderer only demonstrate process startup and graceful shutdown.
 
@@ -86,11 +87,19 @@ corepack pnpm infra:down
 
 The Compose baseline runs PostgreSQL on `127.0.0.1:5432`, Redis on `127.0.0.1:6379`, and SeaweedFS `weed mini` S3-compatible object storage on `127.0.0.1:8333` unless overridden in `.env`. Its other internal component ports are not exposed to the Host. The local image is fixed to SeaweedFS `4.29` and its verified manifest digest; it is Apache-2.0 licensed and is a local-development implementation detail, not a production Object Storage provider decision. `infra:down` retains named volumes; it does not delete data. No ContentOS application currently connects to these services, and no schema, migration, queue, bucket, adapter, or production deployment exists.
 
-These commands are the current engineering baseline only. There is no `dev`, browser or E2E test, database test, remote CI, or product-feature command yet.
+To verify the five application skeletons and the local state services work together through their real entry points and containers, run:
+
+```bash
+corepack pnpm test:integration
+```
+
+This starts an isolated `contentos-smoke-*` Compose project that replaces persistent volumes with `tmpfs`, binds ephemeral ports to `127.0.0.1` only, and uses temporary credentials outside the repository. It never reads, mounts, or changes the `contentos-local` named volumes. It is a black-box smoke harness, not a product end-to-end test; read [Integration Smoke Harness](docs/quality/integration-smoke-harness.md) for its scope and isolation design.
+
+These commands are the current engineering baseline only. There is no `dev`, browser or E2E test, product database, schema, or migration test, remote CI, or product-feature command yet.
 
 ## Next implementation steps
 
-1. Review `M0-QUAL-001 — Local Quality Toolchain`.
+1. Review `M0-QUAL-002 — Integration Smoke Harness`.
 2. Progress through the remaining bounded M0 engineering Work Items in the [Roadmap](docs/implementation/roadmap.md).
 
 No completion date is committed by this repository.
