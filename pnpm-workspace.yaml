@@ -9,5 +9,9 @@ packages:
   - packages/config
   - packages/testing
 
+overrides:
+  next@16.2.12>postcss: 8.5.23
+  next@16.2.12>sharp: 0.35.3
+
 allowBuilds:
   sharp: true
