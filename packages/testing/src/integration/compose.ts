@@ -1,5 +1,5 @@
-import type { SmokeState } from './env.js';
-import { run, type RunResult } from './process.js';
+import type { SmokeState } from './env.ts';
+import { run, type RunResult } from './process.ts';
 
 const DEFAULT_TIMEOUT = 60_000;
 

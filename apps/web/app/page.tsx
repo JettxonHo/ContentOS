@@ -1,9 +1,9 @@
-export default function HomePage() {
-  return (
-    <main>
-      <h1>ContentOS</h1>
-      <p>Engineering Baseline</p>
-      <p>Product Application is not implemented.</p>
-    </main>
-  );
+import { DashboardClient } from '../components/dashboard-client';
+import { getApiOrigin } from '../lib/runtime-config';
+
+export const dynamic = 'force-dynamic';
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+  const query = await searchParams;
+  return <DashboardClient apiOrigin={getApiOrigin()} initialView={query.view === 'archived' ? 'archived' : 'active'} />;
 }

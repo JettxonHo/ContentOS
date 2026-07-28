@@ -77,3 +77,26 @@ jobs:
         run: corepack pnpm install --frozen-lockfile
       - name: Integration smoke harness (Docker-dependent)
         run: corepack pnpm test:integration
+
+  browser-smoke:
+    name: M1 browser thin slice (Chromium)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Setup Node from .node-version
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Verify Node and Corepack pnpm versions
+        run: |
+          test "$(node --version)" = "v24.18.0"
+          test "$(corepack pnpm --version)" = "11.17.0"
+      - name: Install workspace (frozen lockfile)
+        run: corepack pnpm install --frozen-lockfile
+      - name: Install pinned Chromium and system dependencies
+        run: corepack pnpm exec playwright install --with-deps chromium
+      - name: M1 browser scenario
+        run: corepack pnpm test:browser
