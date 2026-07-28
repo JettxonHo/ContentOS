@@ -114,7 +114,7 @@ The list is a plan, not permission to merge its tasks or select an unapproved st
 
 ## 7. M0-C — M0 Integration Gate
 
-**Current status: Completed.** [M0 Acceptance Record 001](m0-acceptance-record-001.md) remains the immutable historical Blocked record for the task-created demo-volume residue. The exact Human-authorized cleanup and independent re-review are recorded in [M0 Acceptance Record 002](m0-acceptance-record-002.md), which records a Passed decision with no remaining Blocking Defect. M0 is completed; M1 has not started.
+**Current status: Completed.** [M0 Acceptance Record 001](m0-acceptance-record-001.md) remains the immutable historical Blocked record for the task-created demo-volume residue. The exact Human-authorized cleanup and independent re-review are recorded in [M0 Acceptance Record 002](m0-acceptance-record-002.md), which records a Passed decision with no remaining Blocking Defect. M0 is completed; M1 is now in progress.
 
 `M0-GATE-001 — M0 Demo and Exit Audit` was the sole planned M0-C delivery Work Item. `M0-GATE-001A — Gate Demo Cleanup Verification and Acceptance Re-review` was added only as the bounded remediation required by its immutable Blocked record. Together they verify that the assembled baseline is usable:
 
@@ -131,6 +131,14 @@ The list is a plan, not permission to merge its tasks or select an unapproved st
 M0-C records integration evidence and evaluates M0 exit conditions. It does not add a Content Package, Source, Workflow, or Agent feature merely to make the demo appear more complete.
 
 ## 8. M1 — Product Skeleton and Domain Foundation
+
+**Current status: In Progress.** The first bounded foundation item, `M1-SEC-001`, establishes authentication, owner-principal, API error, OpenAPI, validated configuration, and PostgreSQL Session persistence only. The planned sequence is:
+
+| Work Item                                                            | Goal                                                             | Depends on   | Status boundary                                      |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------ | ---------------------------------------------------- |
+| `M1-SEC-001 — Single-user Session and API Foundation`                | Establish the secure owner Session and protected API boundary.   | M0 Passed    | **In Review.** No Content Package or Web product UI. |
+| `M1-CP-001 — Content Package Domain, Persistence, and Protected API` | Add the first owner-scoped Content Package domain and API slice. | `M1-SEC-001` | Planned; begins only after the dependency is merged. |
+| `M1-WEB-001 — Login, Dashboard, and Workspace Thin Slice`            | Connect the Web UI to the protected Content Package API.         | `M1-CP-001`  | Planned; begins only after the dependency is merged. |
 
 ### Goal
 

@@ -1,15 +1,14 @@
 import { spawn } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, openSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, scryptSync } from 'node:crypto';
 
-import { ENV_FILE, SMOKE_DIR, STATE_FILE, type SmokeState } from './env.js';
+import { ENV_FILE, readComposeCredentials, SMOKE_DIR, STATE_FILE, type SmokeState } from './env.js';
 import { allocateLoopbackPort, run, waitForHttpOk } from './process.js';
 import { composeDown, composePort, composeUp } from './compose.js';
 
 const OVERRIDE_FIXTURE = join('packages', 'testing', 'fixtures', 'compose.smoke.yaml');
 const BASE_COMPOSE = 'compose.yaml';
-const API_PORT = 3001;
 
 interface HarnessRuntime {
   projectName: string;
@@ -45,7 +44,14 @@ function randomCredential(length: number): string {
   return chars.slice(0, length);
 }
 
+function smokePasswordHash(password: string): string {
+  const salt = randomBytes(16);
+  const derived = scryptSync(password, salt, 32, { N: 16_384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
+  return `scrypt$v=1$N=16384$r=8$p=1$${salt.toString('base64url')}$${derived.toString('base64url')}`;
+}
+
 function writeEnvFile(envFile: string): void {
+  const ownerPassword = randomCredential(32);
   const lines = [
     'POSTGRES_USER=smoke_user',
     `POSTGRES_PASSWORD=${randomCredential(32)}`,
@@ -53,6 +59,9 @@ function writeEnvFile(envFile: string): void {
     `REDIS_PASSWORD=${randomCredential(32)}`,
     `OBJECT_STORAGE_ACCESS_KEY=${randomCredential(20)}`,
     `OBJECT_STORAGE_SECRET_KEY=${randomCredential(40)}`,
+    'CONTENTOS_OWNER_USER_ID=00000000-0000-4000-8000-000000000001',
+    `CONTENTOS_OWNER_PASSWORD_HASH=${smokePasswordHash(ownerPassword)}`,
+    `CONTENTOS_TEST_OWNER_PASSWORD=${ownerPassword}`,
   ];
   writeFileSync(envFile, `${lines.join('\n')}\n`, { mode: 0o600 });
   chmodSync(envFile, 0o600);
@@ -189,9 +198,9 @@ async function setup(): Promise<void> {
     baseFile,
     overrideFile,
     envFile: ENV_FILE,
-    ports: { postgres: 0, redis: 0, objectStorage: 0, web: 0, api: API_PORT },
+    ports: { postgres: 0, redis: 0, objectStorage: 0, web: 0, api: 0 },
     webOrigin: '',
-    apiOrigin: `http://127.0.0.1:${API_PORT}`,
+    apiOrigin: '',
     webPid: undefined,
     apiPid: undefined,
     composeUp: false,
@@ -226,11 +235,54 @@ async function setup(): Promise<void> {
   runtime.ports.redis = await readLoopbackPort(runtime, 'redis', 6379);
   runtime.ports.objectStorage = await readLoopbackPort(runtime, 'object-storage', 8333);
 
-  // 5. Start the API artifact on its fixed loopback port.
+  const credentials = readComposeCredentials(runtime.envFile);
+  const postgresPassword = credentials.POSTGRES_PASSWORD;
+  const ownerUserId = credentials.CONTENTOS_OWNER_USER_ID;
+  const ownerPasswordHash = credentials.CONTENTOS_OWNER_PASSWORD_HASH;
+  if (!postgresPassword || !ownerUserId || !ownerPasswordHash) {
+    throw new Error('smoke credential setup is incomplete');
+  }
+  const databaseUrl = `postgresql://smoke_user:${encodeURIComponent(postgresPassword)}@127.0.0.1:${runtime.ports.postgres}/smoke_db`;
+
+  // 5. Apply reviewed SQL migrations twice: the second run proves that the
+  // migration runner is safely repeatable against an already-current schema.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const migration = await run('corepack', ['pnpm', 'db:migrate'], {
+      cwd: repoRoot,
+      env: { ...process.env, DATABASE_URL: databaseUrl },
+      timeoutMs: 120_000,
+    });
+    if (!migration.ok) {
+      throw new Error(`Database migration failed (exit ${migration.code}).`);
+    }
+  }
+
+  // 6. Allocate the Web origin before API startup so exact Origin policy is
+  // stable for the complete API process lifetime.
+  const apiPort = await allocateLoopbackPort();
+  runtime.ports.api = apiPort;
+  runtime.apiOrigin = `http://127.0.0.1:${apiPort}`;
+  const webPort = await allocateLoopbackPort();
+  runtime.ports.web = webPort;
+  runtime.webOrigin = `http://127.0.0.1:${webPort}`;
+
+  // 7. Start the API artifact on its allocated loopback port with process-specific
+  // configuration. Secret values stay in the child environment and temp file.
   const apiLog = openSync(join(SMOKE_DIR, 'api.log'), 'a');
   const apiChild = spawn(process.execPath, [join(repoRoot, 'apps', 'api', 'dist', 'main.js')], {
     cwd: join(repoRoot, 'apps', 'api'),
-    env: process.env,
+    env: {
+      ...process.env,
+      API_HOST: '127.0.0.1',
+      API_PORT: String(apiPort),
+      CONTENTOS_ENV: 'test',
+      CONTENTOS_OWNER_PASSWORD_HASH: ownerPasswordHash,
+      CONTENTOS_OWNER_USER_ID: ownerUserId,
+      CONTENTOS_SECURE_COOKIES: 'false',
+      CONTENTOS_SESSION_TTL_SECONDS: '300',
+      CONTENTOS_WEB_ORIGIN: runtime.webOrigin,
+      DATABASE_URL: databaseUrl,
+    },
     detached: true,
     stdio: ['ignore', apiLog, apiLog],
   });
@@ -240,10 +292,8 @@ async function setup(): Promise<void> {
     throw new Error(`api did not become ready on ${runtime.apiOrigin}/health/live`);
   }
 
-  // 6. Start web on a free loopback port; next honors PORT and binds 127.0.0.1.
-  const webPort = await allocateLoopbackPort();
-  runtime.ports.web = webPort;
-  runtime.webOrigin = `http://127.0.0.1:${webPort}`;
+  // 8. Start Web on the reserved loopback port; Next honors PORT and binds
+  // 127.0.0.1 through the existing skeleton command.
   const webLog = openSync(join(SMOKE_DIR, 'web.log'), 'a');
   const webChild = spawn('corepack', ['pnpm', '--filter', '@contentos/web', 'start'], {
     cwd: repoRoot,

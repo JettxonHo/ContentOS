@@ -1,0 +1,3 @@
+export const API_CONFIG = Symbol('API_CONFIG');
+export const API_SECRETS = Symbol('API_SECRETS');
+export const AUTHENTICATION_SERVICE = Symbol('AUTHENTICATION_SERVICE');

@@ -10,9 +10,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0-A Documentation Runway**, **M0-B Engineering Baseline**, and **M0-C Integration Gate**. [M0 Acceptance Record 001](docs/implementation/m0-acceptance-record-001.md) preserves the initial Blocked review; [M0 Acceptance Record 002](docs/implementation/m0-acceptance-record-002.md) records the final Passed decision after its bounded cleanup remediation. M0 is completed, M1 has not started, and there is no business-code implementation yet.
+The repository has completed **M0-A Documentation Runway**, **M0-B Engineering Baseline**, and **M0-C Integration Gate**. [M0 Acceptance Record 002](docs/implementation/m0-acceptance-record-002.md) records the final Passed decision. M1 is in progress through `M1-SEC-001`: the single-user Session, owner principal, common API error contract, OpenAPI document, runtime configuration, and first PostgreSQL migration now exist. Content Package and Web product behavior do not yet exist.
 
-This repository now provides workspace installation, local and CI quality checks, builds, five minimal process skeletons, and local state-service containers. It does not provide product functionality, application-to-service integration, deployment, or a development server.
+This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, and the bounded authentication foundation. It does not yet provide the M1 Content Package slice, deployment, or a development server.
 
 ## MVP boundary
 
@@ -27,14 +27,14 @@ The repository currently contains:
 - Product, Architecture, Security, and Quality Current-truth specifications;
 - Implementation governance: [Roadmap](docs/implementation/roadmap.md), [Milestone Exit Criteria](docs/implementation/milestone-exit-criteria.md), and [Work Item template](docs/implementation/work-item-template.md).
 
-M0-ENG-001 creates the `packages/core`, `packages/contracts`, `packages/config`, and `packages/testing` skeletons. M0-ENG-002 adds only five application skeletons: `apps/web`, `apps/api`, `apps/worker`, `apps/fetcher`, and `apps/renderer`. All other planned packages and infrastructure remain absent until their bounded Work Items.
+The current workspace contains five applications and five packages. `M1-SEC-001` adds `packages/database`, the first reviewed SQL migration, framework-independent authentication behavior in `core`, shared authentication/error contracts, validated API configuration, and the API authentication composition. Remaining planned packages stay absent until bounded Work Items require them.
 
 ## Authoritative documentation map
 
 - [Agent and repository rules](AGENTS.md)
 - Product: [definition](docs/product/product-definition.md), [users and jobs](docs/product/user-and-jobs.md), [MVP scope](docs/product/mvp-scope.md)
 - Architecture: [domain overview](docs/architecture/domain-overview.md), [technical architecture](docs/architecture/technical-architecture.md), [repository structure](docs/architecture/repository-structure.md), [workflow overview](docs/architecture/workflow-overview.md)
-- Security: [security baseline](docs/security/security-baseline.md)
+- Security: [security baseline](docs/security/security-baseline.md), [authentication foundation](docs/security/authentication-foundation.md)
 - Quality: [test strategy](docs/quality/test-strategy.md), [release gates](docs/quality/release-gates.md), [local quality toolchain](docs/quality/local-quality-toolchain.md), [integration smoke harness](docs/quality/integration-smoke-harness.md), [CI skeleton](docs/quality/ci-skeleton.md)
 - Implementation: [roadmap](docs/implementation/roadmap.md), [exit criteria](docs/implementation/milestone-exit-criteria.md), [Work Item template](docs/implementation/work-item-template.md), and [agent collaboration workflow](docs/implementation/agent-collaboration-workflow.md)
 - [Decision Register](docs/decisions/decisions.md)
@@ -76,7 +76,16 @@ corepack pnpm repository:check
 
 Before a commit, run `corepack pnpm check`. It runs `format:check`, `lint`, `typecheck`, `test`, and `build` without starting Docker services, reaching the network, or reading Secrets. `corepack pnpm test:integration` is the only Docker-dependent command; it is excluded from `check`. `corepack pnpm repository:check` (and the focused `check:docs`, `check:decisions`, and `check:secrets`) run the dependency-free repository-integrity checks over Git-tracked files; they are also Docker-independent. The local quality gate covers the engineering baseline only.
 
-After a successful build, the individual skeleton processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web is a baseline page; API provides only `GET /health/live`; worker, fetcher, and renderer only demonstrate process startup and graceful shutdown.
+After a successful build, the processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web remains a baseline page; API provides liveness, the three `/v1/auth/*` endpoints, and `/openapi.json`; worker, fetcher, and renderer remain lifecycle skeletons. API startup requires the validated values documented in `.env.example`.
+
+Generate a local owner-password hash interactively, then apply the committed database migration only after supplying the intended PostgreSQL URL through the environment:
+
+```bash
+corepack pnpm auth:hash-password
+corepack pnpm db:migrate
+```
+
+The password-hash command does not accept plaintext through command-line arguments. The migration command never runs automatically during API startup.
 
 To prepare local state services, copy `.env.example` to an untracked `.env`, replace every placeholder, then run:
 
@@ -89,7 +98,7 @@ corepack pnpm infra:logs
 corepack pnpm infra:down
 ```
 
-The Compose baseline runs PostgreSQL on `127.0.0.1:5432`, Redis on `127.0.0.1:6379`, and SeaweedFS `weed mini` S3-compatible object storage on `127.0.0.1:8333` unless overridden in `.env`. Its other internal component ports are not exposed to the Host. The local image is fixed to SeaweedFS `4.29` and its verified manifest digest; it is Apache-2.0 licensed and is a local-development implementation detail, not a production Object Storage provider decision. `infra:down` retains named volumes; it does not delete data. No ContentOS application currently connects to these services, and no schema, migration, queue, bucket, adapter, or production deployment exists.
+The Compose baseline runs PostgreSQL on `127.0.0.1:5432`, Redis on `127.0.0.1:6379`, and SeaweedFS `weed mini` S3-compatible object storage on `127.0.0.1:8333` unless overridden in `.env`. Its other internal component ports are not exposed to the Host. The local image is fixed to SeaweedFS `4.29` and its verified manifest digest. `infra:down` retains named volumes. The API can connect to PostgreSQL for server-side Sessions after the migration is applied; it does not use Redis or Object Storage, and no product data table, Queue, bucket, or production deployment exists.
 
 To verify the five application skeletons and the local state services work together through their real entry points and containers, run:
 
@@ -97,9 +106,9 @@ To verify the five application skeletons and the local state services work toget
 corepack pnpm test:integration
 ```
 
-This starts an isolated `contentos-smoke-*` Compose project that replaces persistent volumes with `tmpfs`, binds ephemeral ports to `127.0.0.1` only, and uses temporary credentials outside the repository. It never reads, mounts, or changes the `contentos-local` named volumes. It is a black-box smoke harness, not a product end-to-end test; read [Integration Smoke Harness](docs/quality/integration-smoke-harness.md) for its scope and isolation design.
+This starts an isolated `contentos-smoke-*` Compose project that replaces persistent volumes with `tmpfs`, binds ephemeral ports to `127.0.0.1` only, uses temporary credentials outside the repository, applies the authentication migration, and exercises Session behavior. It never reads, mounts, or changes the `contentos-local` named volumes. It is a black-box integration harness, not a product end-to-end test.
 
-These commands are the current engineering baseline only. There is no `dev`, browser or E2E test, product database, schema, or migration test, or product-feature command yet.
+These commands remain a bounded engineering baseline. There is no `dev`, browser or product E2E test, Content Package schema, Queue, Source, Workflow, Agent, Render, or product-feature command yet.
 
 ## Continuous integration
 
@@ -112,8 +121,8 @@ The workflow references no repository Secrets, persists no credentials, uploads 
 
 ## Next implementation steps
 
-1. Keep M1 unstarted until its first bounded Work Item satisfies the Definition of Ready.
-2. Begin no product implementation outside that independently reviewable M1 Work Item.
+1. Complete and merge `M1-SEC-001` only after its authentication, migration, security, audit, and CI evidence passes.
+2. Begin `M1-CP-001` from the merged authentication baseline; do not start the Web thin slice first.
 
 No completion date is committed by this repository.
 

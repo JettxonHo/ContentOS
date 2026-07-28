@@ -1,1 +1,1 @@
-export const configPackage = '@contentos/config' as const;
+export * from './api-config.js';

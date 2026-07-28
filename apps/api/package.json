@@ -6,12 +6,21 @@
   "scripts": {
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "build": "tsc --project tsconfig.build.json",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "auth:hash-password": "node dist/auth/password-hash.cli.js"
   },
   "dependencies": {
+    "@contentos/config": "workspace:*",
+    "@contentos/contracts": "workspace:*",
+    "@contentos/core": "workspace:*",
+    "@contentos/database": "workspace:*",
+    "@fastify/cookie": "11.1.2",
+    "@fastify/cors": "11.3.0",
+    "@fastify/helmet": "13.1.0",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",
     "@nestjs/platform-fastify": "11.1.28",
+    "@nestjs/swagger": "11.4.6",
     "fastify": "5.10.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"

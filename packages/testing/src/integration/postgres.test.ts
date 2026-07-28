@@ -5,7 +5,7 @@ import { requireState } from './env.js';
 import { loopbackReachable } from './process.js';
 
 describe('postgres smoke', () => {
-  it('is healthy, loopback-reachable, authenticates the correct credential, rejects a wrong one, and creates no tables', async () => {
+  it('is healthy, loopback-reachable, authenticates credentials, and contains only the reviewed authentication migration', async () => {
     const state = requireState();
 
     expect(await composeHealth(state, 'postgres')).toBe('healthy');
@@ -33,13 +33,14 @@ describe('postgres smoke', () => {
     expect(wrong.ok).toBe(false);
     expect(wrong.stderr).toContain('password authentication failed');
 
-    // Read-only probes create nothing; the smoke DB has no application tables or schemas.
+    // M1-SEC-001 introduces only the server-side Session table. Drizzle's own
+    // migration journal lives in its dedicated schema and is not product state.
     const tables = await composeExec(state, 'postgres', [
       'sh',
       '-c',
-      `PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')"`,
+      `PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name"`,
     ]);
     expect(tables.ok).toBe(true);
-    expect(tables.stdout.trim()).toBe('0');
+    expect(tables.stdout.trim()).toBe('auth_sessions');
   });
 });

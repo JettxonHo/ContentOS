@@ -1,1 +1,2 @@
-export const contractsPackage = '@contentos/contracts' as const;
+export * from './api/auth-contracts.js';
+export * from './api/error-contract.js';
