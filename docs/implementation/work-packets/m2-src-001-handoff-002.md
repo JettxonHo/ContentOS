@@ -8,7 +8,7 @@
 
 **Branch:** `codex/m2-src-001-pasted-text-source`
 
-**Branch HEAD:** `e5136a4ef1e17d7f8051450fa6541cb5f01f9c27`
+**Implementation base before this handoff record:** `e5136a4ef1e17d7f8051450fa6541cb5f01f9c27`
 
 **Implementation state:** Uncommitted and not ready for review
 
@@ -110,7 +110,7 @@ First confirm:
 
 ```text
 branch = codex/m2-src-001-pasted-text-source
-HEAD = e5136a4ef1e17d7f8051450fa6541cb5f01f9c27
+HEAD includes the pushed handoff commit 578ad52
 working tree = existing uncommitted M2-SRC-001 changes only
 ```
 
