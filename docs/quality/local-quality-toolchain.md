@@ -2,7 +2,7 @@
 
 **Status:** Implementation Baseline
 **Scope:** Local formatting, linting, type checking, unit tests, builds, and the M0 quality command gate
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-07-28
 
 This document records the executable local quality baseline introduced by `M0-QUAL-001`. It implements the M0 tooling boundary from [Test Strategy](test-strategy.md) and [Release Gates](release-gates.md); it does not create a remote CI system, a release gate implementation, browser testing, infrastructure testing, or product behavior.
 
@@ -16,17 +16,18 @@ corepack pnpm install --frozen-lockfile
 
 ## 2. Commands
 
-| Command                      | Purpose                                                                 |
-| ---------------------------- | ----------------------------------------------------------------------- |
-| `corepack pnpm format`       | Formats the active repository baseline.                                 |
-| `corepack pnpm format:check` | Checks formatting without modifying files.                              |
-| `corepack pnpm lint`         | Lints TypeScript, JavaScript, and the relevant configuration files.     |
-| `corepack pnpm typecheck`    | Runs strict TypeScript checks in every workspace package.               |
-| `corepack pnpm test`         | Runs deterministic local unit tests through Vitest.                     |
-| `corepack pnpm build`        | Builds the five application skeletons.                                  |
-| `corepack pnpm check`        | Runs `format:check`, `lint`, `typecheck`, `test`, and `build` in order. |
+| Command                          | Purpose                                                                                                             |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `corepack pnpm format`           | Formats the active repository baseline.                                                                             |
+| `corepack pnpm format:check`     | Checks formatting without modifying files.                                                                          |
+| `corepack pnpm lint`             | Lints TypeScript, JavaScript, and the relevant configuration files.                                                 |
+| `corepack pnpm typecheck`        | Runs strict TypeScript checks in every workspace package.                                                           |
+| `corepack pnpm test`             | Runs deterministic local unit tests through Vitest.                                                                 |
+| `corepack pnpm test:integration` | Runs the Docker-dependent integration smoke harness. See [Integration Smoke Harness](integration-smoke-harness.md). |
+| `corepack pnpm build`            | Builds the five application skeletons.                                                                              |
+| `corepack pnpm check`            | Runs `format:check`, `lint`, `typecheck`, `test`, and `build` in order.                                             |
 
-Run `corepack pnpm check` before a commit. It has no Docker, database, Redis, Object Storage, browser, network, API key, Secret, or cloud-service dependency.
+Run `corepack pnpm check` before a commit. It has no Docker, database, Redis, Object Storage, browser, network, API key, Secret, or cloud-service dependency. `test:integration` is the only Docker-dependent command; it is intentionally excluded from `check` and is documented separately.
 
 ## 3. Tooling choices
 

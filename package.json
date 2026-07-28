@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "typecheck": "corepack pnpm -r --workspace-concurrency=1 run typecheck",
     "test": "vitest run --config vitest.config.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "build": "corepack pnpm --filter @contentos/web --filter @contentos/api --filter @contentos/worker --filter @contentos/fetcher --filter @contentos/renderer -r --workspace-concurrency=1 run build",
     "check": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build",
     "workspace:check": "corepack pnpm --filter @contentos/web --filter @contentos/api --filter @contentos/worker --filter @contentos/fetcher --filter @contentos/renderer --filter @contentos/core --filter @contentos/contracts --filter @contentos/config --filter @contentos/testing --fail-if-no-match exec node --version",

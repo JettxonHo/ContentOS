@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0-B Engineering Baseline in progress; M0-QUAL-001 is in review.
-**Last updated:** 2026-07-27
+**Current stage:** M0-B Engineering Baseline in progress; M0-ENG-001, M0-ENG-002, M0-ENG-003, M0-INFRA-001, and M0-QUAL-001 are merged; M0-QUAL-002 is implemented and in review.
+**Last updated:** 2026-07-28
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. M0-B is in progress: `M0-ENG-001`, `M0-ENG-002`, and `M0-INFRA-001` are merged; `M0-QUAL-001 — Local Quality Toolchain` is in review. There is no business-feature implementation yet.
+The repository has completed **M0-A Documentation Runway**. Current-truth specifications, implementation governance, repository-entry rules, and GitHub intake templates have passed the M0-A Exit Review. M0-B is in progress: `M0-ENG-001`, `M0-ENG-002`, `M0-ENG-003`, `M0-INFRA-001`, and `M0-QUAL-001` are merged; `M0-QUAL-002 — Integration Smoke Harness` is implemented and in review. `M0-CI-001` has not started. There is no business-feature implementation yet.
 
 ## 2. Product goal and MVP boundary
 
@@ -140,13 +140,14 @@ M0-QUAL-001 extends the real workspace commands with a local quality toolchain. 
 - `corepack pnpm lint` runs the root flat ESLint configuration across source and configuration files.
 - `corepack pnpm test` runs local, deterministic Vitest unit tests. It does not require Docker or any external service.
 - `corepack pnpm check` runs `format:check`, `lint`, `typecheck`, `test`, and `build` in that order and stops at the first failure.
+- `corepack pnpm test:integration` is the only Docker-dependent command. It runs the black-box integration smoke harness against the five application skeletons and the local PostgreSQL, Redis, and S3-compatible Object Storage through an isolated `contentos-smoke-*` Compose project that uses `tmpfs`, ephemeral loopback ports, and temporary credentials. It is intentionally excluded from `check`. Read [Integration Smoke Harness](docs/quality/integration-smoke-harness.md) for its scope and isolation design.
 - `corepack pnpm workspace:check` confirms that pnpm resolves exactly the five current applications and four current packages.
 - `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, and `start:renderer` start their respective built applications.
 - `corepack pnpm infra:config`, `infra:pull`, `infra:up`, `infra:status`, `infra:logs`, and `infra:down` manage only local PostgreSQL, Redis, and S3-compatible Object Storage through Compose. `infra:down` retains named volumes.
 
 The current local S3-compatible implementation is SeaweedFS `weed mini`, pinned to its verified `4.29` image manifest. It is a local-development baseline only; it does not select a production Object Storage provider or add a vendor dependency to the Domain or application packages.
 
-No application connects to local state services yet. The local quality toolchain does not create a `dev` command, remote CI, browser or E2E tests, database tests, Queue behavior, or application-feature commands. Read [Local Quality Toolchain](docs/quality/local-quality-toolchain.md) for its scope and commands.
+No application connects to local state services through its own product code yet. The integration smoke harness (`corepack pnpm test:integration`) drives the application skeletons and the local state containers directly from the test process through their real entry points; it does not add a product connection, Adapter, schema, or migration. The local quality toolchain otherwise does not create a `dev` command, remote CI, browser or E2E tests, database tests, Queue behavior, or application-feature commands. Read [Local Quality Toolchain](docs/quality/local-quality-toolchain.md) for its scope and commands, and [Integration Smoke Harness](docs/quality/integration-smoke-harness.md) for the integration baseline.
 
 ## 18. Work completion report
 
