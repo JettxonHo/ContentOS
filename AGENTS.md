@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M1 completed; M2 has not started.
-**Last updated:** 2026-07-28
+**Current stage:** M1 completed; M2 is in progress (`M2-SRC-001` in review).
+**Last updated:** 2026-07-29
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the private Login → Dashboard → Content Package Workspace loop and its Domain/persistence/security foundations. M2 Source and Workflow work has not started.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the private Login → Dashboard → Content Package Workspace loop and its Domain/persistence/security foundations. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001` (Pasted-text Source Capture and Approval) is in review.
 
 ## 2. Product goal and MVP boundary
 
@@ -142,8 +142,9 @@ M0-QUAL-001 extends the real workspace commands with a local quality toolchain. 
 - `corepack pnpm check` runs `format:check`, `lint`, `typecheck`, `test`, and `build` in that order and stops at the first failure.
 - `corepack pnpm check:docs`, `check:decisions`, and `check:secrets` run the focused dependency-free repository-integrity checks; `corepack pnpm repository:check` runs all three. They validate Git-tracked Markdown local links, the Canonical Decision Register (exactly DEC-001–DEC-294, no missing or duplicate), DEC references, and a bounded high-confidence Secret scan. They are Docker-independent and not part of `check`. Read [CI Skeleton](docs/quality/ci-skeleton.md) for their scope.
 - `corepack pnpm test:integration` runs the black-box API/process integration smoke harness against isolated PostgreSQL, Redis, and S3-compatible Object Storage.
+- `corepack pnpm test:integration:concurrent` launches two complete token-owned integration smoke runs concurrently and verifies distinct runtime state, credentials, cleanup ownership, and zero owned residue without touching unrelated harness runs.
 - `corepack pnpm test:browser` runs the M1 owner loop in pinned Playwright Chromium against the same isolated runtime boundary. Both Docker-dependent commands use `tmpfs`, ephemeral loopback ports, and temporary credentials outside the repository; both are intentionally excluded from `check`. Read [Integration Smoke Harness](docs/quality/integration-smoke-harness.md) and [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md).
-- `corepack pnpm workspace:check` confirms that pnpm resolves exactly the five current applications and five current packages.
+- `corepack pnpm workspace:check` confirms that pnpm resolves exactly the five current applications and six current packages.
 - `corepack pnpm db:generate` generates reviewed SQL from the Drizzle schema; `db:migrate` builds the database adapter and applies committed migrations to the explicitly supplied `DATABASE_URL`.
 - `corepack pnpm auth:hash-password` interactively reads a local owner password and emits only its versioned `scrypt` hash. Never pass the password as a command-line argument.
 - `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, and `start:renderer` start their respective built applications.
@@ -151,7 +152,7 @@ M0-QUAL-001 extends the real workspace commands with a local quality toolchain. 
 
 The current local S3-compatible implementation is SeaweedFS `weed mini`, pinned to its verified `4.29` image manifest. It is a local-development baseline only; it does not select a production Object Storage provider or add a vendor dependency to the Domain or application packages.
 
-The API connects to PostgreSQL for server-side Sessions and owner-scoped Content Package metadata. It exposes the three `/v1/auth/*` routes, protected `/v1/content-packages` create/list/get/update/archive routes, and `/openapi.json`. Web provides the M1 login, active/archived Dashboard, new-package form, and metadata/archive Workspace; later Source and Workflow stages are visibly unavailable. Worker, fetcher, and renderer remain skeletons. The committed migrations create `auth_sessions` and `content_packages` plus Drizzle migration metadata. No Queue, Source, Workflow, Agent, Render, publishing behavior, or deployment exists.
+The API connects to PostgreSQL for server-side Sessions, owner-scoped Content Package metadata, and Source metadata. It exposes the three `/v1/auth/*` routes, protected `/v1/content-packages` create/list/get/update/archive routes, protected `/v1/content-packages/:packageId/sources` capture/list/get/working-copy/version/approval routes, and `/openapi.json`. The API connects to S3-compatible Object Storage through a private adapter for immutable Raw Snapshot bytes. Web provides the M1 login, active/archived Dashboard, new-package form, and metadata/archive Workspace; later Source UI and Workflow stages are visibly unavailable. Worker, fetcher, and renderer remain skeletons. The committed migrations create `auth_sessions`, `content_packages`, `sources`, `source_raw_snapshots`, `source_working_copies`, `source_versions`, `source_heads`, and `source_approvals` plus Drizzle migration metadata. No Queue, Workflow Engine, Agent, Render, publishing behavior, or deployment exists.
 
 ## 18. Work completion report
 

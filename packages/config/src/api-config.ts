@@ -3,6 +3,13 @@ const SCRYPT_HASH_PATTERN = /^scrypt\$v=1\$N=16384\$r=8\$p=1\$[A-Za-z0-9_-]{22}\
 
 export type RuntimeEnvironment = 'development' | 'test' | 'production';
 
+export interface ObjectStorageConfig {
+  readonly endpoint: string;
+  readonly region: string;
+  readonly bucket: string;
+  readonly forcePathStyle: boolean;
+}
+
 export interface ApiConfig {
   readonly environment: RuntimeEnvironment;
   readonly host: '127.0.0.1';
@@ -12,11 +19,14 @@ export interface ApiConfig {
   readonly sessionTtlSeconds: number;
   readonly sessionCookieName: 'contentos_session';
   readonly secureCookies: boolean;
+  readonly objectStorage: ObjectStorageConfig;
 }
 
 export interface ApiSecrets {
   readonly databaseUrl: string;
   readonly ownerPasswordHash: string;
+  readonly objectStorageAccessKey: string;
+  readonly objectStorageSecretKey: string;
 }
 
 export class ConfigurationError extends Error {
@@ -105,6 +115,7 @@ export function loadApiConfig(env: NodeJS.ProcessEnv): ApiConfig {
     sessionTtlSeconds: integer(env, 'CONTENTOS_SESSION_TTL_SECONDS', 86_400, 300, 2_592_000),
     sessionCookieName: 'contentos_session',
     secureCookies: secureCookies(env, environment),
+    objectStorage: loadObjectStorageConfig(env),
   };
 }
 
@@ -123,5 +134,57 @@ export function loadApiSecrets(env: NodeJS.ProcessEnv): ApiSecrets {
   if (!SCRYPT_HASH_PATTERN.test(ownerPasswordHash)) {
     throw new ConfigurationError('CONTENTOS_OWNER_PASSWORD_HASH', 'must be a supported scrypt hash');
   }
-  return { databaseUrl, ownerPasswordHash };
+
+  const objectStorageAccessKey = required(env, 'OBJECT_STORAGE_ACCESS_KEY');
+  if (objectStorageAccessKey.length < 1) {
+    throw new ConfigurationError('OBJECT_STORAGE_ACCESS_KEY', 'value is required');
+  }
+
+  const objectStorageSecretKey = required(env, 'OBJECT_STORAGE_SECRET_KEY');
+  if (objectStorageSecretKey.length < 1) {
+    throw new ConfigurationError('OBJECT_STORAGE_SECRET_KEY', 'value is required');
+  }
+
+  return { databaseUrl, ownerPasswordHash, objectStorageAccessKey, objectStorageSecretKey };
+}
+
+function loadObjectStorageConfig(env: NodeJS.ProcessEnv): ObjectStorageConfig {
+  const endpoint = required(env, 'CONTENTOS_OBJECT_STORAGE_ENDPOINT');
+  let endpointUrl: URL;
+  try {
+    endpointUrl = new URL(endpoint);
+    if (endpointUrl.protocol !== 'http:' && endpointUrl.protocol !== 'https:') {
+      throw new Error('protocol');
+    }
+  } catch {
+    throw new ConfigurationError('CONTENTOS_OBJECT_STORAGE_ENDPOINT', 'must be an absolute HTTP(S) URL');
+  }
+  if (endpointUrl.username !== '' || endpointUrl.password !== '') {
+    throw new ConfigurationError('CONTENTOS_OBJECT_STORAGE_ENDPOINT', 'must not contain user information');
+  }
+
+  const region = env.CONTENTOS_OBJECT_STORAGE_REGION ?? 'us-east-1';
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(region)) {
+    throw new ConfigurationError(
+      'CONTENTOS_OBJECT_STORAGE_REGION',
+      'must be a 1-64 character region token using only letters, numbers, dot, underscore, or hyphen',
+    );
+  }
+
+  const bucket = required(env, 'CONTENTOS_OBJECT_STORAGE_BUCKET');
+  if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(bucket)) {
+    throw new ConfigurationError('CONTENTOS_OBJECT_STORAGE_BUCKET', 'must be a valid bucket name');
+  }
+
+  const forcePathStyleRaw = env.CONTENTOS_OBJECT_STORAGE_FORCE_PATH_STYLE ?? 'true';
+  if (forcePathStyleRaw !== 'true' && forcePathStyleRaw !== 'false') {
+    throw new ConfigurationError('CONTENTOS_OBJECT_STORAGE_FORCE_PATH_STYLE', 'must be true or false');
+  }
+
+  return {
+    endpoint,
+    region,
+    bucket,
+    forcePathStyle: forcePathStyleRaw === 'true',
+  };
 }

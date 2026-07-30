@@ -12,6 +12,7 @@ export interface SignedRequestOptions {
   body?: string;
   region?: string;
   service?: string;
+  headers?: Record<string, string>;
 }
 
 function sha256Hex(value: string): string {
@@ -24,24 +25,23 @@ function hmac(key: Buffer, data: string): Buffer {
 
 function encodePath(pathname: string): string {
   const path = pathname === '' ? '/' : pathname;
-  return path
-    .split('/')
-    .map((segment) => encodeURIComponent(segment))
-    .join('/');
+  return (
+    path
+      .split('/')
+      // URL.pathname is already percent-encoded. Decode each segment before
+      // canonical re-encoding so keys such as spaces or `&` are signed exactly
+      // once while `/` remains an object-key path separator.
+      .map((segment) => encodeURIComponent(decodeURIComponent(segment)))
+      .join('/')
+  );
 }
 
 function encodeQuery(query: string): string {
   if (query === '') {
     return '';
   }
-  return query
-    .split('&')
-    .map((pair) => {
-      const [key, value] = pair.split('=');
-      const encodedKey = encodeURIComponent(key ?? '');
-      const encodedValue = value === undefined ? '' : encodeURIComponent(value);
-      return `${encodedKey}=${encodedValue}`;
-    })
+  return Array.from(new URLSearchParams(query).entries())
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
     .sort()
     .join('&');
 }
@@ -64,8 +64,20 @@ export async function signedFetch(options: SignedRequestOptions): Promise<Respon
 
   const canonicalUri = encodePath(url.pathname);
   const canonicalQuery = encodeQuery(url.search.replace(/^\?/, ''));
-  const canonicalHeaders = `host:${url.host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
-  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+
+  const extraHeaders: Record<string, string> = {};
+  for (const [name, value] of Object.entries(options.headers ?? {})) {
+    extraHeaders[name.toLowerCase()] = value.trim();
+  }
+  const headerMap: Record<string, string> = {
+    host: url.host,
+    'x-amz-content-sha256': payloadHash,
+    'x-amz-date': amzDate,
+    ...extraHeaders,
+  };
+  const signedHeaderNames = Object.keys(headerMap).sort();
+  const canonicalHeaders = signedHeaderNames.map((name) => `${name}:${headerMap[name]}\n`).join('');
+  const signedHeaders = signedHeaderNames.join(';');
   const canonicalRequest = [
     options.method,
     canonicalUri,
@@ -87,8 +99,7 @@ export async function signedFetch(options: SignedRequestOptions): Promise<Respon
   const authorization = `AWS4-HMAC-SHA256 Credential=${options.credentials.accessKeyId}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
 
   const headers: Record<string, string> = {
-    'x-amz-content-sha256': payloadHash,
-    'x-amz-date': amzDate,
+    ...headerMap,
     Authorization: authorization,
   };
 

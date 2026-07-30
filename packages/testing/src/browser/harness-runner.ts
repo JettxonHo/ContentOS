@@ -21,11 +21,11 @@ process.once('SIGTERM', () => void stop(0));
 process.once('SIGINT', () => void stop(1));
 
 try {
-  await harness.setup();
-  process.stdout.write(`${READY_LINE}\n`);
+  const state = await harness.setup();
+  process.stdout.write(`${READY_LINE}:${Buffer.from(state.stateFile, 'utf8').toString('base64url')}\n`);
 } catch (error) {
   const code =
-    error instanceof Error && error.message.startsWith('Docker engine is not available')
+    error instanceof Error && error.message.includes('setup=docker-unavailable')
       ? 'docker-unavailable'
       : 'setup-failed';
   process.stdout.write(`CONTENTOS_BROWSER_HARNESS_ERROR:${code}\n`);

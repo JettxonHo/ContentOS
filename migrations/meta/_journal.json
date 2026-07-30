@@ -15,6 +15,13 @@
       "when": 1785248765312,
       "tag": "0001_large_donald_blake",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785310255118,
+      "tag": "0002_soft_war_machine",
+      "breakpoints": true
     }
   ]
 }

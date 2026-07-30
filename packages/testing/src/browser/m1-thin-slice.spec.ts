@@ -1,8 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 
 import { expect, test } from '@playwright/test';
+import { SMOKE_STATE_FILE_ENV } from '../integration/env.js';
 
 interface BrowserSmokeState {
   envFile: string;
@@ -23,7 +22,8 @@ function readKeyValueFile(path: string): Record<string, string> {
 }
 
 function requireState(): BrowserSmokeState {
-  const path = join(tmpdir(), 'contentos-smoke-harness', 'state.json');
+  const path = process.env[SMOKE_STATE_FILE_ENV];
+  if (!path) throw new Error('Browser smoke state path was not propagated by global setup.');
   return JSON.parse(readFileSync(path, 'utf8')) as BrowserSmokeState;
 }
 

@@ -25,6 +25,37 @@ export function composeDown(state: SmokeState, timeoutMs = 90_000): Promise<RunR
   return run('docker', [...composeArgs(state), 'down'], { cwd: state.repoRoot, timeoutMs });
 }
 
+export function parseComposeProjectNames(stdout: string): ReadonlySet<string> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stdout) as unknown;
+  } catch {
+    throw new Error('Compose project listing JSON is invalid.');
+  }
+  if (!Array.isArray(parsed)) throw new Error('Compose project listing JSON is invalid.');
+  const names = new Set<string>();
+  for (const entry of parsed) {
+    if (typeof entry !== 'object' || entry === null || typeof (entry as { Name?: unknown }).Name !== 'string') {
+      throw new Error('Compose project listing JSON is invalid.');
+    }
+    names.add((entry as { Name: string }).Name);
+  }
+  return names;
+}
+
+export async function listComposeProjectNames(): Promise<
+  | { readonly ok: true; readonly names: ReadonlySet<string> }
+  | { readonly ok: false; readonly names: ReadonlySet<string> }
+> {
+  const result = await run('docker', ['compose', 'ls', '--all', '--format', 'json'], { timeoutMs: 20_000 });
+  if (!result.ok) return { ok: false, names: new Set() };
+  try {
+    return { ok: true, names: parseComposeProjectNames(result.stdout) };
+  } catch {
+    return { ok: false, names: new Set() };
+  }
+}
+
 export function composePort(state: SmokeState, service: string, containerPort: number): Promise<RunResult> {
   return run('docker', [...composeArgs(state), 'port', service, String(containerPort)], {
     cwd: state.repoRoot,

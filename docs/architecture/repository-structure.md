@@ -70,7 +70,7 @@ This is a planned destination, not a claim that the paths already exist. M0 Engi
 
 ### Current engineering baseline
 
-The repository has a Node.js 24.18.0 / pnpm 11.17.0 workspace with one lockfile and these five private ESM packages:
+The repository has a Node.js 24.18.0 / pnpm 11.17.0 workspace with one lockfile and these six private ESM packages:
 
 ```text
 packages/core
@@ -78,9 +78,10 @@ packages/contracts
 packages/config
 packages/testing
 packages/database
+packages/object-storage
 ```
 
-`core`, `contracts`, and `config` now expose the bounded authentication and Content Package Ports/use cases, versioned HTTP contracts, and validated API configuration. `database` owns the Drizzle Session and Content Package schemas, node-postgres connection, repository adapters, and migration runner. `testing` owns deterministic unit/repository support and the isolated integration harness. Package build outputs are generated under ignored `dist/` directories.
+`core`, `contracts`, and `config` expose the bounded authentication, Content Package, and Source Ports/use cases, versioned HTTP contracts, and validated API configuration. `database` owns the Drizzle Session, Content Package, and Source schemas, node-postgres connection, repository adapters, and migration runner. `object-storage` owns the S3-compatible ObjectStore adapter that implements the Core-defined ObjectStore Port using opaque owner-scoped keys and immutable-put semantics. `testing` owns deterministic unit/repository support and the isolated integration harness. Package build outputs are generated under ignored `dist/` directories.
 
 M0-ENG-002 adds only these deployable-process skeletons:
 
@@ -92,7 +93,7 @@ apps/fetcher
 apps/renderer
 ```
 
-Web now owns the M1 login, active/archived Dashboard, new-package form, Workspace metadata editor, and typed browser API client; it never accesses PostgreSQL or Secrets. API composes liveness, authentication, exact-Origin enforcement, the Content Package routes, common errors, OpenAPI JSON, and PostgreSQL adapters. Worker, fetcher, and renderer remain lifecycle skeletons. The root `migrations/` path contains the two reviewed forward migrations and Drizzle metadata; every other planned infrastructure package remains absent.
+Web now owns the M1 login, active/archived Dashboard, new-package form, Workspace metadata editor, and typed browser API client; it never accesses PostgreSQL or Secrets. API composes liveness, authentication, exact-Origin enforcement, the Content Package routes, the Source routes (capture, list, get, working-copy edit, version creation, version list, approval), common errors, OpenAPI JSON, PostgreSQL adapters, and the S3-compatible ObjectStore adapter. Worker, fetcher, and renderer remain lifecycle skeletons. The root `migrations/` path contains the reviewed forward migrations and Drizzle metadata; the root `schemas/` directory contains the versioned Normalized Source JSON Schema 2020-12 document; every other planned infrastructure package remains absent.
 
 M0-QUAL-002 adds the integration smoke harness inside the existing `packages/testing` package, without adding a new package or application:
 
