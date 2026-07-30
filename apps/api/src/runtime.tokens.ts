@@ -2,3 +2,5 @@ export const API_CONFIG = Symbol('API_CONFIG');
 export const API_SECRETS = Symbol('API_SECRETS');
 export const AUTHENTICATION_SERVICE = Symbol('AUTHENTICATION_SERVICE');
 export const CONTENT_PACKAGE_SERVICE = Symbol('CONTENT_PACKAGE_SERVICE');
+export const SOURCE_SERVICE = Symbol('SOURCE_SERVICE');
+export const OBJECT_STORE = Symbol('OBJECT_STORE');

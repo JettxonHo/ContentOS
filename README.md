@@ -10,9 +10,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 has not started.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001` (Pasted-text Source Capture and Approval) is in review.
 
-This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package API, and the M1 Web thin slice. It does not provide Source, Workflow, Agent, Render, publishing behavior, deployment, or a development server.
+This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package API, the M1 Web thin slice, and the in-review M2 Pasted-text Source API foundation. It does not provide Source UI, URL/file Source capture, Workflow, Agent, Render, publishing behavior, deployment, or a development server.
 
 ## MVP boundary
 
@@ -27,13 +27,13 @@ The repository currently contains:
 - Product, Architecture, Security, and Quality Current-truth specifications;
 - Implementation governance: [Roadmap](docs/implementation/roadmap.md), [Milestone Exit Criteria](docs/implementation/milestone-exit-criteria.md), and [Work Item template](docs/implementation/work-item-template.md).
 
-The current workspace contains five applications and five packages. `M1-SEC-001` added `packages/database` and the authentication foundation. `M1-CP-001` adds the second reviewed migration plus framework-independent Content Package and Artifact identity rules, shared HTTP contracts, a Drizzle repository, and protected API composition within existing packages. Remaining planned packages stay absent until bounded Work Items require them.
+The current workspace contains five applications and six packages. `M1-SEC-001` added `packages/database` and the authentication foundation. `M1-CP-001` added the second reviewed migration plus framework-independent Content Package and Artifact identity rules, shared HTTP contracts, a Drizzle repository, and protected API composition within existing packages. `M2-SRC-001` adds `packages/object-storage`, the first Source migration, framework-independent Source domain and application rules, shared Source contracts, a Drizzle Source repository, an S3-compatible adapter, and protected Source API composition. Remaining planned packages stay absent until bounded Work Items require them.
 
 ## Authoritative documentation map
 
 - [Agent and repository rules](AGENTS.md)
 - Product: [definition](docs/product/product-definition.md), [users and jobs](docs/product/user-and-jobs.md), [MVP scope](docs/product/mvp-scope.md)
-- Architecture: [domain overview](docs/architecture/domain-overview.md), [Content Package foundation](docs/architecture/content-package-foundation.md), [technical architecture](docs/architecture/technical-architecture.md), [repository structure](docs/architecture/repository-structure.md), [workflow overview](docs/architecture/workflow-overview.md)
+- Architecture: [domain overview](docs/architecture/domain-overview.md), [Content Package foundation](docs/architecture/content-package-foundation.md), [Source foundation](docs/architecture/source-foundation.md), [technical architecture](docs/architecture/technical-architecture.md), [repository structure](docs/architecture/repository-structure.md), [workflow overview](docs/architecture/workflow-overview.md)
 - Security: [security baseline](docs/security/security-baseline.md), [authentication foundation](docs/security/authentication-foundation.md)
 - Quality: [test strategy](docs/quality/test-strategy.md), [release gates](docs/quality/release-gates.md), [local quality toolchain](docs/quality/local-quality-toolchain.md), [integration smoke harness](docs/quality/integration-smoke-harness.md), [M1 browser thin slice](docs/quality/browser-thin-slice.md), [CI skeleton](docs/quality/ci-skeleton.md)
 - Implementation: [roadmap](docs/implementation/roadmap.md), [exit criteria](docs/implementation/milestone-exit-criteria.md), [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md), [Work Item template](docs/implementation/work-item-template.md), and [agent collaboration workflow](docs/implementation/agent-collaboration-workflow.md)
@@ -65,6 +65,7 @@ corepack pnpm lint
 corepack pnpm typecheck
 corepack pnpm test
 corepack pnpm test:integration
+corepack pnpm test:integration:concurrent
 corepack pnpm test:browser
 corepack pnpm build
 corepack pnpm check
@@ -75,9 +76,9 @@ corepack pnpm check:secrets
 corepack pnpm repository:check
 ```
 
-Before a commit, run `corepack pnpm check`. It runs `format:check`, `lint`, `typecheck`, `test`, and `build` without starting Docker services, reaching the network, or reading Secrets. The Docker-dependent `test:integration` and `test:browser` commands are excluded from `check`. `corepack pnpm repository:check` (and the focused `check:docs`, `check:decisions`, and `check:secrets`) run dependency-free repository-integrity checks over Git-tracked files.
+Before a commit, run `corepack pnpm check`. It runs `format:check`, `lint`, `typecheck`, `test`, and `build` without starting Docker services, reaching the network, or reading Secrets. The Docker-dependent `test:integration`, `test:integration:concurrent`, and `test:browser` commands are excluded from `check`. `corepack pnpm repository:check` (and the focused `check:docs`, `check:decisions`, and `check:secrets`) run dependency-free repository-integrity checks over Git-tracked files.
 
-After a successful build, the processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web provides login, active/archived Dashboard views, Content Package creation, and the metadata/archive Workspace. API provides liveness, the three `/v1/auth/*` endpoints, protected `/v1/content-packages` routes, and `/openapi.json`; worker, fetcher, and renderer remain lifecycle skeletons. Web and API startup require the validated values documented in `.env.example`.
+After a successful build, the processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web provides login, active/archived Dashboard views, Content Package creation, and the metadata/archive Workspace. API provides liveness, the three `/v1/auth/*` endpoints, protected `/v1/content-packages` routes, protected `/v1/content-packages/:packageId/sources` routes (capture, list, get, working-copy edit, version creation, version list, approval), and `/openapi.json`; worker, fetcher, and renderer remain lifecycle skeletons. Web and API startup require the validated values documented in `.env.example`.
 
 Generate a local owner-password hash interactively, then apply the committed database migration only after supplying the intended PostgreSQL URL through the environment:
 
@@ -99,7 +100,7 @@ corepack pnpm infra:logs
 corepack pnpm infra:down
 ```
 
-The Compose baseline runs PostgreSQL on `127.0.0.1:5432`, Redis on `127.0.0.1:6379`, and SeaweedFS `weed mini` S3-compatible object storage on `127.0.0.1:8333` unless overridden in `.env`. Its other internal component ports are not exposed to the Host. The local image is fixed to SeaweedFS `4.29` and its verified manifest digest. `infra:down` retains named volumes. The API can connect to PostgreSQL for server-side Sessions and Content Package metadata after the migrations are applied; it does not use Redis or Object Storage, and no Source, Workflow, Queue, bucket, or production deployment exists.
+The Compose baseline runs PostgreSQL on `127.0.0.1:5432`, Redis on `127.0.0.1:6379`, and SeaweedFS `weed mini` S3-compatible object storage on `127.0.0.1:8333` unless overridden in `.env`. Its other internal component ports are not exposed to the Host. The local image is fixed to SeaweedFS `4.29` and its verified manifest digest. `infra:down` retains named volumes. The API connects to PostgreSQL for server-side Sessions, Content Package metadata, and Source metadata, and to S3-compatible Object Storage for immutable Raw Snapshot bytes after the migrations are applied; it does not use Redis, and no Workflow Engine, Queue, Agent, Render, or production deployment exists.
 
 To verify the five application skeletons and the local state services work together through their real entry points and containers, run:
 
@@ -107,11 +108,13 @@ To verify the five application skeletons and the local state services work toget
 corepack pnpm test:integration
 ```
 
-This starts an isolated `contentos-smoke-*` Compose project that replaces persistent volumes with `tmpfs`, binds ephemeral ports to `127.0.0.1` only, uses temporary credentials outside the repository, applies the reviewed migrations, and exercises Session and Content Package API behavior. It never reads, mounts, or changes the `contentos-local` named volumes.
+This starts an isolated `contentos-smoke-*` Compose project that replaces persistent volumes with `tmpfs`, binds ephemeral ports to `127.0.0.1` only, uses a run-unique temporary directory and credentials outside the repository, applies the reviewed migrations, and exercises Session, Content Package, and Pasted-text Source API behavior. It never reads, mounts, or changes the `contentos-local` named volumes.
+
+Run `corepack pnpm test:integration:concurrent` to launch two complete token-owned smoke runs concurrently and verify that their directories, state, Compose projects, ports, credentials, and cleanup remain isolated from each other and from unrelated harness runs.
 
 After installing the pinned Chromium revision with `corepack pnpm exec playwright install chromium`, run `corepack pnpm test:browser` to exercise the complete M1 owner loop. Read [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md) for its security, cleanup, and scope boundaries.
 
-These commands remain a bounded M1 foundation. There is no `dev`, broad product E2E suite, Queue, Source, Workflow, Agent, Render, or publishing-content feature yet.
+These commands remain a bounded M1 foundation with the first M2 Source slice. There is no `dev`, broad product E2E suite, Queue, Workflow Engine, Agent, Render, or publishing-content feature yet.
 
 ## Continuous integration
 
@@ -125,8 +128,8 @@ The workflow references no repository Secrets, persists no credentials, uploads 
 
 ## Next implementation steps
 
-1. Create a separate Ready Work Item before any M2 Source or Workflow implementation.
-2. Do not infer M2 scope or begin an Agent, Research, or publishing path from the M1 acceptance decision.
+1. M2 — Source and Workflow Foundation — is in progress. Remaining M2 Work Items (Workflow Template, Workflow Instance, Outbox, Worker, SSE) require their own Ready Work Items.
+2. Do not infer M2 scope or begin an Agent, Research, or publishing path from the current stage.
 
 No completion date is committed by this repository.
 

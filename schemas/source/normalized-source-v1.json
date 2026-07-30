@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contentos.dev/schemas/source/normalized-source-v1.json",
+  "title": "Normalized Source Body v1",
+  "description": "The persisted structure of a Normalized Source Working Copy or Version body for Pasted Text capture. The TypeScript interface NormalizedSourceBody in packages/contracts/src/source/normalized-source-body.ts must stay synchronized with this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text"],
+  "properties": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100000,
+      "pattern": "^[^\\u0000\\uD800-\\uDFFF]+$",
+      "description": "The normalized UTF-8 text content reviewed by the owner."
+    }
+  }
+}

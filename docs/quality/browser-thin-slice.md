@@ -2,7 +2,7 @@
 
 **Status:** Implementation Baseline
 **Scope:** The bounded M1 owner-browser scenario, pinned runtime, isolation, security assertions, cleanup, and explicit exclusions
-**Last Updated:** 2026-07-28
+**Last Updated:** 2026-07-29
 
 This document records the browser scenario introduced by `M1-WEB-001`. It verifies the first private UI → API → Domain → PostgreSQL → UI loop; it is not a broad product E2E suite and does not authorize M2 behavior.
 
@@ -46,10 +46,10 @@ The browser global setup delegates to the existing integration harness in a sepa
 - replaces all service data mounts with `tmpfs`;
 - binds API, Web, PostgreSQL, Redis, and object storage to ephemeral IPv4-loopback ports;
 - creates random credentials in the OS temp directory only;
-- applies the two reviewed migrations to the disposable PostgreSQL instance; and
+- applies the three reviewed migrations in the current journal to the disposable PostgreSQL instance; and
 - starts the built Web and API artifacts with process-specific configuration.
 
-Teardown stops both application process groups, removes only the unique Compose project, and deletes temporary credentials. A command wrapper then removes any Playwright result metadata created after global teardown. It never reads, mounts, changes, or deletes the `contentos-local` named volumes.
+Teardown stops both application process groups, removes only the unique Compose project, and deletes its exact `mkdtemp` run directory and temporary credentials. The command wrapper only propagates signals and exit status; it owns no smoke directory and performs no recursive cleanup. It never reads, mounts, changes, or deletes the `contentos-local` named volumes.
 
 ## 4. Failure behavior
 

@@ -5,5 +5,16 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@contentos/contracts": "workspace:*",
+    "@contentos/core": "workspace:*",
+    "@contentos/database": "workspace:*",
+    "@contentos/object-storage": "workspace:*",
+    "ajv": "8.20.0",
+    "pg": "8.22.0"
+  },
+  "devDependencies": {
+    "@types/pg": "8.20.0"
   }
 }

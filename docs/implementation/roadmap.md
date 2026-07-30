@@ -2,7 +2,7 @@
 
 **Status:** Current Truth
 **Scope:** Implementation order, milestone boundaries, demonstrable increments, and scope governance
-**Last Updated:** 2026-07-28
+**Last Updated:** 2026-07-29
 
 This roadmap turns the accepted product and architecture direction into an ordered implementation path. It does not create a calendar plan, engineering tickets, code, CI configuration, or an alternative architecture.
 
@@ -128,11 +128,11 @@ The list is a plan, not permission to merge its tasks or select an unapproved st
 - usable `README.md` and `AGENTS.md`;
 - no business implementation.
 
-M0-C records integration evidence and evaluates M0 exit conditions. It does not add a Content Package, Source, Workflow, or Agent feature merely to make the demo appear more complete.
+M0-C records integration evidence and evaluates M0 exit conditions. It did not add a Content Package, Source, Workflow, or Agent feature merely to make the demo appear more complete; M1 has since completed and M2 is in progress.
 
 ## 8. M1 — Product Skeleton and Domain Foundation
 
-**Current status: Completed.** `M1-SEC-001`, `M1-CP-001`, and `M1-WEB-001` are completed. [M1 Acceptance Record 001](m1-acceptance-record-001.md) records the Passed decision for the private Login → Dashboard → Content Package Workspace loop and all M1 Exit Criteria. M2 has not started.
+**Current status: Completed.** `M1-SEC-001`, `M1-CP-001`, and `M1-WEB-001` are completed. [M1 Acceptance Record 001](m1-acceptance-record-001.md) records the Passed decision for the private Login → Dashboard → Content Package Workspace loop and all M1 Exit Criteria. M2 is now in progress.
 
 | Work Item                                                            | Goal                                                             | Depends on   | Status boundary                                        |
 | -------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------ | ------------------------------------------------------ |
@@ -173,6 +173,8 @@ Login
 ```
 
 ## 9. M2 — Source and Workflow Foundation
+
+**Current status: In Progress.** `M2-SRC-001 — Pasted-text Source Capture and Approval Foundation` is in review.
 
 M2 establishes formal input and orchestration before any Agent:
 

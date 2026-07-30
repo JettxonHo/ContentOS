@@ -3,7 +3,13 @@ import { Catch, HttpException } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { apiError } from '@contentos/contracts';
-import { AuthenticationError, ContentPackageApplicationError, ContentPackageDomainError } from '@contentos/core';
+import {
+  AuthenticationError,
+  ContentPackageApplicationError,
+  ContentPackageDomainError,
+  SourceApplicationError,
+  SourceDomainError,
+} from '@contentos/core';
 
 import { ApiHttpError } from './api-http-error';
 
@@ -48,6 +54,69 @@ export class ApiExceptionFilter implements ExceptionFilter {
           : exception.code === 'REVISION_CONFLICT'
             ? 'Revision conflict'
             : 'Content Package state conflict';
+      void reply.status(status).send(apiError(code, message, correlationId));
+      return;
+    }
+
+    if (exception instanceof SourceApplicationError) {
+      const notFound = exception.code === 'SOURCE_NOT_FOUND' || exception.code === 'CONTENT_PACKAGE_NOT_FOUND';
+      const infraFailure =
+        exception.code === 'SOURCE_CAPTURE_FAILED' ||
+        exception.code === 'SOURCE_COMPENSATION_FAILED' ||
+        exception.code === 'SOURCE_RECONCILIATION_REQUIRED';
+      const bodyInvalid = exception.code === 'SOURCE_BODY_INVALID';
+      const status = notFound
+        ? 404
+        : exception.code === 'SOURCE_VERSION_NOT_FOUND'
+          ? 404
+          : infraFailure
+            ? 500
+            : bodyInvalid
+              ? 422
+              : 409;
+      const code = infraFailure
+        ? 'INTERNAL_ERROR'
+        : bodyInvalid
+          ? 'INVALID_REQUEST'
+          : exception.code === 'PACKAGE_ARCHIVED'
+            ? 'CONTENT_PACKAGE_STATE_CONFLICT'
+            : exception.code;
+      const message = infraFailure
+        ? 'Internal server error'
+        : bodyInvalid
+          ? 'Invalid request'
+          : exception.code === 'SOURCE_NOT_FOUND'
+            ? 'Source not found'
+            : exception.code === 'CONTENT_PACKAGE_NOT_FOUND'
+              ? 'Content Package not found'
+              : exception.code === 'PACKAGE_ARCHIVED'
+                ? 'Content Package is archived'
+                : exception.code === 'SOURCE_REVISION_CONFLICT'
+                  ? 'Revision conflict'
+                  : exception.code === 'SOURCE_VERSION_NOT_FOUND'
+                    ? 'Source version not found'
+                    : exception.code === 'SOURCE_VERSION_NOT_ELIGIBLE'
+                      ? 'Source version is not eligible for approval'
+                      : exception.code === 'SOURCE_ALREADY_APPROVED'
+                        ? 'Source version already approved'
+                        : exception.code === 'SOURCE_VERSION_ALREADY_EXISTS'
+                          ? 'Working Copy revision already has an immutable Version'
+                          : 'Source state conflict';
+      void reply.status(status).send(apiError(code, message, correlationId));
+      return;
+    }
+
+    if (exception instanceof SourceDomainError) {
+      const status = exception.code === 'INVALID_SOURCE' ? 422 : 409;
+      const code = exception.code === 'INVALID_SOURCE' ? 'INVALID_REQUEST' : exception.code;
+      const message =
+        status === 422
+          ? 'Invalid request'
+          : exception.code === 'SOURCE_REVISION_CONFLICT'
+            ? 'Revision conflict'
+            : exception.code === 'SOURCE_ROLE_LIMIT_EXCEEDED'
+              ? 'Source role limit exceeded'
+              : 'Source state conflict';
       void reply.status(status).send(apiError(code, message, correlationId));
       return;
     }
