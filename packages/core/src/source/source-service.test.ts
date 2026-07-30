@@ -7,6 +7,7 @@ import {
   SourceService,
   type CaptureReconciliation,
 } from './source-service.js';
+import { UploadQuarantineError } from './upload.js';
 import type { NormalizedBodyValidator } from './normalized-body-validator.js';
 import type { ObjectStore, StoredObject } from './object-store.js';
 import type { ContentPackageId, ContentPackageOwnerId } from '../content-package/content-package.js';
@@ -74,7 +75,7 @@ class FakeBodyValidator implements NormalizedBodyValidator {
  * Minimal fake ObjectStore that records interactions for compensation testing.
  */
 class FakeObjectStore implements ObjectStore {
-  readonly putCalls: Array<{ readonly key: string }> = [];
+  readonly putCalls: Array<{ readonly key: string; readonly contentType: string }> = [];
   readonly deleteCalls: Array<{ readonly key: string }> = [];
   putResult: StoredObject = makeStoredObject();
   putShouldThrow = false;
@@ -86,13 +87,14 @@ class FakeObjectStore implements ObjectStore {
     readonly sourceId: string;
     readonly snapshotId: string;
     readonly bytes: Uint8Array;
+    readonly contentType: string;
   }): Promise<StoredObject> {
     if (this.putShouldThrow) {
       throw new Error('simulated object write failure');
     }
     const key = `sources/${input.ownerUserId}/${input.contentPackageId}/${input.sourceId}/raw/${input.snapshotId}`;
-    this.putCalls.push({ key });
-    return { ...this.putResult, storageKey: key };
+    this.putCalls.push({ key, contentType: input.contentType });
+    return { ...this.putResult, storageKey: key, contentType: input.contentType };
   }
 
   async readForIntegrity(): Promise<boolean> {
@@ -471,5 +473,122 @@ describe('SourceService capture failure paths', () => {
     expect(result.workingCopy.revision).toBe(2);
     expect(result.snapshot.id).toBe(captured.rawSnapshot.id);
     expect(repository.findCalls).toBe(0);
+  });
+});
+
+describe('SourceService captureUpload', () => {
+  function makeService(): {
+    service: SourceService;
+    objectStore: FakeObjectStore;
+    repository: FakeRepository;
+  } {
+    const objectStore = new FakeObjectStore();
+    const repository = new FakeRepository();
+    const service = new SourceService(repository, objectStore, makeFakeIds(), makeFakeClock(), new FakeBodyValidator());
+    return { service, objectStore, repository };
+  }
+
+  function makeUpload(
+    overrides: Partial<{
+      fileName: string;
+      declaredMediaType: string | null;
+      bytes: Uint8Array;
+      role: 'primary' | 'supporting';
+      label: string | null;
+    }> = {},
+  ): Parameters<SourceService['captureUpload']>[0] {
+    return {
+      contentPackageId: packageId,
+      ownerUserId: owner,
+      role: overrides.role ?? 'primary',
+      label: overrides.label ?? null,
+      fileName: overrides.fileName ?? 'notes.md',
+      declaredMediaType: overrides.declaredMediaType === undefined ? 'text/markdown' : overrides.declaredMediaType,
+      bytes: overrides.bytes ?? new TextEncoder().encode('# Draft\ncontent'),
+    };
+  }
+
+  it('captures a .md upload with markdown content type and decoded working copy', async () => {
+    const { service, objectStore, repository } = makeService();
+    const state = await service.captureUpload(makeUpload());
+
+    expect(state.reference.sourceType).toBe('uploaded_text');
+    expect(state.reference.captureType).toBe('uploaded_text');
+    expect(state.reference.role).toBe('primary');
+    expect(state.reference.label).toBe('notes');
+    expect(state.rawSnapshot.contentType).toBe('text/markdown; charset=utf-8');
+    expect(state.workingCopy.body).toEqual({ text: '# Draft\ncontent' });
+    expect(objectStore.putCalls).toEqual([
+      { key: expect.stringContaining('sources/'), contentType: 'text/markdown; charset=utf-8' },
+    ]);
+    expect(repository.captureCalls).toHaveLength(1);
+  });
+
+  it('captures a .txt upload with text/plain content type', async () => {
+    const { service, objectStore } = makeService();
+    const state = await service.captureUpload(
+      makeUpload({ fileName: 'list.txt', declaredMediaType: 'text/plain', bytes: new TextEncoder().encode('items') }),
+    );
+
+    expect(state.reference.sourceType).toBe('uploaded_text');
+    expect(state.rawSnapshot.contentType).toBe('text/plain; charset=utf-8');
+    expect(state.workingCopy.body).toEqual({ text: 'items' });
+    expect(objectStore.putCalls[0]?.contentType).toBe('text/plain; charset=utf-8');
+  });
+
+  it('prefers an explicit label over the derived filename stem', async () => {
+    const { service } = makeService();
+    const state = await service.captureUpload(makeUpload({ label: 'Research notes' }));
+    expect(state.reference.label).toBe('Research notes');
+  });
+
+  it('creates no side effects when quarantine denies the upload', async () => {
+    const denialInputs = [
+      makeUpload({ fileName: 'virus.exe' }),
+      makeUpload({ declaredMediaType: 'text/html' }),
+      makeUpload({ bytes: new Uint8Array([0xff, 0xfe]) }),
+      makeUpload({ bytes: new TextEncoder().encode('a'.repeat(100_001)) }),
+      makeUpload({ bytes: new TextEncoder().encode('   ') }),
+      makeUpload({ label: 'bad\0label' }),
+    ];
+    for (const input of denialInputs) {
+      const { service, objectStore, repository } = makeService();
+      await expect(service.captureUpload(input)).rejects.toBeInstanceOf(UploadQuarantineError);
+      expect(objectStore.putCalls).toHaveLength(0);
+      expect(objectStore.deleteCalls).toHaveLength(0);
+      expect(repository.captureCalls).toHaveLength(0);
+    }
+  });
+
+  it('denies a second primary upload after a pasted-text primary (shared role limits)', async () => {
+    const objectStore = new FakeObjectStore();
+    const repository = new FakeRepository();
+    repository.countSourcesByRoleForPackage = async (): Promise<number> => 1;
+    const service = new SourceService(repository, objectStore, makeFakeIds(), makeFakeClock(), new FakeBodyValidator());
+
+    await expect(service.captureUpload(makeUpload({ role: 'primary' }))).rejects.toMatchObject({
+      code: 'SOURCE_ROLE_LIMIT_EXCEEDED',
+    });
+    expect(objectStore.putCalls).toHaveLength(0);
+  });
+
+  it('compensates the object write when database creation fails', async () => {
+    const { objectStore } = makeService();
+    const repository = new FakeRepository();
+    repository.captureShouldThrow = true;
+    repository.captureError = new SourceCapturePersistenceError('NOT_COMMITTED', new Error('db down'));
+    const failingService = new SourceService(
+      repository,
+      objectStore,
+      makeFakeIds(),
+      makeFakeClock(),
+      new FakeBodyValidator(),
+    );
+
+    await expect(failingService.captureUpload(makeUpload())).rejects.toMatchObject({
+      code: 'SOURCE_CAPTURE_FAILED',
+    });
+    expect(objectStore.putCalls).toHaveLength(1);
+    expect(objectStore.deleteCalls).toHaveLength(1);
   });
 });

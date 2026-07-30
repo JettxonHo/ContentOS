@@ -14,6 +14,7 @@ import {
   parseCreateSourceVersionRequest,
   parseEditSourceWorkingCopyRequest,
   parseSourceListQuery,
+  parseUploadSourceFields,
   sourceApprovalResponseSchema,
   sourceListResponseSchema,
   sourceResponseSchema,
@@ -22,6 +23,7 @@ import {
   sourceVersionResourceSchema,
   sourceVersionResponseSchema,
   sourceWorkingCopyResponseSchema,
+  uploadSourceFieldsSchema,
 } from './source-contracts.js';
 import { apiErrorSchema } from './error-contract.js';
 import type { NormalizedSourceBody } from '../source/normalized-source-body.js';
@@ -34,6 +36,7 @@ describe('source contracts', () => {
       editSourceWorkingCopyRequestSchema,
       createSourceVersionRequestSchema,
       approveSourceVersionRequestSchema,
+      uploadSourceFieldsSchema,
       sourceResponseSchema,
       sourceListResponseSchema,
       sourceWorkingCopyResponseSchema,
@@ -193,3 +196,84 @@ describe('normalized source body JSON Schema synchronization', () => {
     expect(validate({ ...sample, unknownExtra: 1 })).toBe(false);
   });
 });
+
+describe('upload source fields contract (M2-SRC-002)', () => {
+  it('accepts role with and without label', () => {
+    const withLabel = parseUploadSourceFields({ role: 'supporting', label: 'Field notes' });
+    expect(withLabel.ok).toBe(true);
+    if (withLabel.ok) {
+      expect(withLabel.value).toEqual({ role: 'supporting', label: 'Field notes' });
+    }
+    const withoutLabel = parseUploadSourceFields({ role: 'primary' });
+    expect(withoutLabel.ok).toBe(true);
+  });
+
+  it('rejects missing role, unknown role, extra fields, and invalid labels', () => {
+    expect(parseUploadSourceFields({}).ok).toBe(false);
+    expect(parseUploadSourceFields({ role: 'main' }).ok).toBe(false);
+    expect(parseUploadSourceFields({ role: 'primary', sourceType: 'pasted_text' }).ok).toBe(false);
+    expect(parseUploadSourceFields({ role: 'primary', label: '' }).ok).toBe(false);
+    expect(parseUploadSourceFields({ role: 'primary', label: 'x'.repeat(201) }).ok).toBe(false);
+    expect(parseUploadSourceFields({ role: 'primary', label: 'bad\u0000label' }).ok).toBe(false);
+  });
+
+  it('keeps the JSON capture route restricted to pasted_text', () => {
+    const parsed = parseCreateSourceRequest({
+      sourceType: 'uploaded_text',
+      role: 'primary',
+      text: 'Some text',
+    });
+    expect(parsed.ok).toBe(false);
+  });
+
+  it('accepts uploaded_text in Source response resources', () => {
+    const ajv = new Ajv2020({ allErrors: true, strict: true });
+    const validateResponse = ajv.compile(sourceResponseSchema);
+    const resource = {
+      data: {
+        source: {
+          id: '30000000-0000-4000-8000-000000000001',
+          contentPackageId: '10000000-0000-4000-8000-000000000001',
+          sourceType: 'uploaded_text',
+          role: 'primary',
+          label: 'notes',
+          captureType: 'uploaded_text',
+          createdAt: '2026-07-31T00:00:00.000Z',
+          workingCopy: { revision: 1, schemaVersion: 'source/normalized/v1', updatedAt: '2026-07-31T00:00:00.000Z' },
+          rawSnapshot: {
+            sha256: 'a'.repeat(64),
+            byteSize: 12,
+            contentType: 'text/markdown; charset=utf-8',
+            capturedAt: '2026-07-31T00:00:00.000Z',
+          },
+          latestVersionId: null,
+          reviewCandidateVersionId: null,
+          approvedVersionId: null,
+        },
+      },
+    };
+    expect(validateResponse(resource)).toBe(true);
+    expect(validateSourceListResponseWithUploadedText()).toBe(true);
+  });
+});
+
+function validateSourceListResponseWithUploadedText(): boolean {
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  const validateList = ajv.compile(sourceListResponseSchema);
+  return validateList({
+    data: {
+      items: [
+        {
+          id: '30000000-0000-4000-8000-000000000002',
+          contentPackageId: '10000000-0000-4000-8000-000000000001',
+          sourceType: 'uploaded_text',
+          role: 'supporting',
+          label: null,
+          captureType: 'uploaded_text',
+          createdAt: '2026-07-31T00:00:00.000Z',
+        },
+      ],
+      nextCursor: null,
+    },
+  });
+}

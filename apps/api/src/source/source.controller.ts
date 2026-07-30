@@ -1,7 +1,8 @@
 import { Buffer } from 'node:buffer';
+import type { Readable } from 'node:stream';
 
 import { Body, Controller, Get, HttpCode, Inject, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiBody, ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import {
   apiErrorSchema,
@@ -14,6 +15,7 @@ import {
   parseCreateSourceVersionRequest,
   parseEditSourceWorkingCopyRequest,
   parseSourceListQuery,
+  parseUploadSourceFields,
   sourceApprovalResponseSchema,
   sourceListResponseSchema,
   sourceResponseSchema,
@@ -39,6 +41,7 @@ import type {
   SourceState,
   SourceVersionId,
 } from '@contentos/core';
+import { UPLOAD_FILE_MAX_BYTES } from '@contentos/core';
 
 import { AuthenticationGuard, type AuthenticatedRequest } from '../auth/authentication.guard';
 import { ApiHttpError } from '../http/api-http-error';
@@ -55,6 +58,29 @@ function requireId(value: string, path: string): string {
 
 function owner(request: AuthenticatedRequest): ContentPackageOwnerId {
   return request.currentSession.principal.userId;
+}
+
+interface ParsedUploadFile {
+  readonly filename: string;
+  readonly mimetype: string;
+  readonly bytes: Uint8Array;
+}
+
+async function readCappedBytes(
+  stream: Readable & { truncated?: boolean },
+  maxBytes: number,
+): Promise<{ bytes: Uint8Array; oversized: boolean }> {
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for await (const chunk of stream) {
+    const part = chunk as Uint8Array;
+    total += part.byteLength;
+    if (total > maxBytes) {
+      return { bytes: new Uint8Array(0), oversized: true };
+    }
+    chunks.push(part);
+  }
+  return { bytes: Buffer.concat(chunks), oversized: false };
 }
 
 function toResource(state: SourceState): SourceResource {
@@ -147,6 +173,54 @@ export class SourceController {
       role: parsed.value.role,
       label: parsed.value.label ?? null,
       text: parsed.value.text,
+    });
+    return { data: { source: toResource(state) } };
+  }
+
+  @Post('upload')
+  @ApiOperation({ summary: 'Capture a .md or .txt file-upload Source for an active Content Package' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['file', 'role'],
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        role: { type: 'string', enum: ['primary', 'supporting'] },
+        label: { type: 'string', minLength: 1, maxLength: 200 },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, schema: sourceResponseSchema })
+  @ApiResponse({ status: 400, schema: apiErrorSchema })
+  @ApiResponse({ status: 401, schema: apiErrorSchema })
+  @ApiResponse({ status: 403, schema: apiErrorSchema })
+  @ApiResponse({ status: 404, schema: apiErrorSchema })
+  @ApiResponse({ status: 409, schema: apiErrorSchema })
+  @ApiResponse({ status: 422, schema: apiErrorSchema })
+  @ApiResponse({ status: 500, schema: apiErrorSchema })
+  async captureUpload(
+    @Req() request: AuthenticatedRequest,
+    @Param('packageId') packageId: string,
+  ): Promise<SourceResponse> {
+    const pid = requireId(packageId, '/packageId') as ContentPackageId;
+    const { file, fields } = await this.readUploadParts(request);
+    const parsed = parseUploadSourceFields(fields);
+    if (!parsed.ok) {
+      this.auditUploadDenial(request, 'upload-field-invalid');
+      throw new ApiHttpError(422, 'INVALID_REQUEST', 'Invalid request', [
+        { path: parsed.errors[0]?.path ?? '/', keyword: 'upload-field-invalid' },
+      ]);
+    }
+    const state = await this.sources.captureUpload({
+      contentPackageId: pid,
+      ownerUserId: owner(request),
+      role: parsed.value.role,
+      label: parsed.value.label ?? null,
+      fileName: file.filename,
+      declaredMediaType: file.mimetype === '' ? null : file.mimetype,
+      bytes: file.bytes,
     });
     return { data: { source: toResource(state) } };
   }
@@ -444,5 +518,65 @@ export class SourceController {
         },
       },
     };
+  }
+
+  private auditUploadDenial(request: AuthenticatedRequest, keyword: string): void {
+    process.stderr.write(
+      `security-audit category=unsafe-upload-denial correlation=${String(request.id)} owner=${owner(request)} reason=${keyword} extension=none bytes=0\n`,
+    );
+  }
+
+  private async readUploadParts(request: AuthenticatedRequest): Promise<{
+    file: ParsedUploadFile;
+    fields: Record<string, string>;
+  }> {
+    const fields: Record<string, string> = {};
+    let file: ParsedUploadFile | null = null;
+
+    const deny = (keyword: string): never => {
+      this.auditUploadDenial(request, keyword);
+      throw new ApiHttpError(422, 'INVALID_REQUEST', 'Invalid request', [{ path: '/file', keyword }]);
+    };
+
+    try {
+      for await (const part of request.parts()) {
+        if (part.type === 'file') {
+          if (file !== null) {
+            deny('upload-too-many-files');
+          }
+          const read = await readCappedBytes(part.file, UPLOAD_FILE_MAX_BYTES);
+          if (read.oversized || part.file.truncated === true) {
+            deny('upload-file-size');
+          }
+          file = { filename: part.filename, mimetype: part.mimetype, bytes: read.bytes };
+        } else {
+          fields[part.fieldname] = typeof part.value === 'string' ? part.value : '';
+        }
+      }
+    } catch (error) {
+      if (error instanceof ApiHttpError) {
+        throw error;
+      }
+      const code = (error as { code?: unknown }).code;
+      const keyword =
+        code === 'FST_REQ_FILE_TOO_LARGE'
+          ? 'upload-file-size'
+          : code === 'FST_FILES_LIMIT'
+            ? 'upload-too-many-files'
+            : code === 'FST_FIELDS_LIMIT' || code === 'FST_PARTS_LIMIT'
+              ? 'upload-field-limit'
+              : code === 'FST_INVALID_MULTIPART_CONTENT_TYPE'
+                ? 'upload-media-type'
+                : 'upload-field-invalid';
+      deny(keyword);
+    }
+
+    if (file === null) {
+      this.auditUploadDenial(request, 'upload-file-missing');
+      throw new ApiHttpError(422, 'INVALID_REQUEST', 'Invalid request', [
+        { path: '/file', keyword: 'upload-file-missing' },
+      ]);
+    }
+    return { file, fields };
   }
 }

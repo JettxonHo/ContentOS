@@ -497,3 +497,62 @@ describe('postgres smoke', () => {
     }
   });
 });
+
+describe('source upload migration 0003 constraints (M2-SRC-002)', () => {
+  it('accepts uploaded_text sources and text/markdown snapshots while rejecting non-allowlisted values', async () => {
+    const client = postgresClient(requireState());
+    await client.connect();
+    await client.query('BEGIN');
+    try {
+      const ownerId = randomUUID();
+      const packageId = randomUUID();
+      const sourceId = randomUUID();
+      const snapshotId = randomUUID();
+      const hash = 'a'.repeat(64);
+      await insertPackage(client, packageId, ownerId);
+
+      // Migration 0003 relaxed values are accepted.
+      await client.query(
+        `INSERT INTO sources
+          (id, content_package_id, owner_user_id, source_type, role, label, capture_type, created_at)
+         VALUES ($1, $2, $3, 'uploaded_text', 'primary', 'upload label', 'uploaded_text', now())`,
+        [sourceId, packageId, ownerId],
+      );
+      await client.query(
+        `INSERT INTO source_raw_snapshots
+          (id, source_id, owner_user_id, storage_key, sha256, byte_size, content_type, captured_at)
+         VALUES ($1, $2, $3, $4, $5, 12, 'text/markdown; charset=utf-8', now())`,
+        [snapshotId, sourceId, ownerId, `fixture/${randomUUID()}`, hash],
+      );
+
+      // Non-allowlisted values remain rejected by the same named constraints.
+      await expectConstraint(
+        client,
+        `INSERT INTO sources
+          (id, content_package_id, owner_user_id, source_type, role, label, capture_type, created_at)
+         VALUES ($1, $2, $3, 'url', 'supporting', NULL, 'pasted_text', now())`,
+        [randomUUID(), packageId, ownerId],
+        'sources_source_type_check',
+      );
+      await expectConstraint(
+        client,
+        `INSERT INTO sources
+          (id, content_package_id, owner_user_id, source_type, role, label, capture_type, created_at)
+         VALUES ($1, $2, $3, 'pasted_text', 'supporting', NULL, 'public_url', now())`,
+        [randomUUID(), packageId, ownerId],
+        'sources_capture_type_check',
+      );
+      await expectConstraint(
+        client,
+        `INSERT INTO source_raw_snapshots
+          (id, source_id, owner_user_id, storage_key, sha256, byte_size, content_type, captured_at)
+         VALUES ($1, $2, $3, $4, $5, 12, 'text/html; charset=utf-8', now())`,
+        [randomUUID(), sourceId, ownerId, `fixture/${randomUUID()}`, hash],
+        'source_raw_snapshots_content_type_check',
+      );
+    } finally {
+      await client.query('ROLLBACK');
+      await client.end();
+    }
+  });
+});

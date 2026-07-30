@@ -93,9 +93,9 @@ export const sources = pgTable(
     }).onDelete('restrict'),
     index('sources_owner_package_created_idx').on(table.ownerUserId, table.contentPackageId, table.createdAt, table.id),
     index('sources_package_idx').on(table.contentPackageId),
-    check('sources_source_type_check', sql`${table.sourceType} IN ('pasted_text')`),
+    check('sources_source_type_check', sql`${table.sourceType} IN ('pasted_text', 'uploaded_text')`),
     check('sources_role_check', sql`${table.role} IN ('primary', 'supporting')`),
-    check('sources_capture_type_check', sql`${table.captureType} IN ('pasted_text')`),
+    check('sources_capture_type_check', sql`${table.captureType} IN ('pasted_text', 'uploaded_text')`),
     check('sources_label_length_check', sql`${table.label} IS NULL OR char_length(${table.label}) BETWEEN 1 AND 200`),
   ],
 );
@@ -129,7 +129,7 @@ export const sourceRawSnapshots = pgTable(
     // semicolon inside the MIME value as a SQL statement terminator.
     check(
       'source_raw_snapshots_content_type_check',
-      sql`${table.contentType} = concat('text/plain', chr(59), ' charset=utf-8')`,
+      sql`${table.contentType} IN (concat('text/plain', chr(59), ' charset=utf-8'), concat('text/markdown', chr(59), ' charset=utf-8'))`,
     ),
   ],
 );

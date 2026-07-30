@@ -22,6 +22,7 @@ import {
   SOURCE_CAPTURE_TYPES,
   SOURCE_ROLES,
   SOURCE_SCHEMA_VERSION,
+  SOURCE_SNAPSHOT_CONTENT_TYPES,
   SOURCE_TYPES,
 } from './source-values.js';
 
@@ -38,6 +39,8 @@ export class SourceDomainError extends Error {
 const SOURCE_TYPE_SET = new Set<string>(SOURCE_TYPES);
 const SOURCE_ROLE_SET = new Set<string>(SOURCE_ROLES);
 const SOURCE_CAPTURE_TYPE_SET = new Set<string>(SOURCE_CAPTURE_TYPES);
+
+const SOURCE_SNAPSHOT_CONTENT_TYPE_SET = new Set<string>(SOURCE_SNAPSHOT_CONTENT_TYPES);
 
 function invalid(): never {
   throw new SourceDomainError('INVALID_SOURCE');
@@ -201,7 +204,7 @@ function validateSnapshot(snap: RawSnapshotState): RawSnapshotState {
     !snap.sourceId ||
     !snap.storageKey ||
     !/^[0-9a-f]{64}$/.test(snap.sha256) ||
-    snap.contentType !== 'text/plain; charset=utf-8' ||
+    !SOURCE_SNAPSHOT_CONTENT_TYPE_SET.has(snap.contentType) ||
     !Number.isSafeInteger(snap.byteSize) ||
     snap.byteSize < 1 ||
     !Number.isFinite(snap.capturedAt.getTime())

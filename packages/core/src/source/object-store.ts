@@ -1,3 +1,5 @@
+import type { SourceSnapshotContentType } from './source-values.js';
+
 /**
  * Result of storing immutable object bytes.
  * `storageKey` is opaque and never user-controlled.
@@ -8,7 +10,6 @@ export interface StoredObject {
   readonly byteSize: number;
   readonly contentType: string;
 }
-
 /**
  * Domain-owned Port for private object storage. The adapter implementation
  * lives in `packages/object-storage` and depends on S3-compatible storage.
@@ -21,6 +22,8 @@ export interface ObjectStore {
    * Stores immutable bytes under an opaque owner/package/source/snapshot-scoped key.
    * Returns the storage key, SHA-256 hex digest, and byte size.
    * Must not overwrite an existing object for the same key.
+   * `contentType` must be one of the allowlisted Source snapshot content
+   * types (`SOURCE_SNAPSHOT_CONTENT_TYPES`); adapters reject other values.
    */
   putImmutable(input: {
     readonly ownerUserId: string;
@@ -28,6 +31,7 @@ export interface ObjectStore {
     readonly sourceId: string;
     readonly snapshotId: string;
     readonly bytes: Uint8Array;
+    readonly contentType: SourceSnapshotContentType;
   }): Promise<StoredObject>;
 
   /**

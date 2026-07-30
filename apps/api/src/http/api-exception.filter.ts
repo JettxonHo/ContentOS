@@ -9,9 +9,16 @@ import {
   ContentPackageDomainError,
   SourceApplicationError,
   SourceDomainError,
+  UploadQuarantineError,
 } from '@contentos/core';
 
 import { ApiHttpError } from './api-http-error';
+
+function ownerToken(request: FastifyRequest): string {
+  const candidate = (request as { currentSession?: { principal?: { userId?: unknown } } }).currentSession?.principal
+    ?.userId;
+  return typeof candidate === 'string' ? candidate : 'unknown';
+}
 
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
@@ -118,6 +125,20 @@ export class ApiExceptionFilter implements ExceptionFilter {
               ? 'Source role limit exceeded'
               : 'Source state conflict';
       void reply.status(status).send(apiError(code, message, correlationId));
+      return;
+    }
+
+    if (exception instanceof UploadQuarantineError) {
+      // Security Baseline §15 audit category. Safe fields only: no filename
+      // text, upload body, path, credential, or object key.
+      process.stderr.write(
+        `security-audit category=unsafe-upload-denial correlation=${correlationId} owner=${ownerToken(request)} reason=${exception.reason} extension=${exception.safeContext.extensionToken} bytes=${exception.safeContext.byteSize}\n`,
+      );
+      void reply
+        .status(422)
+        .send(
+          apiError('INVALID_REQUEST', 'Invalid request', correlationId, [{ path: '/file', keyword: exception.reason }]),
+        );
       return;
     }
 
