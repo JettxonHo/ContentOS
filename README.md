@@ -1,5 +1,7 @@
 # ContentOS
 
+Language: English | [简体中文](README.zh-CN.md)
+
 ContentOS is a single-user, desktop-first Personal AI Content Studio. It turns private, reviewable source material into a traceable content flow:
 
 ```text
