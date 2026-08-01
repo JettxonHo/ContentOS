@@ -267,8 +267,14 @@ async function findRequestResult(
     category: outboxRow.category as 'fetcher',
     envelopeVersion: outboxRow.envelopeVersion as 'fetcher-task/v1',
     payload: outboxRow.payload as never,
-    state: outboxRow.state as 'pending',
+    state: outboxRow.state as 'pending' | 'dispatching' | 'dispatched',
     createdAt: outboxRow.createdAt,
+    deliveryGeneration: outboxRow.deliveryGeneration,
+    dispatchAttemptCount: outboxRow.dispatchAttemptCount,
+    dispatchLeaseExpiresAt: outboxRow.dispatchLeaseExpiresAt,
+    lastDispatchAt: outboxRow.lastDispatchAt,
+    dispatchedAt: outboxRow.dispatchedAt,
+    updatedAt: outboxRow.updatedAt,
   });
   const expectedPayload = defineUrlCaptureEventPayload(requestState.id, sourceReference.id, taskState.id);
   const eventPayload = eventRow.payload as Record<string, unknown>;
@@ -546,6 +552,12 @@ export class DrizzleWorkflowCommandRepository implements UrlCaptureCommandReposi
         payload: outbox.payload as unknown as Record<string, unknown>,
         state: outbox.state,
         createdAt: outbox.createdAt,
+        deliveryGeneration: outbox.deliveryGeneration,
+        dispatchAttemptCount: outbox.dispatchAttemptCount,
+        dispatchLeaseExpiresAt: outbox.dispatchLeaseExpiresAt,
+        lastDispatchAt: outbox.lastDispatchAt,
+        dispatchedAt: outbox.dispatchedAt,
+        updatedAt: outbox.updatedAt,
       });
       await afterStage(this.options, 'workflow_outbox');
 

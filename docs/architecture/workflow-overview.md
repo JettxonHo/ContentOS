@@ -4,7 +4,7 @@
 
 **Scope:** MVP workflow coordination, state boundaries, Commands, Human Gates, recovery, and execution invariants
 
-**Last Updated:** 2026-08-01
+**Last Updated:** 2026-08-02
 
 This document defines how ContentOS coordinates one Content Package through fixed, auditable, and recoverable Workflow behavior. It defines semantics and boundaries, not database tables, API endpoints, JSON Schemas, concrete enums, or implementation timing values.
 
@@ -88,8 +88,21 @@ Source Reference, Capture Request, queued Task, pending Outbox record, and
 safe append-only Event. The Command is a durable request boundary only: it
 does not dispatch a Queue Job, make a network request, create Source evidence,
 write Object Storage, or expose URL text through responses, Events, or Outbox
-payloads. Timeline/SSE, Fetcher execution, and later Workflow transitions
-remain inactive until their own Ready Work Items.
+payloads. Timeline/SSE and later Workflow transitions remain inactive until
+their own Ready Work Items.
+
+M2-WF-003A adds the first delivery-only execution boundary. The Worker owns a
+bounded Dispatcher that moves the PostgreSQL Outbox record through
+`pending → dispatching → dispatched` with a 30-second dispatch lease and a
+maximum batch of 10 records per pass. It publishes only the existing
+three-field `fetcher-task/v1` envelope to the fixed `contentos-fetcher` Queue
+as a `fetcher-task` Job with the deterministic current-generation Job ID
+`fetcher-<taskId>-<deliveryGeneration>` and `attempts: 1`. PostgreSQL remains
+authoritative: the Task remains `queued`, while BullMQ is only an at-least-once
+delivery transport. A stale lease or missing current Job may repeat the same
+generation delivery while the Task is still `queued`; this boundary creates no
+Fetcher consumer, Claim, execution lease, result, Source evidence, public
+request, or Object Storage record.
 
 ## 4. Workflow Instance
 

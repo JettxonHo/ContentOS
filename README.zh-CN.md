@@ -12,9 +12,9 @@ Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Rend
 
 ## 当前状态
 
-仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`（粘贴文本 Source 捕获与批准）处于审查中。
+仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001` 和 `M2-WF-002` 已完成，`M2-WF-003A`（Transactional Outbox Dispatcher）正在审查中。
 
-当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package API、M1 Web 薄切片，以及审查中的 M2 粘贴文本 Source API 基础。它尚不提供 Source UI、URL／文件 Source 捕获、Workflow、Agent、Render、发布行为、部署或开发服务器。
+当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片，以及审查中的 Worker Outbox 到 BullMQ 投递边界。Worker 只将 PostgreSQL Outbox 投递为固定的最小 BullMQ envelope，需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`；当前不提供 Source UI、Fetcher execution、Queue consumer、Fetcher claim/result 行为、Agent、Render、发布行为、部署或开发服务器。
 
 ## MVP 边界
 
@@ -80,7 +80,7 @@ corepack pnpm repository:check
 
 在 Commit 前运行 `corepack pnpm check`。它会按顺序执行 `format:check`、`lint`、`typecheck`、`test` 和 `build`，不会启动 Docker 服务、访问网络或读取 Secrets。依赖 Docker 的 `test:integration`、`test:integration:concurrent` 和 `test:browser` 不属于 `check`。`corepack pnpm repository:check`（以及聚焦的 `check:docs`、`check:decisions` 和 `check:secrets`）会对 Git 跟踪文件执行无依赖的仓库完整性检查。
 
-构建成功后，可使用 `corepack pnpm start:web`、`start:api`、`start:worker`、`start:fetcher` 或 `start:renderer` 启动相应进程。Web 提供登录、活跃／已归档 Dashboard 视图、Content Package 创建，以及元数据／归档 Workspace。API 提供存活检查、三个 `/v1/auth/*` 端点、受保护的 `/v1/content-packages` 路由、受保护的 `/v1/content-packages/:packageId/sources` 路由（粘贴文本捕获、`.md`／`.txt` 文件上传捕获、列表、读取、Working Copy 编辑、Version 创建、Version 列表、批准）以及 `/openapi.json`；worker、fetcher 和 renderer 仍是生命周期骨架。Web 与 API 的启动要求提供 `.env.example` 所记录的已验证值。
+构建成功后，可使用 `corepack pnpm start:web`、`start:api`、`start:worker`、`start:fetcher` 或 `start:renderer` 启动相应进程。Web 提供登录、活跃／已归档 Dashboard 视图、Content Package 创建，以及元数据／归档 Workspace。API 提供存活检查、三个 `/v1/auth/*` 端点、受保护的 `/v1/content-packages` 路由、受保护的 `/v1/content-packages/:packageId/sources` 路由（粘贴文本捕获、`.md`／`.txt` 文件上传捕获、列表、读取、Working Copy 编辑、Version 创建、Version 列表、批准）以及 `/openapi.json`；Worker 运行有界的 Outbox Dispatcher，需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`，只发布固定的最小 BullMQ envelope。Fetcher 和 renderer 仍为生命周期骨架。Web 与 API 的启动要求提供 `.env.example` 所记录的已验证值。
 
 交互式生成本地 owner-password hash，然后仅在通过环境变量提供目标 PostgreSQL URL 后应用已提交的数据库迁移：
 
@@ -102,7 +102,7 @@ corepack pnpm infra:logs
 corepack pnpm infra:down
 ```
 
-除非在 `.env` 中覆盖，Compose 基线会在 `127.0.0.1:5432` 运行 PostgreSQL、在 `127.0.0.1:6379` 运行 Redis，并在 `127.0.0.1:8333` 运行 SeaweedFS `weed mini` S3-compatible Object Storage。其余内部组件端口不会暴露给 Host。本地镜像固定为 SeaweedFS `4.29` 及其已验证的 manifest digest。`infra:down` 会保留 named volumes。API 在应用迁移后连接 PostgreSQL 以处理 server-side Sessions、Content Package metadata 和 Source metadata，并连接 S3-compatible Object Storage 以处理不可变的 Raw Snapshot bytes；它不使用 Redis，也尚不存在 Workflow Engine、Queue、Agent、Render 或生产部署。
+除非在 `.env` 中覆盖，Compose 基线会在 `127.0.0.1:5432` 运行 PostgreSQL、在 `127.0.0.1:6379` 运行 Redis，并在 `127.0.0.1:8333` 运行 SeaweedFS `weed mini` S3-compatible Object Storage。其余内部组件端口不会暴露给 Host。本地镜像固定为 SeaweedFS `4.29` 及其已验证的 manifest digest。`infra:down` 会保留 named volumes。API 在应用迁移后连接 PostgreSQL 以处理 server-side Sessions、Content Package metadata 和 Source metadata，并连接 S3-compatible Object Storage 以处理不可变的 Raw Snapshot bytes；Worker 连接 PostgreSQL 和 Redis 仅用于投递边界。当前不存在 Fetcher execution、Queue consumer、Fetcher claim/result、Agent、Render 或生产部署。
 
 要通过真实入口点和容器验证五个应用骨架及本地状态服务协同工作，请运行：
 
@@ -116,7 +116,7 @@ corepack pnpm test:integration
 
 安装固定的 Chromium revision（`corepack pnpm exec playwright install chromium`）后，运行 `corepack pnpm test:browser` 以演练完整的 M1 owner loop。其安全、清理和范围边界请阅读 [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md)。
 
-这些命令仍只是受限的 M1 基础与首个 M2 Source slice。当前没有 `dev`、广泛的产品 E2E suite、Queue、Workflow Engine、Agent、Render 或内容发布功能。
+这些命令仍只是受限的 M1 基础与审查中的 M2 Source 和 delivery slices。当前没有 `dev`、广泛的产品 E2E suite、Fetcher execution、当前持久请求／投递边界之外的 Workflow Engine、Queue consumer、Agent、Render 或内容发布功能。
 
 ## 持续集成
 
@@ -130,7 +130,7 @@ corepack pnpm test:integration
 
 ## 下一步实施工作
 
-1. M2 — 来源与工作流基础 — 正在进行。其余 M2 Work Items（Workflow Template、Workflow Instance、Outbox、Worker、SSE）各自需要 Ready Work Item。
+1. M2 — 来源与工作流基础 — 正在进行。`M2-WF-003B` 与 `M2-WF-003C` 仍未开始；Fetcher execution 和后续 Workflow transitions 需要各自的 Ready Work Items。
 2. 不要从当前阶段推断 M2 范围，也不要开始 Agent、Research 或发布路径。
 
 本仓库不承诺完成日期。

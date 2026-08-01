@@ -22,6 +22,7 @@ overrides:
 allowBuilds:
   '@scarf/scarf': false
   esbuild: true
+  msgpackr-extract: false
   sharp: true
 
 patchedDependencies:

@@ -12,9 +12,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001` (Pasted-text Source Capture and Approval) is in review.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001`, `M2-SRC-002`, `M2-WF-001`, and `M2-WF-002` are completed, and `M2-WF-003A` (Transactional Outbox Dispatcher) is in review.
 
-This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package API, the M1 Web thin slice, and the in-review M2 Pasted-text Source API foundation. It does not provide Source UI, URL/file Source capture, Workflow, Agent, Render, publishing behavior, deployment, or a development server.
+This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package and URL-capture API boundaries, the M1 Web thin slice, and the in-review Worker Outbox-to-BullMQ delivery boundary. It does not provide Source UI, URL fetch execution, Fetcher claim/result behavior, Agent, Render, publishing behavior, deployment, or a development server.
 
 ## MVP boundary
 
@@ -80,7 +80,7 @@ corepack pnpm repository:check
 
 Before a commit, run `corepack pnpm check`. It runs `format:check`, `lint`, `typecheck`, `test`, and `build` without starting Docker services, reaching the network, or reading Secrets. The Docker-dependent `test:integration`, `test:integration:concurrent`, and `test:browser` commands are excluded from `check`. `corepack pnpm repository:check` (and the focused `check:docs`, `check:decisions`, and `check:secrets`) run dependency-free repository-integrity checks over Git-tracked files.
 
-After a successful build, the processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web provides login, active/archived Dashboard views, Content Package creation, and the metadata/archive Workspace. API provides liveness, the three `/v1/auth/*` endpoints, protected `/v1/content-packages` routes, protected `/v1/content-packages/:packageId/sources` routes (pasted-text capture, .md/.txt file-upload capture, list, get, working-copy edit, version creation, version list, approval), and `/openapi.json`; worker, fetcher, and renderer remain lifecycle skeletons. Web and API startup require the validated values documented in `.env.example`.
+After a successful build, the processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web provides login, active/archived Dashboard views, Content Package creation, and the metadata/archive Workspace. API provides liveness, the three `/v1/auth/*` endpoints, protected `/v1/content-packages` routes, protected `/v1/content-packages/:packageId/sources` routes (pasted-text capture, .md/.txt file-upload capture, list, get, working-copy edit, version creation, version list, approval), the protected URL-capture request route, and `/openapi.json`. Worker runs the bounded Outbox Dispatcher and requires `CONTENTOS_ENV`, `DATABASE_URL`, and `REDIS_URL`; it publishes only the fixed minimal BullMQ envelope. Fetcher and renderer remain lifecycle skeletons. Web and API startup require the validated values documented in `.env.example`.
 
 Generate a local owner-password hash interactively, then apply the committed database migration only after supplying the intended PostgreSQL URL through the environment:
 
@@ -102,7 +102,7 @@ corepack pnpm infra:logs
 corepack pnpm infra:down
 ```
 
-The Compose baseline runs PostgreSQL on `127.0.0.1:5432`, Redis on `127.0.0.1:6379`, and SeaweedFS `weed mini` S3-compatible object storage on `127.0.0.1:8333` unless overridden in `.env`. Its other internal component ports are not exposed to the Host. The local image is fixed to SeaweedFS `4.29` and its verified manifest digest. `infra:down` retains named volumes. The API connects to PostgreSQL for server-side Sessions, Content Package metadata, and Source metadata, and to S3-compatible Object Storage for immutable Raw Snapshot bytes after the migrations are applied; it does not use Redis, and no Workflow Engine, Queue, Agent, Render, or production deployment exists.
+The Compose baseline runs PostgreSQL on `127.0.0.1:5432`, Redis on `127.0.0.1:6379`, and SeaweedFS `weed mini` S3-compatible object storage on `127.0.0.1:8333` unless overridden in `.env`. Its other internal component ports are not exposed to the Host. The local image is fixed to SeaweedFS `4.29` and its verified manifest digest. `infra:down` retains named volumes. The API connects to PostgreSQL for server-side Sessions, Content Package metadata, and Source metadata, and to S3-compatible Object Storage for immutable Raw Snapshot bytes after the migrations are applied; the Worker connects to PostgreSQL and Redis for delivery-only dispatch. There is no Fetcher execution, Agent, Render, or production deployment.
 
 To verify the five application skeletons and the local state services work together through their real entry points and containers, run:
 
@@ -116,7 +116,7 @@ Run `corepack pnpm test:integration:concurrent` to launch two complete token-own
 
 After installing the pinned Chromium revision with `corepack pnpm exec playwright install chromium`, run `corepack pnpm test:browser` to exercise the complete M1 owner loop. Read [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md) for its security, cleanup, and scope boundaries.
 
-These commands remain a bounded M1 foundation with the first M2 Source slice. There is no `dev`, broad product E2E suite, Queue, Workflow Engine, Agent, Render, or publishing-content feature yet.
+These commands remain a bounded M1 foundation plus the in-review M2 Source and delivery slices. There is no `dev`, broad product E2E suite, Fetcher execution, Workflow Engine beyond the current durable request/delivery boundary, Agent, Render, or publishing-content feature yet.
 
 ## Continuous integration
 
@@ -130,7 +130,7 @@ The workflow references no repository Secrets, persists no credentials, uploads 
 
 ## Next implementation steps
 
-1. M2 — Source and Workflow Foundation — is in progress. Remaining M2 Work Items (Workflow Template, Workflow Instance, Outbox, Worker, SSE) require their own Ready Work Items.
+1. M2 — Source and Workflow Foundation — is in progress. `M2-WF-003B` and `M2-WF-003C` remain unstarted; Fetcher execution and later Workflow transitions require their own Ready Work Items.
 2. Do not infer M2 scope or begin an Agent, Research, or publishing path from the current stage.
 
 No completion date is committed by this repository.

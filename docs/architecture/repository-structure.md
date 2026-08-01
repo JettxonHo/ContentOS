@@ -4,7 +4,7 @@
 
 **Scope:** Planned Monorepo layout, package ownership, dependency direction, and current creation boundaries
 
-**Last Updated:** 2026-08-01
+**Last Updated:** 2026-08-02
 
 This document specifies the planned Repository structure and the subset that currently exists. M0 created the five process skeletons, four shared-package skeletons, local services, quality tooling, integration harness, and CI. M1 adds the database/authentication boundary, Content Package Domain and API slice, and the first Web product loop within those existing boundaries. Remaining package and Docker build paths are still planned.
 
@@ -81,7 +81,7 @@ packages/database
 packages/object-storage
 ```
 
-`core`, `contracts`, and `config` expose the bounded authentication, Content Package, Source, and Workflow values/Ports, including the framework-independent URL-capture Command and its versioned HTTP contracts, plus validated API configuration. `database` owns the Drizzle Session, Content Package, Source, Workflow, URL Source Reference, Capture Request, Task, and Outbox schemas, node-postgres connection, transaction repository adapters, migration runner, and test-only persistence boundaries. `object-storage` owns the S3-compatible ObjectStore adapter that implements the Core-defined ObjectStore Port using opaque owner-scoped keys and immutable-put semantics. `testing` owns deterministic unit/repository support and the isolated integration harness. Package build outputs are generated under ignored `dist/` directories.
+`core`, `contracts`, and `config` expose the bounded authentication, Content Package, Source, and Workflow values/Ports, including the framework-independent URL-capture Command and its versioned HTTP contracts, plus validated API and Worker configuration. `database` owns the Drizzle Session, Content Package, Source, Workflow, URL Source Reference, Capture Request, Task, and Outbox schemas, node-postgres connection, transaction repository adapters, migration runner, and test-only persistence boundaries. Its Worker-facing Dispatcher repository owns only transactional Outbox lease, acknowledgement, failure, and missing-Job reconciliation operations. `object-storage` owns the S3-compatible ObjectStore adapter that implements the Core-defined ObjectStore Port using opaque owner-scoped keys and immutable-put semantics. `testing` owns deterministic unit/repository support and the isolated integration harness, including BullMQ delivery assertions. Package build outputs are generated under ignored `dist/` directories.
 
 M0-ENG-002 adds only these deployable-process skeletons:
 
@@ -93,7 +93,7 @@ apps/fetcher
 apps/renderer
 ```
 
-Web now owns the M1 login, active/archived Dashboard, new-package form, Workspace metadata editor, and typed browser API client; it never accesses PostgreSQL or Secrets. API composes liveness, authentication, exact-Origin enforcement, the Content Package routes, the Source routes (capture, list, get, working-copy edit, version creation, version list, approval), the protected owner URL-capture Command route, common errors, OpenAPI JSON, PostgreSQL adapters, and the S3-compatible ObjectStore adapter. The URL-capture route persists only a safe request/task/outbox boundary; it does not dispatch, fetch, or create Source evidence. Worker, fetcher, and renderer remain lifecycle skeletons. The root `migrations/` path contains the reviewed forward migrations and Drizzle metadata; the root `schemas/` directory contains the versioned Normalized Source JSON Schema 2020-12 document; every other planned infrastructure package remains absent.
+Web now owns the M1 login, active/archived Dashboard, new-package form, Workspace metadata editor, and typed browser API client; it never accesses PostgreSQL or Secrets. API composes liveness, authentication, exact-Origin enforcement, the Content Package routes, the Source routes (capture, list, get, working-copy edit, version creation, version list, approval), the protected owner URL-capture Command route, common errors, OpenAPI JSON, PostgreSQL adapters, and the S3-compatible ObjectStore adapter. The URL-capture route persists only a safe request/task/outbox boundary; it does not dispatch, fetch, or create Source evidence. Worker now owns the bounded M2-WF-003A Outbox Dispatcher, its Worker-only configuration, and BullMQ producer adapter; it has no Fetcher consumer or execution authority. Fetcher and renderer remain lifecycle skeletons. The root `migrations/` path contains the reviewed forward migrations and Drizzle metadata; the root `schemas/` directory contains the versioned Normalized Source JSON Schema 2020-12 document; every other planned infrastructure package remains absent.
 
 M0-QUAL-002 adds the integration smoke harness inside the existing `packages/testing` package, without adding a new package or application:
 

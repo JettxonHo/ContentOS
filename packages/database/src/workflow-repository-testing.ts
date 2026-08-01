@@ -3,6 +3,8 @@ import type { UrlCaptureCommandRepository, WorkflowRepository } from '@contentos
 import { createDatabaseConnection } from './client.js';
 import { DrizzleWorkflowRepository } from './workflow-repository.js';
 import { DrizzleWorkflowCommandRepository } from './workflow-command-repository.js';
+import { DrizzleWorkflowDispatchRepository } from './workflow-dispatch-repository.js';
+import type { WorkflowDispatchRepository } from './runtime.js';
 
 /** Disposable PostgreSQL boundary for Workflow persistence and migration tests. */
 export interface WorkflowRepositoryTestBoundary {
@@ -44,6 +46,30 @@ export function createUrlCaptureRepositoryTestBoundary(
   const connection = createDatabaseConnection(databaseUrl);
   return {
     repository: new DrizzleWorkflowCommandRepository(connection, options),
+    async query<TRow extends Record<string, unknown>>(
+      text: string,
+      values: readonly unknown[] = [],
+    ): Promise<readonly TRow[]> {
+      const result = await connection.pool.query<TRow>(text, [...values]);
+      return result.rows;
+    },
+    close: () => connection.close(),
+  };
+}
+
+/** Disposable PostgreSQL boundary for the Worker Outbox Dispatcher tests. */
+export interface WorkflowDispatchRepositoryTestBoundary {
+  readonly repository: WorkflowDispatchRepository;
+  query<TRow extends Record<string, unknown>>(text: string, values?: readonly unknown[]): Promise<readonly TRow[]>;
+  close(): Promise<void>;
+}
+
+export function createWorkflowDispatchRepositoryTestBoundary(
+  databaseUrl: string,
+): WorkflowDispatchRepositoryTestBoundary {
+  const connection = createDatabaseConnection(databaseUrl);
+  return {
+    repository: new DrizzleWorkflowDispatchRepository(connection),
     async query<TRow extends Record<string, unknown>>(
       text: string,
       values: readonly unknown[] = [],

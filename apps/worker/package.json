@@ -7,5 +7,11 @@
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@contentos/config": "workspace:*",
+    "@contentos/core": "workspace:*",
+    "@contentos/database": "workspace:*",
+    "bullmq": "5.81.1"
   }
 }
