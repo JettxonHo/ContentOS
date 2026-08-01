@@ -1,8 +1,8 @@
 # Decision Review — M2-DES-004
 
 - **Title:** Workflow/Task Foundation and URL-capture Bootstrap
-- **Status:** Proposed Decision Review
-- **Review outcome:** `HUMAN_DECISION_REQUIRED`
+- **Status:** Accepted Decision Review
+- **Review outcome:** `ACCEPTED — Option B approved by the project authority on 2026-08-01`
 - **Date:** 2026-08-01
 - **Base commit:** `9704af5fb16e91cbb86afc35beffdad08fbecb53` (`9704af5`)
 - **Issue:** [#51](https://github.com/JettxonHo/ContentOS/issues/51)
@@ -54,14 +54,14 @@ or the Fetcher authentication transport.
 
 ## 3. Options considered
 
-| Option                                                                 | Description                                                                                                                                                                                                                                                                                                                                                    | Consequence                                                                                                                                                                                        | Outcome        |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| A. Eager Instance creation and historical backfill                     | Create an Instance for every Package at Package creation and synthesize Instances/events for existing Packages.                                                                                                                                                                                                                                                | Couples M1 Package creation to unfinished M2 semantics and fabricates history that never occurred. It also creates dormant state for Packages that never start a Workflow.                         | Reject.        |
-| B. Fixed catalog, lazy Instance, Source Reference plus Capture Request | Keep the fixed Template catalog server-owned and immutable. The first authorized Workflow Command creates exactly one initial Instance, its enabled Source-capture Node, an immutable URL Source Reference and Capture Request, Task, Outbox, and Event atomically. A Raw Snapshot and reviewable Source content appear only after a verified Fetcher success. | Preserves one precise template binding and submitted-origin history without inventing legacy history or treating a URL as captured evidence. It gives later work a small, testable entry boundary. | **Recommend.** |
-| C. Task-only URL payload                                               | Put the submitted URL and role only in a Task/Queue payload; create no Instance or durable request until Fetcher result.                                                                                                                                                                                                                                       | Weakens submission audit/history, leaves no durable owner-scoped request for a failed capture, and lets queue payload become an implicit source of business truth.                                 | Reject.        |
-| D. Generic workflow engine or user-managed Template registry           | Build arbitrary template/node APIs and template management before Source capture.                                                                                                                                                                                                                                                                              | Conflicts with the fixed-template MVP and expands M2 into an automation platform.                                                                                                                  | Reject.        |
+| Option                                                                 | Description                                                                                                                                                                                                                                                                                                                                                    | Consequence                                                                                                                                                                                        | Outcome       |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| A. Eager Instance creation and historical backfill                     | Create an Instance for every Package at Package creation and synthesize Instances/events for existing Packages.                                                                                                                                                                                                                                                | Couples M1 Package creation to unfinished M2 semantics and fabricates history that never occurred. It also creates dormant state for Packages that never start a Workflow.                         | Reject.       |
+| B. Fixed catalog, lazy Instance, Source Reference plus Capture Request | Keep the fixed Template catalog server-owned and immutable. The first authorized Workflow Command creates exactly one initial Instance, its enabled Source-capture Node, an immutable URL Source Reference and Capture Request, Task, Outbox, and Event atomically. A Raw Snapshot and reviewable Source content appear only after a verified Fetcher success. | Preserves one precise template binding and submitted-origin history without inventing legacy history or treating a URL as captured evidence. It gives later work a small, testable entry boundary. | **Accepted.** |
+| C. Task-only URL payload                                               | Put the submitted URL and role only in a Task/Queue payload; create no Instance or durable request until Fetcher result.                                                                                                                                                                                                                                       | Weakens submission audit/history, leaves no durable owner-scoped request for a failed capture, and lets queue payload become an implicit source of business truth.                                 | Reject.       |
+| D. Generic workflow engine or user-managed Template registry           | Build arbitrary template/node APIs and template management before Source capture.                                                                                                                                                                                                                                                                              | Conflicts with the fixed-template MVP and expands M2 into an automation platform.                                                                                                                  | Reject.       |
 
-## 4. Recommended decision — Option B
+## 4. Accepted decision — Option B
 
 Adopt the following constrained Workflow/Task foundation direction.
 
@@ -257,12 +257,15 @@ Before each packet becomes Ready, it must contain at least:
    cleanup, and no-Secret/no-residue evidence when that capability is present;
 5. documentation synchronization targets and a truthful M2/M3 status boundary.
 
-## 8. Human decision requested
+## 8. Human decision record
 
-Approve or reject **Option B — fixed immutable Template catalog, lazy
-one-time Instance bootstrap, an immutable URL Source Reference plus Capture
-Request, and Source evidence created only through a valid Gateway result.**
+The project authority approved **Option B — fixed immutable Template catalog,
+lazy one-time Instance bootstrap, an immutable URL Source Reference plus
+Capture Request, and Source evidence created only through a valid Gateway
+result** on 2026-08-01.
 
-Approval authorizes creation of the six narrow Ready Work Packets in §5. It
-does not authorize implementation, a change to Accepted DEC, a new technical
-stack, direct Fetcher database access, or automatic Source Approval.
+This approval authorizes creation of the six narrow Work Packets in §5. It
+does not by itself authorize implementation: a Work Item becomes Ready only
+when its own contract meets the repository Definition of Ready. This decision
+does not change an Accepted DEC, select a new technical stack, grant direct
+Fetcher database access, or automate Source Approval.
