@@ -51,11 +51,11 @@ Workflow Policy
 
 The three responsibilities remain separate:
 
-| Responsibility | May do | Must not do |
-|---|---|---|
-| LLM Planner | Interpret the user's goal, explain current state, recommend legal next actions, and produce a Command Proposal | Mutate authoritative state, create Approval, invent Nodes, bypass a Gate, or invoke arbitrary tools |
-| Deterministic Executor | Authenticate and authorize the Actor, validate a structured Command, enforce concurrency and idempotency, invoke owning Use Cases, create Tasks, and record results | Invent Workflow policy, infer permission from prose, or accept model output as authoritative state |
-| Workflow Policy | Define prerequisites, legal transitions, Human Gates, retry and skip eligibility, branch dependencies, and completion conditions | Generate content, call models, or act as a mutable Workflow Instance |
+| Responsibility         | May do                                                                                                                                                              | Must not do                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| LLM Planner            | Interpret the user's goal, explain current state, recommend legal next actions, and produce a Command Proposal                                                      | Mutate authoritative state, create Approval, invent Nodes, bypass a Gate, or invoke arbitrary tools |
+| Deterministic Executor | Authenticate and authorize the Actor, validate a structured Command, enforce concurrency and idempotency, invoke owning Use Cases, create Tasks, and record results | Invent Workflow policy, infer permission from prose, or accept model output as authoritative state  |
+| Workflow Policy        | Define prerequisites, legal transitions, Human Gates, retry and skip eligibility, branch dependencies, and completion conditions                                    | Generate content, call models, or act as a mutable Workflow Instance                                |
 
 The Chief Editor is a coordination layer, not a super-Agent with unrestricted Domain, database, network, filesystem, or tool access.
 
@@ -79,14 +79,17 @@ The Accepted initial family is `content-package-dual-output/v1`; this name ident
 
 Changing a Template creates a new Template Version. It does not rewrite an existing Workflow Instance or its Event history.
 
-The M2-WF-001 persistence foundation now stores this one fixed catalog, its
+The M2-WF-001 persistence foundation stores this one fixed catalog, its
 ordered Nodes and dependency edges, and neutral owner-scoped Workflow
-Instance, Node, and append-only Event primitives in PostgreSQL. The catalog
-definition is hash-checked and its catalog/Event rows are immutable through
-ordinary application connections. This foundation has no Workflow Command,
-bootstrap, automatic Node materialization or transition, Task, Outbox, Queue,
-Timeline/SSE, URL Source, Fetcher, Agent, or user-visible Workflow behavior;
-later execution remains inactive until its own Ready Work Item.
+Instance, Node, and append-only Event primitives in PostgreSQL. M2-WF-002 adds
+one protected owner URL-capture Command that atomically bootstraps the v1
+Instance and `source_capture` Node when absent, then records a private URL
+Source Reference, Capture Request, queued Task, pending Outbox record, and
+safe append-only Event. The Command is a durable request boundary only: it
+does not dispatch a Queue Job, make a network request, create Source evidence,
+write Object Storage, or expose URL text through responses, Events, or Outbox
+payloads. Timeline/SSE, Fetcher execution, and later Workflow transitions
+remain inactive until their own Ready Work Items.
 
 ## 4. Workflow Instance
 
@@ -202,15 +205,15 @@ Natural-language text is never executed directly. Repeating an equivalent Comman
 
 The MVP retains explicit human decisions at these boundaries:
 
-| Human Gate | Human responsibility | Formal effect |
-|---|---|---|
-| Source Review | Confirm or correct normalized Source material and Source role | Authorizes exact Source Version use by Research |
-| Research Review | Accept, correct, exclude, or mark uncertainty and evidence | May approve one exact Research Version |
-| Human Opinion Confirmation | Confirm, correct, reject, skip, or stop interpreted opinion | Creates Confirmed Opinion statements or explicit Research-based Mode |
-| Blog Approval | Review content, citations, provenance, and warnings | Approves one exact Blog Version |
-| Xiaohongshu Approval | Review platform content, page structure, citations, and warnings | Approves one exact Xiaohongshu Version |
-| Design Approval | Review one Design Version and required Assets | Approves exact Design and eligible Asset dependencies |
-| Final Export Eligibility | Confirm the complete approved dependency set and final output | Authorizes creation or selection of the formal Export Package under policy |
+| Human Gate                 | Human responsibility                                             | Formal effect                                                              |
+| -------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Source Review              | Confirm or correct normalized Source material and Source role    | Authorizes exact Source Version use by Research                            |
+| Research Review            | Accept, correct, exclude, or mark uncertainty and evidence       | May approve one exact Research Version                                     |
+| Human Opinion Confirmation | Confirm, correct, reject, skip, or stop interpreted opinion      | Creates Confirmed Opinion statements or explicit Research-based Mode       |
+| Blog Approval              | Review content, citations, provenance, and warnings              | Approves one exact Blog Version                                            |
+| Xiaohongshu Approval       | Review platform content, page structure, citations, and warnings | Approves one exact Xiaohongshu Version                                     |
+| Design Approval            | Review one Design Version and required Assets                    | Approves exact Design and eligible Asset dependencies                      |
+| Final Export Eligibility   | Confirm the complete approved dependency set and final output    | Authorizes creation or selection of the formal Export Package under policy |
 
 AI does not create a human Approval, acknowledge a Warning on the user's behalf, or publish content. A Human Gate cannot use a normal “continue anyway” action to bypass a Blocking Error.
 
@@ -286,14 +289,14 @@ Skip is allowed only where the bound Workflow Template explicitly permits it. Hu
 
 Workflow uses stable failure categories so policy can choose the correct path:
 
-| Failure category | Meaning | Typical path |
-|---|---|---|
-| Input Error | Missing, ineligible, unsupported, or malformed input | Correct input or return upstream |
-| Deterministic Error | Domain, validation, contract, fit, or configuration rule failed | Correct the cause; do not blind retry |
-| Transient Error | Temporary network, process, storage, or infrastructure failure | Bounded automatic retry where policy allows |
-| Provider Error | Model Provider timeout, rate limit, unavailability, refusal, or filtering | Policy-specific retry, limited Fallback, or human action |
-| Security Error | Authorization, SSRF, injection, Secret, unsafe file, or isolation violation | Block, record, and follow security handling |
-| User-action-required Error | A human correction, choice, credential action, or review is required | Await explicit user action |
+| Failure category           | Meaning                                                                     | Typical path                                             |
+| -------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Input Error                | Missing, ineligible, unsupported, or malformed input                        | Correct input or return upstream                         |
+| Deterministic Error        | Domain, validation, contract, fit, or configuration rule failed             | Correct the cause; do not blind retry                    |
+| Transient Error            | Temporary network, process, storage, or infrastructure failure              | Bounded automatic retry where policy allows              |
+| Provider Error             | Model Provider timeout, rate limit, unavailability, refusal, or filtering   | Policy-specific retry, limited Fallback, or human action |
+| Security Error             | Authorization, SSRF, injection, Secret, unsafe file, or isolation violation | Block, record, and follow security handling              |
+| User-action-required Error | A human correction, choice, credential action, or review is required        | Await explicit user action                               |
 
 Only suitable Transient Errors receive automatic retry. Domain Validation failure is not solved by an infinite retry loop. Security Errors cannot be bypassed by switching Provider or asking an Agent to reinterpret the rule. Retry, Repair, and Fallback have explicit attempt and budget limits.
 
@@ -370,13 +373,13 @@ These choices must preserve the semantics and invariants above. A change to Acce
 
 ## 19. Decision Traceability
 
-| Workflow area | Accepted Decisions | Primary historical sources |
-|---|---|---|
-| Specialized Agents, Chief Editor, deterministic execution, and Human Review | DEC-009–DEC-012, DEC-023–DEC-025, DEC-038–DEC-039 | [Session-003](../sessions/session-003.md), [Session-006](../sessions/session-006.md), [Session-008](../sessions/session-008.md) |
-| Fixed Template, state separation, Commands, concurrency, Events, recovery, and Promotion | DEC-125–DEC-139 | [Session-017](../sessions/session-017.md) |
-| Artifact Versions, dependencies, late results, and eligibility | DEC-160–DEC-176, DEC-184–DEC-189 | [Artifact Versioning](artifact-versioning.md), [Session-019](../sessions/session-019.md), [Session-020](../sessions/session-020.md) |
-| PostgreSQL authority, Queue delivery, Outbox, SSE, and Reconciliation | DEC-226, DEC-228–DEC-229, DEC-234, DEC-238 | [Session-022](../sessions/session-022.md) |
-| Workflow, Queue, and release tests | DEC-244–DEC-250, DEC-259, DEC-261 | [Session-023](../sessions/session-023.md) |
-| Final MVP Gates, implementation order, and recovery requirements | DEC-269–DEC-285, DEC-293 | [Session-024](../sessions/session-024.md) |
+| Workflow area                                                                            | Accepted Decisions                                | Primary historical sources                                                                                                          |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Specialized Agents, Chief Editor, deterministic execution, and Human Review              | DEC-009–DEC-012, DEC-023–DEC-025, DEC-038–DEC-039 | [Session-003](../sessions/session-003.md), [Session-006](../sessions/session-006.md), [Session-008](../sessions/session-008.md)     |
+| Fixed Template, state separation, Commands, concurrency, Events, recovery, and Promotion | DEC-125–DEC-139                                   | [Session-017](../sessions/session-017.md)                                                                                           |
+| Artifact Versions, dependencies, late results, and eligibility                           | DEC-160–DEC-176, DEC-184–DEC-189                  | [Artifact Versioning](artifact-versioning.md), [Session-019](../sessions/session-019.md), [Session-020](../sessions/session-020.md) |
+| PostgreSQL authority, Queue delivery, Outbox, SSE, and Reconciliation                    | DEC-226, DEC-228–DEC-229, DEC-234, DEC-238        | [Session-022](../sessions/session-022.md)                                                                                           |
+| Workflow, Queue, and release tests                                                       | DEC-244–DEC-250, DEC-259, DEC-261                 | [Session-023](../sessions/session-023.md)                                                                                           |
+| Final MVP Gates, implementation order, and recovery requirements                         | DEC-269–DEC-285, DEC-293                          | [Session-024](../sessions/session-024.md)                                                                                           |
 
 The authoritative status and wording of every Decision is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).

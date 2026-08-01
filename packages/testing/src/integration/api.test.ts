@@ -42,6 +42,7 @@ describe('api smoke', () => {
         '/v1/content-packages/{packageId}/sources/{sourceId}/versions',
         '/v1/content-packages/{packageId}/sources/{sourceId}/versions/{versionId}',
         '/v1/content-packages/{packageId}/sources/{sourceId}/approval',
+        '/v1/content-packages/{packageId}/url-capture-requests',
       ]),
     );
     expect(document.components?.securitySchemes).toHaveProperty('contentos_session');
@@ -77,6 +78,9 @@ describe('api smoke', () => {
       const responses = sourcePaths[pathName]?.[method]?.responses ?? {};
       expect(Object.keys(responses).sort()).toEqual([...expectedStatuses].sort());
     }
+    const urlCaptureResponses =
+      sourcePaths['/v1/content-packages/{packageId}/url-capture-requests']?.post?.responses ?? {};
+    expect(Object.keys(urlCaptureResponses).sort()).toEqual(['201', '401', '404', '409', '422']);
   });
 
   it('fails startup on invalid secret configuration without reflecting secret values', async () => {

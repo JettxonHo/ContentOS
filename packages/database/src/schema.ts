@@ -564,3 +564,168 @@ export const workflowEvents = pgTable(
     check('workflow_events_payload_object_check', sql`jsonb_typeof(${table.payload}) = 'object'`),
   ],
 );
+
+export const urlSourceReferences = pgTable(
+  'url_source_references',
+  {
+    id: uuid('id').primaryKey(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    role: varchar('role', { length: 16 }).notNull(),
+    submittedUrl: text('submitted_url').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('url_source_references_id_package_owner_unique').on(table.id, table.contentPackageId, table.ownerUserId),
+    foreignKey({
+      name: 'url_source_references_package_owner_fk',
+      columns: [table.contentPackageId, table.ownerUserId],
+      foreignColumns: [contentPackages.id, contentPackages.ownerUserId],
+    }).onDelete('restrict'),
+    index('url_source_references_owner_package_created_idx').on(
+      table.ownerUserId,
+      table.contentPackageId,
+      table.createdAt,
+      table.id,
+    ),
+    check('url_source_references_role_check', sql`${table.role} IN ('primary', 'supporting')`),
+    check(
+      'url_source_references_submitted_url_check',
+      sql`btrim(${table.submittedUrl}) = ${table.submittedUrl} AND octet_length(${table.submittedUrl}) BETWEEN 1 AND 2048 AND ${table.submittedUrl} !~ '[[:cntrl:]]'`,
+    ),
+  ],
+);
+
+export const urlCaptureRequests = pgTable(
+  'url_capture_requests',
+  {
+    id: uuid('id').primaryKey(),
+    sourceReferenceId: uuid('source_reference_id').notNull(),
+    workflowInstanceId: uuid('workflow_instance_id').notNull(),
+    workflowNodeId: uuid('workflow_node_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    expectedPackageRevision: integer('expected_package_revision').notNull(),
+    commandKind: varchar('command_kind', { length: 64 }).notNull(),
+    idempotencyKey: varchar('idempotency_key', { length: 128 }).notNull(),
+    requestFingerprint: char('request_fingerprint', { length: 64 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('url_capture_requests_id_package_owner_unique').on(table.id, table.contentPackageId, table.ownerUserId),
+    unique('url_capture_requests_source_reference_unique').on(table.sourceReferenceId),
+    unique('url_capture_requests_node_unique').on(table.workflowNodeId),
+    unique('url_capture_requests_owner_package_kind_key_unique').on(
+      table.ownerUserId,
+      table.contentPackageId,
+      table.commandKind,
+      table.idempotencyKey,
+    ),
+    foreignKey({
+      name: 'url_capture_requests_source_reference_binding_fk',
+      columns: [table.sourceReferenceId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [urlSourceReferences.id, urlSourceReferences.contentPackageId, urlSourceReferences.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'url_capture_requests_instance_binding_fk',
+      columns: [table.workflowInstanceId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [workflowInstances.id, workflowInstances.contentPackageId, workflowInstances.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'url_capture_requests_node_binding_fk',
+      columns: [table.workflowNodeId, table.workflowInstanceId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [
+        workflowNodes.id,
+        workflowNodes.workflowInstanceId,
+        workflowNodes.contentPackageId,
+        workflowNodes.ownerUserId,
+      ],
+    }).onDelete('restrict'),
+    index('url_capture_requests_owner_package_created_idx').on(
+      table.ownerUserId,
+      table.contentPackageId,
+      table.createdAt,
+      table.id,
+    ),
+    check('url_capture_requests_expected_revision_check', sql`${table.expectedPackageRevision} >= 1`),
+    check('url_capture_requests_command_kind_check', sql`${table.commandKind} = 'url_capture_request'`),
+    check('url_capture_requests_idempotency_key_check', sql`${table.idempotencyKey} ~ '^[A-Za-z0-9_-]{16,128}$'`),
+    check('url_capture_requests_fingerprint_check', sql`${table.requestFingerprint} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+export const workflowTasks = pgTable(
+  'workflow_tasks',
+  {
+    id: uuid('id').primaryKey(),
+    workflowInstanceId: uuid('workflow_instance_id').notNull(),
+    workflowNodeId: uuid('workflow_node_id').notNull(),
+    urlCaptureRequestId: uuid('url_capture_request_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    kind: varchar('kind', { length: 32 }).notNull(),
+    state: varchar('state', { length: 16 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('workflow_tasks_id_package_owner_unique').on(table.id, table.contentPackageId, table.ownerUserId),
+    unique('workflow_tasks_request_unique').on(table.urlCaptureRequestId),
+    foreignKey({
+      name: 'workflow_tasks_instance_binding_fk',
+      columns: [table.workflowInstanceId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [workflowInstances.id, workflowInstances.contentPackageId, workflowInstances.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'workflow_tasks_node_binding_fk',
+      columns: [table.workflowNodeId, table.workflowInstanceId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [
+        workflowNodes.id,
+        workflowNodes.workflowInstanceId,
+        workflowNodes.contentPackageId,
+        workflowNodes.ownerUserId,
+      ],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'workflow_tasks_request_binding_fk',
+      columns: [table.urlCaptureRequestId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [urlCaptureRequests.id, urlCaptureRequests.contentPackageId, urlCaptureRequests.ownerUserId],
+    }).onDelete('restrict'),
+    index('workflow_tasks_owner_package_state_idx').on(table.ownerUserId, table.contentPackageId, table.state),
+    check('workflow_tasks_kind_check', sql`${table.kind} = 'url_capture'`),
+    check('workflow_tasks_state_check', sql`${table.state} = 'queued'`),
+  ],
+);
+
+export const workflowOutboxRecords = pgTable(
+  'workflow_outbox_records',
+  {
+    id: uuid('id').primaryKey(),
+    taskId: uuid('task_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    category: varchar('category', { length: 32 }).notNull(),
+    envelopeVersion: varchar('envelope_version', { length: 32 }).notNull(),
+    payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+    state: varchar('state', { length: 16 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('workflow_outbox_records_id_task_owner_unique').on(table.id, table.taskId, table.ownerUserId),
+    unique('workflow_outbox_records_task_unique').on(table.taskId),
+    foreignKey({
+      name: 'workflow_outbox_records_task_binding_fk',
+      columns: [table.taskId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [workflowTasks.id, workflowTasks.contentPackageId, workflowTasks.ownerUserId],
+    }).onDelete('restrict'),
+    index('workflow_outbox_records_pending_idx').on(table.state, table.createdAt, table.id),
+    check('workflow_outbox_records_category_check', sql`${table.category} = 'fetcher'`),
+    check('workflow_outbox_records_envelope_version_check', sql`${table.envelopeVersion} = 'fetcher-task/v1'`),
+    check('workflow_outbox_records_state_check', sql`${table.state} = 'pending'`),
+    check('workflow_outbox_records_payload_object_check', sql`jsonb_typeof(${table.payload}) = 'object'`),
+    check(
+      'workflow_outbox_records_payload_shape_check',
+      sql`${table.payload} ?& ARRAY['taskId', 'taskKind', 'envelopeVersion'] AND (${table.payload} - 'taskId' - 'taskKind' - 'envelopeVersion') = '{}'::jsonb AND jsonb_typeof(${table.payload}->'taskId') = 'string' AND ${table.payload}->>'taskKind' = 'url_capture' AND ${table.payload}->>'envelopeVersion' = 'fetcher-task/v1'`,
+    ),
+  ],
+);

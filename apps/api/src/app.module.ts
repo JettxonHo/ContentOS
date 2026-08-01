@@ -9,11 +9,19 @@ import {
   ContentPackageService,
   type ContentPackageId,
   SourceService,
+  UrlCaptureService,
   type SourceId,
   type RawSnapshotId,
   type SourceWorkingCopyId,
   type SourceVersionId,
   type SourceApprovalId,
+  type WorkflowInstanceId,
+  type WorkflowNodeId,
+  type UrlSourceReferenceId,
+  type UrlCaptureRequestId,
+  type WorkflowTaskId,
+  type WorkflowOutboxRecordId,
+  type WorkflowEventId,
 } from '@contentos/core';
 import type { UserId } from '@contentos/core';
 
@@ -26,6 +34,7 @@ import { HealthController } from './health.controller';
 import { ApiExceptionFilter } from './http/api-exception.filter';
 import { TrustedOriginGuard } from './http/trusted-origin.guard';
 import { SourceController } from './source/source.controller';
+import { UrlCaptureController } from './url-capture/url-capture.controller';
 import { AjvNormalizedBodyValidator } from './source/ajv-body-validator';
 import {
   API_CONFIG,
@@ -34,6 +43,7 @@ import {
   CONTENT_PACKAGE_SERVICE,
   OBJECT_STORE,
   SOURCE_SERVICE,
+  URL_CAPTURE_SERVICE,
 } from './runtime.tokens';
 
 @Module({})
@@ -41,7 +51,7 @@ export class AppModule {
   static register(config: ApiConfig, secrets: ApiSecrets): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, AuthController, ContentPackageController, SourceController],
+      controllers: [HealthController, AuthController, ContentPackageController, SourceController, UrlCaptureController],
       providers: [
         { provide: API_CONFIG, useValue: config },
         { provide: API_SECRETS, useValue: secrets },
@@ -102,6 +112,24 @@ export class AppModule {
               },
               { now: () => new Date() },
               new AjvNormalizedBodyValidator(),
+            ),
+        },
+        {
+          provide: URL_CAPTURE_SERVICE,
+          inject: [DatabaseService],
+          useFactory: (database: DatabaseService): UrlCaptureService =>
+            new UrlCaptureService(
+              database.urlCapture,
+              {
+                generateWorkflowInstanceId: () => randomUUID() as WorkflowInstanceId,
+                generateWorkflowNodeId: () => randomUUID() as WorkflowNodeId,
+                generateUrlSourceReferenceId: () => randomUUID() as UrlSourceReferenceId,
+                generateUrlCaptureRequestId: () => randomUUID() as UrlCaptureRequestId,
+                generateWorkflowTaskId: () => randomUUID() as WorkflowTaskId,
+                generateWorkflowOutboxRecordId: () => randomUUID() as WorkflowOutboxRecordId,
+                generateWorkflowEventId: () => randomUUID() as WorkflowEventId,
+              },
+              { now: () => new Date() },
             ),
         },
         { provide: APP_GUARD, useClass: TrustedOriginGuard },

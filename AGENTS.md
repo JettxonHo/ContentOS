@@ -1,7 +1,7 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M1 completed; M2 is in progress (`M2-SRC-001`, `M2-SRC-002`, and `M2-WF-001` completed).
+**Current stage:** M1 completed; M2 is in progress (`M2-SRC-001`, `M2-SRC-002`, and `M2-WF-001` completed; `M2-WF-002` implementation in review).
 **Last updated:** 2026-08-01
 
 ## 1. Project identity and current stage
@@ -152,7 +152,7 @@ M0-QUAL-001 extends the real workspace commands with a local quality toolchain. 
 
 The current local S3-compatible implementation is SeaweedFS `weed mini`, pinned to its verified `4.29` image manifest. It is a local-development baseline only; it does not select a production Object Storage provider or add a vendor dependency to the Domain or application packages.
 
-The API connects to PostgreSQL for server-side Sessions, owner-scoped Content Package metadata, and Source metadata. It exposes the three `/v1/auth/*` routes, protected `/v1/content-packages` create/list/get/update/archive routes, protected `/v1/content-packages/:packageId/sources` pasted-capture, `.md`/`.txt` file-upload capture, list/get/working-copy/version/approval routes, and `/openapi.json`. The API connects to S3-compatible Object Storage through a private adapter for immutable Raw Snapshot bytes. Web provides the M1 login, active/archived Dashboard, new-package form, and metadata/archive Workspace; later Source UI and Workflow stages are visibly unavailable. Worker, fetcher, and renderer remain skeletons. The committed migrations create `auth_sessions`, `content_packages`, `sources`, `source_raw_snapshots`, `source_working_copies`, `source_versions`, `source_heads`, and `source_approvals` plus Drizzle migration metadata; a further additive migration relaxes the Source type, capture type, and snapshot content-type check constraints for the upload path. No Queue, Workflow Engine, Agent, Render, publishing behavior, or deployment exists.
+The API connects to PostgreSQL for server-side Sessions, owner-scoped Content Package metadata, Source metadata, and the URL-capture Command's durable Workflow request boundary. It exposes the three `/v1/auth/*` routes, protected `/v1/content-packages` create/list/get/update/archive routes, protected `/v1/content-packages/:packageId/sources` pasted-capture, `.md`/`.txt` file-upload capture, list/get/working-copy/version/approval routes, the protected `POST /v1/content-packages/:packageId/url-capture-requests` route, and `/openapi.json`. The URL-capture route creates only a private URL Reference, Capture Request, queued Task, pending Outbox record, and append-only Event; it does not dispatch, make a network request, or create Source evidence. The API connects to S3-compatible Object Storage through a private adapter for immutable Raw Snapshot bytes. Web provides the M1 login, active/archived Dashboard, new-package form, and metadata/archive Workspace; later Source UI and Workflow stages are visibly unavailable. Worker, fetcher, and renderer remain skeletons. The committed migrations create `auth_sessions`, `content_packages`, `sources`, `source_raw_snapshots`, `source_working_copies`, `source_versions`, `source_heads`, and `source_approvals` plus Drizzle migration metadata; further additive migrations create the Workflow catalog and the URL-capture persistence boundary. No Queue delivery/Dispatcher, Fetcher execution, Agent, Render, publishing behavior, or deployment exists.
 
 ## 18. Work completion report
 
