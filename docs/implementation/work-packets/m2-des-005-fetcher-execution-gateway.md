@@ -134,7 +134,7 @@ Outbox:     pending ──BullMQ acknowledged──> dispatched
 
 - Dispatcher selects eligible `pending` Outbox records from PostgreSQL with
   bounded concurrent ownership, submits a BullMQ Job whose stable internal
-  `jobId` is `fetcher:<taskId>:<deliveryGeneration>`, and records
+  `jobId` is `fetcher-<taskId>-<deliveryGeneration>`, and records
   `dispatched` only after BullMQ acknowledges the add.
 - The Queue payload remains the existing three-field `fetcher-task/v1`
   object. `deliveryGeneration` is queue metadata, not payload data.
