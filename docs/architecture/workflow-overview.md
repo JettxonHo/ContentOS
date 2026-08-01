@@ -4,7 +4,7 @@
 
 **Scope:** MVP workflow coordination, state boundaries, Commands, Human Gates, recovery, and execution invariants
 
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-01
 
 This document defines how ContentOS coordinates one Content Package through fixed, auditable, and recoverable Workflow behavior. It defines semantics and boundaries, not database tables, API endpoints, JSON Schemas, concrete enums, or implementation timing values.
 
@@ -78,6 +78,15 @@ A Workflow Template is an immutable, versioned definition of allowed coordinatio
 The Accepted initial family is `content-package-dual-output/v1`; this name identifies the required initial Template direction, not a complete Schema or implementation.
 
 Changing a Template creates a new Template Version. It does not rewrite an existing Workflow Instance or its Event history.
+
+The M2-WF-001 persistence foundation now stores this one fixed catalog, its
+ordered Nodes and dependency edges, and neutral owner-scoped Workflow
+Instance, Node, and append-only Event primitives in PostgreSQL. The catalog
+definition is hash-checked and its catalog/Event rows are immutable through
+ordinary application connections. This foundation has no Workflow Command,
+bootstrap, automatic Node materialization or transition, Task, Outbox, Queue,
+Timeline/SSE, URL Source, Fetcher, Agent, or user-visible Workflow behavior;
+later execution remains inactive until its own Ready Work Item.
 
 ## 4. Workflow Instance
 

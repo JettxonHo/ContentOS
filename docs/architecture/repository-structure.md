@@ -4,7 +4,7 @@
 
 **Scope:** Planned Monorepo layout, package ownership, dependency direction, and current creation boundaries
 
-**Last Updated:** 2026-07-28
+**Last Updated:** 2026-08-01
 
 This document specifies the planned Repository structure and the subset that currently exists. M0 created the five process skeletons, four shared-package skeletons, local services, quality tooling, integration harness, and CI. M1 adds the database/authentication boundary, Content Package Domain and API slice, and the first Web product loop within those existing boundaries. Remaining package and Docker build paths are still planned.
 
@@ -81,7 +81,7 @@ packages/database
 packages/object-storage
 ```
 
-`core`, `contracts`, and `config` expose the bounded authentication, Content Package, and Source Ports/use cases, versioned HTTP contracts, and validated API configuration. `database` owns the Drizzle Session, Content Package, and Source schemas, node-postgres connection, repository adapters, and migration runner. `object-storage` owns the S3-compatible ObjectStore adapter that implements the Core-defined ObjectStore Port using opaque owner-scoped keys and immutable-put semantics. `testing` owns deterministic unit/repository support and the isolated integration harness. Package build outputs are generated under ignored `dist/` directories.
+`core`, `contracts`, and `config` expose the bounded authentication, Content Package, Source, and Workflow values/Ports, versioned HTTP contracts, and validated API configuration. `database` owns the Drizzle Session, Content Package, Source, and Workflow schemas, node-postgres connection, repository adapters, migration runner, and the test-only Workflow persistence boundary. `object-storage` owns the S3-compatible ObjectStore adapter that implements the Core-defined ObjectStore Port using opaque owner-scoped keys and immutable-put semantics. `testing` owns deterministic unit/repository support and the isolated integration harness. Package build outputs are generated under ignored `dist/` directories.
 
 M0-ENG-002 adds only these deployable-process skeletons:
 
