@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M1 completed; M2 is in progress (`M2-SRC-001` in review).
-**Last updated:** 2026-07-29
+**Current stage:** M1 completed; M2 is in progress (`M2-SRC-001` and `M2-SRC-002` completed).
+**Last updated:** 2026-08-01
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the private Login → Dashboard → Content Package Workspace loop and its Domain/persistence/security foundations. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001` (Pasted-text Source Capture and Approval) is in review.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the private Login → Dashboard → Content Package Workspace loop and its Domain/persistence/security foundations. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001` (Pasted-text Source Capture and Approval, PR #40) and `M2-SRC-002` (.md/.txt File-upload Source Capture and Upload Quarantine, PR #42) are completed.
 
 ## 2. Product goal and MVP boundary
 

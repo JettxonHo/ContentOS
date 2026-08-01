@@ -174,7 +174,7 @@ Login
 
 ## 9. M2 — Source and Workflow Foundation
 
-**Current status: In Progress.** `M2-SRC-001 — Pasted-text Source Capture and Approval Foundation` is in review.
+**Current status: In Progress.** `M2-SRC-001 — Pasted-text Source Capture and Approval Foundation` is completed (PR #40, `1a50d2d`), as is `M2-SRC-002 — .md/.txt File-upload Source Capture and Upload Quarantine` (PR #42, `3f418bf`). Remaining M2 Source URL and Workflow foundations have not started; M3 remains not started.
 
 M2 establishes formal input and orchestration before any Agent:
 
@@ -186,6 +186,11 @@ M2 establishes formal input and orchestration before any Agent:
 - SSE progress with Polling fallback.
 
 The first Agent is not implemented in M2. It consumes only Approved Source Versions in M3.
+
+| Work Item                                                                | Goal                                                                                                      | Depends on   | Status boundary                                                                                                             |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `M2-SRC-001 — Pasted-text Source Capture and Approval Foundation`        | Establish private pasted-text capture, immutable Source evidence, review, Version, and human Approval.    | M1 Passed    | **Completed.** PR #40 (`1a50d2d`). No URL Fetcher, Workflow, Queue, Agent, or Web Source UI.                                |
+| `M2-SRC-002 — .md/.txt File-upload Source Capture and Upload Quarantine` | Add the two allowed uploaded-text inputs through a protected, side-effect-free-on-denial quarantine path. | `M2-SRC-001` | **Completed.** PR #42 (`3f418bf`). No URL Fetcher, persistent malware quarantine, Workflow, Queue, Agent, or Web Source UI. |
 
 ## 10. M3 — Research
 
