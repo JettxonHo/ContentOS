@@ -228,6 +228,12 @@ describe('URL capture Core Command', () => {
       },
       state: 'pending',
       createdAt: now,
+      deliveryGeneration: 1,
+      dispatchAttemptCount: 0,
+      dispatchLeaseExpiresAt: null,
+      lastDispatchAt: null,
+      dispatchedAt: null,
+      updatedAt: now,
     };
     expect(rehydrateWorkflowOutboxRecord(outbox)).toEqual(outbox);
     expect(() =>

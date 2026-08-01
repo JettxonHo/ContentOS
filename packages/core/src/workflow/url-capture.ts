@@ -25,6 +25,8 @@ export const URL_CAPTURE_TASK_STATE = 'queued' as const;
 export const URL_CAPTURE_OUTBOX_CATEGORY = 'fetcher' as const;
 export const URL_CAPTURE_OUTBOX_ENVELOPE_VERSION = 'fetcher-task/v1' as const;
 export const URL_CAPTURE_OUTBOX_STATE = 'pending' as const;
+export const URL_CAPTURE_OUTBOX_STATE_VALUES = ['pending', 'dispatching', 'dispatched'] as const;
+export type WorkflowOutboxState = (typeof URL_CAPTURE_OUTBOX_STATE_VALUES)[number];
 export const URL_CAPTURE_ROLE_VALUES = ['primary', 'supporting'] as const;
 export type UrlCaptureRole = (typeof URL_CAPTURE_ROLE_VALUES)[number];
 
@@ -87,8 +89,25 @@ export interface WorkflowOutboxRecordState {
   readonly category: typeof URL_CAPTURE_OUTBOX_CATEGORY;
   readonly envelopeVersion: typeof URL_CAPTURE_OUTBOX_ENVELOPE_VERSION;
   readonly payload: WorkflowOutboxPayload;
-  readonly state: typeof URL_CAPTURE_OUTBOX_STATE;
+  readonly state: WorkflowOutboxState;
   readonly createdAt: Date;
+  readonly deliveryGeneration: number;
+  readonly dispatchAttemptCount: number;
+  readonly dispatchLeaseExpiresAt: Date | null;
+  readonly lastDispatchAt: Date | null;
+  readonly dispatchedAt: Date | null;
+  readonly updatedAt: Date;
+}
+
+export interface WorkflowOutboxDeliveryCandidate {
+  readonly outboxRecordId: WorkflowOutboxRecordId;
+  readonly taskId: WorkflowTaskId;
+  readonly contentPackageId: ContentPackageId;
+  readonly ownerUserId: ContentPackageOwnerId;
+  readonly payload: WorkflowOutboxPayload;
+  readonly deliveryGeneration: number;
+  readonly dispatchAttemptCount: number;
+  readonly dispatchLeaseExpiresAt: Date;
 }
 
 export interface UrlCaptureEventDraft {
@@ -201,8 +220,16 @@ function safePositiveInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1;
 }
 
+function safeNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+}
+
 function validDate(value: unknown): value is Date {
   return value instanceof Date && Number.isFinite(value.getTime());
+}
+
+function validNullableDate(value: unknown): value is Date | null {
+  return value === null || validDate(value);
 }
 
 function wellFormedScalarText(value: string): boolean {
@@ -396,7 +423,16 @@ export function defineWorkflowOutboxRecord(
     invalid('INVALID_WORKFLOW_OUTBOX');
   }
   const payload = rehydrateWorkflowOutboxRecord(input).payload;
-  return Object.freeze({ ...input, payload, createdAt: new Date(input.createdAt.getTime()) });
+  return Object.freeze({
+    ...input,
+    payload,
+    createdAt: new Date(input.createdAt.getTime()),
+    dispatchLeaseExpiresAt:
+      input.dispatchLeaseExpiresAt === null ? null : new Date(input.dispatchLeaseExpiresAt.getTime()),
+    lastDispatchAt: input.lastDispatchAt === null ? null : new Date(input.lastDispatchAt.getTime()),
+    dispatchedAt: input.dispatchedAt === null ? null : new Date(input.dispatchedAt.getTime()),
+    updatedAt: new Date(input.updatedAt.getTime()),
+  });
 }
 
 export function rehydrateWorkflowOutboxRecord(input: WorkflowOutboxRecordState): WorkflowOutboxRecordState {
@@ -407,8 +443,25 @@ export function rehydrateWorkflowOutboxRecord(input: WorkflowOutboxRecordState):
     !boundedIdentity(input.ownerUserId) ||
     input.category !== URL_CAPTURE_OUTBOX_CATEGORY ||
     input.envelopeVersion !== URL_CAPTURE_OUTBOX_ENVELOPE_VERSION ||
-    input.state !== URL_CAPTURE_OUTBOX_STATE ||
+    !URL_CAPTURE_OUTBOX_STATE_VALUES.includes(input.state) ||
     !validDate(input.createdAt) ||
+    !safePositiveInteger(input.deliveryGeneration) ||
+    !safeNonNegativeInteger(input.dispatchAttemptCount) ||
+    !validNullableDate(input.dispatchLeaseExpiresAt) ||
+    !validNullableDate(input.lastDispatchAt) ||
+    !validNullableDate(input.dispatchedAt) ||
+    !validDate(input.updatedAt) ||
+    input.updatedAt.getTime() < input.createdAt.getTime() ||
+    (input.state === 'dispatching' ? input.dispatchLeaseExpiresAt === null : input.dispatchLeaseExpiresAt !== null) ||
+    (input.state === 'dispatched'
+      ? input.lastDispatchAt === null || input.dispatchedAt === null
+      : input.lastDispatchAt !== null || input.dispatchedAt !== null) ||
+    (input.lastDispatchAt === null && input.dispatchedAt === null
+      ? false
+      : input.lastDispatchAt === null ||
+        input.dispatchedAt === null ||
+        input.lastDispatchAt.getTime() !== input.dispatchedAt.getTime() ||
+        input.lastDispatchAt.getTime() < input.createdAt.getTime()) ||
     !isRecord(input.payload) ||
     !hasExactKeys(input.payload, ['taskId', 'taskKind', 'envelopeVersion']) ||
     input.payload.taskId !== input.taskId ||
@@ -421,6 +474,38 @@ export function rehydrateWorkflowOutboxRecord(input: WorkflowOutboxRecordState):
     ...input,
     payload: expectedOutboxPayload(input.taskId),
     createdAt: new Date(input.createdAt.getTime()),
+    dispatchLeaseExpiresAt:
+      input.dispatchLeaseExpiresAt === null ? null : new Date(input.dispatchLeaseExpiresAt.getTime()),
+    lastDispatchAt: input.lastDispatchAt === null ? null : new Date(input.lastDispatchAt.getTime()),
+    dispatchedAt: input.dispatchedAt === null ? null : new Date(input.dispatchedAt.getTime()),
+    updatedAt: new Date(input.updatedAt.getTime()),
+  });
+}
+
+export function defineWorkflowOutboxDeliveryCandidate(
+  record: WorkflowOutboxRecordState,
+  task: WorkflowTaskState,
+): WorkflowOutboxDeliveryCandidate {
+  const outbox = rehydrateWorkflowOutboxRecord(record);
+  const rehydratedTask = rehydrateWorkflowTask(task);
+  if (
+    outbox.taskId !== rehydratedTask.id ||
+    outbox.contentPackageId !== rehydratedTask.contentPackageId ||
+    outbox.ownerUserId !== rehydratedTask.ownerUserId ||
+    outbox.state !== 'dispatching' ||
+    outbox.dispatchLeaseExpiresAt === null
+  ) {
+    invalid('INVALID_WORKFLOW_OUTBOX');
+  }
+  return Object.freeze({
+    outboxRecordId: outbox.id,
+    taskId: rehydratedTask.id,
+    contentPackageId: outbox.contentPackageId,
+    ownerUserId: outbox.ownerUserId,
+    payload: outbox.payload,
+    deliveryGeneration: outbox.deliveryGeneration,
+    dispatchAttemptCount: outbox.dispatchAttemptCount,
+    dispatchLeaseExpiresAt: new Date(outbox.dispatchLeaseExpiresAt.getTime()),
   });
 }
 
@@ -524,6 +609,12 @@ export class UrlCaptureService {
         payload: expectedOutboxPayload(taskId),
         state: URL_CAPTURE_OUTBOX_STATE,
         createdAt,
+        deliveryGeneration: 1,
+        dispatchAttemptCount: 0,
+        dispatchLeaseExpiresAt: null,
+        lastDispatchAt: null,
+        dispatchedAt: null,
+        updatedAt: createdAt,
       },
       task,
     );

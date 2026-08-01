@@ -12,6 +12,7 @@
     "@contentos/database": "workspace:*",
     "@contentos/object-storage": "workspace:*",
     "ajv": "8.20.0",
+    "bullmq": "5.81.1",
     "pg": "8.22.0"
   },
   "devDependencies": {

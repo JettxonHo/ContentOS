@@ -18,6 +18,7 @@ const MIGRATIONS = [
   '0003_absent_prism.sql',
   '0004_long_morph.sql',
   '0005_mixed_doctor_strange.sql',
+  '0006_special_triton.sql',
 ] as const;
 
 function postgresConfig(database: string): {
@@ -329,6 +330,160 @@ describe('M2-WF-002 additive migration', () => {
         ],
         'url_capture_requests_source_reference_binding_fk',
       );
+    });
+  });
+
+  it('upgrades 0005 to 0006 with delivery defaults, no history rewrite, and named ledger checks', async () => {
+    await withIsolatedDatabase(async (client) => {
+      for (const migration of MIGRATIONS.slice(0, 6)) await applyMigration(client, migration);
+      const history = await insertPackageAndSource(client);
+      const workflow = await insertWorkflowHistory(client, history.packageId, history.ownerUserId);
+
+      const referenceId = randomUUID();
+      const requestId = randomUUID();
+      const taskId = randomUUID();
+      const outboxId = randomUUID();
+      await client.query(
+        `INSERT INTO url_source_references
+          (id, content_package_id, owner_user_id, role, submitted_url, created_at)
+         VALUES ($1, $2, $3, 'primary', 'https://example.com/migration', now())`,
+        [referenceId, history.packageId, history.ownerUserId],
+      );
+      await client.query(
+        `INSERT INTO url_capture_requests
+          (id, source_reference_id, workflow_instance_id, workflow_node_id, content_package_id, owner_user_id,
+           expected_package_revision, command_kind, idempotency_key, request_fingerprint, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, 1, 'url_capture_request', 'migration-key-0004', $7, now())`,
+        [
+          requestId,
+          referenceId,
+          workflow.instanceId,
+          workflow.nodeId,
+          history.packageId,
+          history.ownerUserId,
+          'd'.repeat(64),
+        ],
+      );
+      await client.query(
+        `INSERT INTO workflow_tasks
+          (id, workflow_instance_id, workflow_node_id, url_capture_request_id, content_package_id, owner_user_id,
+           kind, state, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, 'url_capture', 'queued', now(), now())`,
+        [taskId, workflow.instanceId, workflow.nodeId, requestId, history.packageId, history.ownerUserId],
+      );
+      await client.query(
+        `INSERT INTO workflow_outbox_records
+          (id, task_id, content_package_id, owner_user_id, category, envelope_version, payload, state, created_at)
+         VALUES ($1, $2, $3, $4, 'fetcher', 'fetcher-task/v1', $5::jsonb, 'pending', now())`,
+        [
+          outboxId,
+          taskId,
+          history.packageId,
+          history.ownerUserId,
+          JSON.stringify({ taskId, taskKind: 'url_capture', envelopeVersion: 'fetcher-task/v1' }),
+        ],
+      );
+
+      await applyMigration(client, MIGRATIONS[6]);
+
+      const preservedCounts = await Promise.all(
+        ['content_packages', 'sources', 'workflow_instances', 'workflow_nodes', 'workflow_events'].map(
+          async (table) =>
+            (await client.query<{ count: number }>(`SELECT count(*)::int AS count FROM ${table}`)).rows[0]?.count,
+        ),
+      );
+      expect(preservedCounts).toEqual([1, 1, 1, 1, 1]);
+
+      await expectConstraint(
+        client,
+        `UPDATE workflow_outbox_records SET delivery_generation = 0 WHERE id = $1`,
+        [outboxId],
+        'workflow_outbox_records_delivery_generation_check',
+      );
+      await expectConstraint(
+        client,
+        `UPDATE workflow_outbox_records SET dispatch_attempt_count = -1 WHERE id = $1`,
+        [outboxId],
+        'workflow_outbox_records_dispatch_attempt_count_check',
+      );
+      await expectConstraint(
+        client,
+        `UPDATE workflow_outbox_records SET state = 'dispatching', dispatch_lease_expires_at = NULL WHERE id = $1`,
+        [outboxId],
+        'workflow_outbox_records_dispatch_lease_check',
+      );
+      await expectConstraint(
+        client,
+        `UPDATE workflow_outbox_records SET dispatch_lease_expires_at = now() WHERE id = $1`,
+        [outboxId],
+        'workflow_outbox_records_dispatch_lease_check',
+      );
+      await expectConstraint(
+        client,
+        `UPDATE workflow_outbox_records SET state = 'dispatched' WHERE id = $1`,
+        [outboxId],
+        'workflow_outbox_records_acknowledgement_state_check',
+      );
+      await expectConstraint(
+        client,
+        `UPDATE workflow_outbox_records
+         SET state = 'dispatched', last_dispatch_at = now(), dispatched_at = now() + interval '1 second'
+         WHERE id = $1`,
+        [outboxId],
+        'workflow_outbox_records_acknowledgement_timestamp_check',
+      );
+      await expectConstraint(
+        client,
+        `UPDATE workflow_outbox_records SET updated_at = created_at - interval '1 second' WHERE id = $1`,
+        [outboxId],
+        'workflow_outbox_records_updated_at_check',
+      );
+      await expectConstraint(
+        client,
+        `UPDATE workflow_outbox_records SET state = 'invalid' WHERE id = $1`,
+        [outboxId],
+        'workflow_outbox_records_state_check',
+      );
+
+      const after = await client.query<{
+        id: string;
+        task_id: string;
+        content_package_id: string;
+        owner_user_id: string;
+        category: string;
+        envelope_version: string;
+        payload: Record<string, unknown>;
+        state: string;
+        delivery_generation: number;
+        dispatch_attempt_count: number;
+        dispatch_lease_expires_at: Date | null;
+        last_dispatch_at: Date | null;
+        dispatched_at: Date | null;
+        created_at: Date;
+        updated_at: Date;
+      }>(
+        `SELECT id, task_id, content_package_id, owner_user_id, category, envelope_version, payload,
+                state, delivery_generation, dispatch_attempt_count, dispatch_lease_expires_at,
+                last_dispatch_at, dispatched_at, created_at, updated_at
+         FROM workflow_outbox_records WHERE id = $1`,
+        [outboxId],
+      );
+      expect(after.rows[0]).toMatchObject({
+        id: outboxId,
+        task_id: taskId,
+        content_package_id: history.packageId,
+        owner_user_id: history.ownerUserId,
+        category: 'fetcher',
+        envelope_version: 'fetcher-task/v1',
+        payload: { taskId, taskKind: 'url_capture', envelopeVersion: 'fetcher-task/v1' },
+        state: 'pending',
+        delivery_generation: 1,
+        dispatch_attempt_count: 0,
+        dispatch_lease_expires_at: null,
+        last_dispatch_at: null,
+        dispatched_at: null,
+      });
+      expect(after.rows[0]?.updated_at.getTime()).toBe(after.rows[0]?.created_at.getTime());
     });
   });
 });

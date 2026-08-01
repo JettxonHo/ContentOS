@@ -1,6 +1,6 @@
 # WORK PACKET — M2-WF-003A
 
-**Status:** Ready for implementation
+**Status:** In Review
 
 **Purpose:** Durable planning-to-implementation handoff for the first
 PostgreSQL Transactional Outbox → BullMQ delivery boundary.
@@ -14,7 +14,7 @@ PostgreSQL Transactional Outbox → BullMQ delivery boundary.
 - **Milestone:** M2 — Source and Workflow Foundation
 - **Issue:** [#65](https://github.com/JettxonHo/ContentOS/issues/65)
 - **Branch:** `codex/m2-wf-003a-transactional-outbox-dispatch`
-- **Base commit:** `fe580cc2e076ea9e99219e4152abd4e75eac701a`
+- **Base commit:** `1d207ec92efb1a3b034e65df65f63ae0fe9210e8`
 - **Executor Profile:** `BACKEND_GENERAL_EXECUTOR`
 - **Owner:** one implementation agent, as the only repository writer
 - **Reviewer:** independent review agent before Git publication
