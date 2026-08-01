@@ -42,20 +42,14 @@ class RecordingObjectStore implements ObjectStore {
   readonly puts: string[] = [];
   readonly deletes: string[] = [];
 
-  async putImmutable(input: {
-    readonly ownerUserId: ContentPackageOwnerId;
-    readonly contentPackageId: ContentPackageId;
-    readonly sourceId: SourceId;
-    readonly snapshotId: RawSnapshotId;
-    readonly bytes: Uint8Array;
-  }): Promise<StoredObject> {
+  async putImmutable(input: Parameters<ObjectStore['putImmutable']>[0]): Promise<StoredObject> {
     const storageKey = `sources/${input.ownerUserId}/${input.contentPackageId}/${input.sourceId}/raw/${input.snapshotId}`;
     this.puts.push(storageKey);
     return {
       storageKey,
       sha256: createHash('sha256').update(input.bytes).digest('hex'),
       byteSize: input.bytes.byteLength,
-      contentType: 'text/plain; charset=utf-8',
+      contentType: input.contentType,
     };
   }
 

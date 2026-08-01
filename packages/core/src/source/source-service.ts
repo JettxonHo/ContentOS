@@ -20,10 +20,13 @@ import {
   type RawSnapshotState,
   type SourceApprovalId,
   type SourceApprovalState,
+  type SourceCaptureType,
   type SourceHeadState,
   type SourceId,
   type SourceReferenceState,
+  type SourceSnapshotContentType,
   type SourceState,
+  type SourceType,
   type SourceVersionId,
   type SourceVersionState,
   type SourceWorkingCopyId,
@@ -32,6 +35,7 @@ import {
   PASTED_TEXT_MAX_BYTES,
   SOURCE_SCHEMA_VERSION,
 } from './source-values.js';
+import { assertUploadLabel, validateUploadFile } from './upload.js';
 
 export type SourceApplicationErrorCode =
   | 'SOURCE_NOT_FOUND'
@@ -72,6 +76,19 @@ export interface CaptureSourceCommand {
   readonly role: 'primary' | 'supporting';
   readonly label: string | null;
   readonly text: string;
+}
+
+export interface CaptureUploadCommand {
+  readonly contentPackageId: ContentPackageId;
+  readonly ownerUserId: ContentPackageOwnerId;
+  readonly role: 'primary' | 'supporting';
+  readonly label: string | null;
+  /** Attacker-controlled multipart filename; validated by the quarantine gate. */
+  readonly fileName: string;
+  /** Declared multipart Content-Type for the file part, or null when absent. */
+  readonly declaredMediaType: string | null;
+  /** Exact original file bytes; stored unchanged as the Raw Snapshot. */
+  readonly bytes: Uint8Array;
 }
 
 export interface EditWorkingCopyCommand {
@@ -221,18 +238,65 @@ export class SourceService {
 
   async capture(command: CaptureSourceCommand): Promise<SourceState> {
     validatePastedTextBytes(command.text);
+    return this.persistNewCapture({
+      contentPackageId: command.contentPackageId,
+      ownerUserId: command.ownerUserId,
+      role: command.role,
+      label: command.label,
+      sourceType: 'pasted_text',
+      captureType: 'pasted_text',
+      normalizedBody: { text: command.text },
+      rawBytes: Buffer.from(command.text, 'utf8'),
+      contentType: 'text/plain; charset=utf-8',
+    });
+  }
 
-    await this.requireActivePackage(command.contentPackageId, command.ownerUserId);
+  async captureUpload(command: CaptureUploadCommand): Promise<SourceState> {
+    // Request-scoped Upload Quarantine gate (DEC-208 ordering): filename,
+    // extension, declared MIME, size, encoding, and content validation all
+    // run before the package lookup, role counting, and Object Store write.
+    // A denied upload creates zero persisted state.
+    const validated = validateUploadFile({
+      fileName: command.fileName,
+      declaredMediaType: command.declaredMediaType,
+      bytes: command.bytes,
+    });
+    assertUploadLabel(command.label);
+    return this.persistNewCapture({
+      contentPackageId: command.contentPackageId,
+      ownerUserId: command.ownerUserId,
+      role: command.role,
+      label: command.label ?? validated.derivedLabel,
+      sourceType: 'uploaded_text',
+      captureType: 'uploaded_text',
+      normalizedBody: { text: validated.text },
+      rawBytes: command.bytes,
+      contentType: validated.contentType,
+    });
+  }
+
+  private async persistNewCapture(params: {
+    readonly contentPackageId: ContentPackageId;
+    readonly ownerUserId: ContentPackageOwnerId;
+    readonly role: 'primary' | 'supporting';
+    readonly label: string | null;
+    readonly sourceType: SourceType;
+    readonly captureType: SourceCaptureType;
+    readonly normalizedBody: NormalizedSourceBody;
+    readonly rawBytes: Uint8Array;
+    readonly contentType: SourceSnapshotContentType;
+  }): Promise<SourceState> {
+    await this.requireActivePackage(params.contentPackageId, params.ownerUserId);
 
     const count = await this.repository.countSourcesByRoleForPackage(
-      command.contentPackageId,
-      command.ownerUserId,
-      command.role,
+      params.contentPackageId,
+      params.ownerUserId,
+      params.role,
     );
-    if (command.role === 'primary' && count >= 1) {
+    if (params.role === 'primary' && count >= 1) {
       throw new SourceDomainError('SOURCE_ROLE_LIMIT_EXCEEDED');
     }
-    if (command.role === 'supporting' && count >= MAX_SUPPORTING_SOURCES) {
+    if (params.role === 'supporting' && count >= MAX_SUPPORTING_SOURCES) {
       throw new SourceDomainError('SOURCE_ROLE_LIMIT_EXCEEDED');
     }
 
@@ -241,40 +305,38 @@ export class SourceService {
     const snapshotId = this.ids.generateSnapshotId();
     const workingCopyId = this.ids.generateWorkingCopyId();
 
-    const normalizedBody: NormalizedSourceBody = { text: command.text };
-
     // Construct and validate all caller-controlled text before the immutable
     // Object Store write. In particular, labels and bodies cannot contain NUL
     // or lone UTF-16 surrogates that PostgreSQL jsonb would later reject.
     const reference = defineSourceReference({
       id: sourceId,
-      contentPackageId: command.contentPackageId,
-      ownerUserId: command.ownerUserId,
-      sourceType: 'pasted_text',
-      role: command.role,
-      label: command.label,
-      captureType: 'pasted_text',
+      contentPackageId: params.contentPackageId,
+      ownerUserId: params.ownerUserId,
+      sourceType: params.sourceType,
+      role: params.role,
+      label: params.label,
+      captureType: params.captureType,
       now,
     });
     const workingCopy = defineWorkingCopy({
       id: workingCopyId,
       sourceId,
-      body: normalizedBody,
+      body: params.normalizedBody,
       revision: 1,
       baseVersionId: null,
       now,
     });
     const head = defineHead({ sourceId, workingCopyId });
 
-    const bytes = Buffer.from(command.text, 'utf8');
     let stored: StoredObject;
     try {
       stored = await this.objectStore.putImmutable({
-        ownerUserId: command.ownerUserId,
-        contentPackageId: command.contentPackageId,
+        ownerUserId: params.ownerUserId,
+        contentPackageId: params.contentPackageId,
         sourceId,
         snapshotId,
-        bytes,
+        bytes: params.rawBytes,
+        contentType: params.contentType,
       });
     } catch {
       throw new SourceApplicationError('SOURCE_CAPTURE_FAILED');

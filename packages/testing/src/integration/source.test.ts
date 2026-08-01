@@ -211,6 +211,108 @@ async function captureSource(
   return body.data.source;
 }
 
+async function uploadSourceRequest(
+  state: SmokeState,
+  cookie: string,
+  packageId: string,
+  options: {
+    readonly fileName?: string;
+    readonly bytes?: Uint8Array;
+    readonly fileType?: string;
+    readonly role?: string;
+    readonly label?: string;
+    readonly omitRole?: boolean;
+    readonly extraFields?: Record<string, string>;
+    readonly omitFile?: boolean;
+  },
+): Promise<Response> {
+  const form = new FormData();
+  if (options.omitFile !== true) {
+    const payload = options.bytes ?? new TextEncoder().encode('placeholder upload body');
+    // BlobPart requires an ArrayBuffer-backed view under the strict TS 5.9 lib.
+    const copy = new Uint8Array(payload.byteLength);
+    copy.set(payload);
+    const blob =
+      options.fileType === undefined
+        ? new Blob([copy.buffer as ArrayBuffer])
+        : new Blob([copy.buffer as ArrayBuffer], { type: options.fileType });
+    form.set('file', blob, options.fileName ?? 'notes.md');
+  }
+  if (options.omitRole !== true) {
+    form.set('role', options.role ?? 'primary');
+  }
+  if (options.label !== undefined) {
+    form.set('label', options.label);
+  }
+  for (const [key, value] of Object.entries(options.extraFields ?? {})) {
+    form.set(key, value);
+  }
+  return fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/sources/upload`, {
+    method: 'POST',
+    headers: { cookie, origin: state.webOrigin },
+    body: form,
+  });
+}
+
+/**
+ * Posts a hand-rolled multipart body so adversarial filenames reach the
+ * server exactly as written in the Content-Disposition header (spec-compliant
+ * FormData clients sanitize such filenames before sending).
+ */
+async function rawMultipartUploadWithRole(
+  state: SmokeState,
+  cookie: string,
+  packageId: string,
+  fileNameInHeader: string,
+  role: string,
+): Promise<Response> {
+  const boundary = `contentos${randomUUID().replace(/-/g, '')}`;
+  const body = [
+    `--${boundary}`,
+    `Content-Disposition: form-data; name="file"; filename="${fileNameInHeader}"`,
+    'Content-Type: text/plain',
+    '',
+    'safe upload body',
+    `--${boundary}`,
+    'Content-Disposition: form-data; name="role"',
+    '',
+    role,
+    `--${boundary}--`,
+    '',
+  ].join('\r\n');
+  return fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/sources/upload`, {
+    method: 'POST',
+    headers: {
+      cookie,
+      origin: state.webOrigin,
+      'content-type': `multipart/form-data; boundary=${boundary}`,
+    },
+    body,
+  });
+}
+
+async function rawMultipartUpload(
+  state: SmokeState,
+  cookie: string,
+  packageId: string,
+  fileNameInHeader: string,
+): Promise<Response> {
+  return rawMultipartUploadWithRole(state, cookie, packageId, fileNameInHeader, 'primary');
+}
+
+async function expectUploadDenial(response: Response, keyword: string): Promise<void> {
+  expect(response.status).toBe(422);
+  const body = (await response.json()) as {
+    error: { code: string; details?: ReadonlyArray<{ path: string; keyword: string }> };
+  };
+  expect(validateErrorResponse(body), JSON.stringify(validateErrorResponse.errors)).toBe(true);
+  expect(body.error.code).toBe('INVALID_REQUEST');
+  expect(
+    body.error.details?.some((detail) => detail.keyword === keyword),
+    `expected keyword '${keyword}', received details: ${JSON.stringify(body.error.details)}`,
+  ).toBe(true);
+}
+
 describe('Source protected API smoke', () => {
   it('requires a Session and validates input', async () => {
     const state = requireState();
@@ -972,6 +1074,7 @@ describe('Source protected API smoke', () => {
       sourceId: randomUUID() as never,
       snapshotId: randomUUID() as never,
       bytes: new TextEncoder().encode('adapter conditional-write proof'),
+      contentType: 'text/plain; charset=utf-8',
     };
     const stored = await adapter.putImmutable(immutableInput);
     await expect(adapter.putImmutable(immutableInput)).rejects.toMatchObject({ reason: 'WRITE_FAILED' });
@@ -1009,5 +1112,336 @@ describe('Source protected API smoke', () => {
       .update(new Uint8Array(await reRead.arrayBuffer()))
       .digest('hex');
     expect(reReadSha256).toBe(source.rawSnapshot.sha256);
+  });
+});
+
+describe('Source file-upload capture and quarantine (M2-SRC-002)', () => {
+  it('captures a .txt upload as an uploaded_text Source with an immutable text/plain snapshot', async () => {
+    const state = requireState();
+    const cookie = await createSession(state, OWNER_USER_ID);
+    const pkg = await createPackage(state, cookie, 'Upload txt package');
+    const fileBytes = new TextEncoder().encode('Field notes from the trail.');
+
+    const response = await uploadSourceRequest(state, cookie, pkg.id, {
+      fileName: 'trail-notes.txt',
+      bytes: fileBytes,
+      fileType: 'text/plain',
+    });
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { data: { source: SourceResource } };
+    expect(validateSourceResponse(body), JSON.stringify(validateSourceResponse.errors)).toBe(true);
+    const source = body.data.source;
+
+    expect(source.sourceType).toBe('uploaded_text');
+    expect(source.captureType).toBe('uploaded_text');
+    expect(source.role).toBe('primary');
+    expect(source.label).toBe('trail-notes');
+    expect(source.rawSnapshot.contentType).toBe('text/plain; charset=utf-8');
+    expect(source.rawSnapshot.byteSize).toBe(fileBytes.byteLength);
+    expect(source.rawSnapshot.sha256).toBe(createHash('sha256').update(fileBytes).digest('hex'));
+    expect(source.approvedVersionId).toBeNull();
+
+    // The Working Copy review body equals the validated decoded text.
+    const wcResponse = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/${source.id}/working-copy`,
+      { headers: { cookie, origin: state.webOrigin } },
+    );
+    expect(wcResponse.status).toBe(200);
+    const wcBody = (await wcResponse.json()) as { data: { workingCopy: { body: { text: string } } } };
+    expect(wcBody.data.workingCopy.body.text).toBe('Field notes from the trail.');
+  });
+
+  it('captures a .md upload with text/markdown snapshot and supports edit, version, and approval', async () => {
+    const state = requireState();
+    const cookie = await createSession(state, OWNER_USER_ID);
+    const pkg = await createPackage(state, cookie, 'Upload md lifecycle package');
+    const fileBytes = new TextEncoder().encode('# Draft\n\nOriginal upload body.');
+
+    const response = await uploadSourceRequest(state, cookie, pkg.id, {
+      fileName: 'draft.md',
+      bytes: fileBytes,
+      fileType: 'text/markdown',
+      role: 'primary',
+      label: 'Explicit label',
+    });
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { data: { source: SourceResource } };
+    const source = body.data.source;
+    expect(source.rawSnapshot.contentType).toBe('text/markdown; charset=utf-8');
+    expect(source.label).toBe('Explicit label');
+
+    // Edit the Working Copy.
+    const editResponse = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/${source.id}/working-copy`,
+      {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json', cookie, origin: state.webOrigin },
+        body: JSON.stringify({ expectedRevision: 1, body: { text: '# Draft\n\nReviewed upload body.' } }),
+      },
+    );
+    expect(editResponse.status).toBe(200);
+
+    // Create an immutable Version.
+    const versionResponse = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/${source.id}/versions`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', cookie, origin: state.webOrigin },
+        body: JSON.stringify({ expectedRevision: 2 }),
+      },
+    );
+    expect(versionResponse.status).toBe(201);
+    const versionBody = (await versionResponse.json()) as { data: { version: SourceVersionResource } };
+    expect(versionBody.data.version.versionNumber).toBe(1);
+    expect(versionBody.data.version.schemaVersion).toBe('source/normalized/v1');
+    expect(versionBody.data.version.contentHash).toMatch(/^[0-9a-f]{64}$/);
+
+    // Approve the exact Version.
+    const approveResponse = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/${source.id}/approval`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', cookie, origin: state.webOrigin },
+        body: JSON.stringify({ versionId: versionBody.data.version.id }),
+      },
+    );
+    expect(approveResponse.status).toBe(200);
+    const approveBody = (await approveResponse.json()) as { data: SourceApprovalResource };
+    expect(validateApprovalResponse(approveBody), JSON.stringify(validateApprovalResponse.errors)).toBe(true);
+    expect(approveBody.data.head.approvedVersionId).toBe(versionBody.data.version.id);
+
+    // Duplicate approval fails closed.
+    const duplicate = await fetch(`${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/${source.id}/approval`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie, origin: state.webOrigin },
+      body: JSON.stringify({ versionId: versionBody.data.version.id }),
+    });
+    expect(duplicate.status).toBe(409);
+  });
+
+  it('preserves exact original bytes in the snapshot while stripping only the BOM from the review text', async () => {
+    const state = requireState();
+    const cookie = await createSession(state, OWNER_USER_ID);
+    const pkg = await createPackage(state, cookie, 'Upload BOM CRLF package');
+    const fileBytes = new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode('bom line\r\nsecond line')]);
+
+    const response = await uploadSourceRequest(state, cookie, pkg.id, {
+      fileName: 'bom.txt',
+      bytes: fileBytes,
+      fileType: 'application/octet-stream',
+    });
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { data: { source: SourceResource } };
+    const source = body.data.source;
+    // Snapshot covers the exact original bytes including BOM and CRLF.
+    expect(source.rawSnapshot.byteSize).toBe(fileBytes.byteLength);
+    expect(source.rawSnapshot.sha256).toBe(createHash('sha256').update(fileBytes).digest('hex'));
+
+    const wcResponse = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/${source.id}/working-copy`,
+      { headers: { cookie, origin: state.webOrigin } },
+    );
+    const wcBody = (await wcResponse.json()) as { data: { workingCopy: { body: { text: string } } } };
+    // BOM stripped from the normalized text; CRLF preserved.
+    expect(wcBody.data.workingCopy.body.text).toBe('bom line\r\nsecond line');
+  });
+
+  it('denies every quarantine violation with a stable keyword and zero Object Store side effect', async () => {
+    const state = requireState();
+    const cookie = await createSession(state, OWNER_USER_ID);
+    const pkg = await createPackage(state, cookie, 'Upload quarantine package');
+    const objectCountBefore = await bucketObjectCount(state);
+
+    const denialCases: ReadonlyArray<{
+      readonly name: string;
+      readonly options: Parameters<typeof uploadSourceRequest>[3];
+      readonly keyword: string;
+    }> = [
+      {
+        name: 'disallowed extension',
+        options: { fileName: 'virus.exe', bytes: new TextEncoder().encode('x') },
+        keyword: 'upload-file-extension',
+      },
+      {
+        name: 'double extension ending disallowed',
+        options: { fileName: 'notes.md.exe', bytes: new TextEncoder().encode('x') },
+        keyword: 'upload-file-extension',
+      },
+      {
+        name: 'missing extension',
+        options: { fileName: 'notes', bytes: new TextEncoder().encode('x') },
+        keyword: 'upload-file-extension',
+      },
+      {
+        name: 'overlong filename',
+        options: { fileName: `${'n'.repeat(252)}.txt`, bytes: new TextEncoder().encode('x') },
+        keyword: 'upload-file-name',
+      },
+      {
+        name: 'inconsistent declared media type',
+        options: { fileName: 'page.md', fileType: 'text/html', bytes: new TextEncoder().encode('x') },
+        keyword: 'upload-media-type',
+      },
+      {
+        name: 'invalid UTF-8 bytes',
+        options: { fileName: 'bad.txt', bytes: new Uint8Array([0xff, 0xfe, 0x41]) },
+        keyword: 'upload-encoding',
+      },
+      {
+        name: 'NUL byte in content',
+        options: { fileName: 'nul.txt', bytes: new Uint8Array([0x61, 0x00, 0x62]) },
+        keyword: 'upload-encoding',
+      },
+      {
+        name: 'empty file',
+        options: { fileName: 'empty.txt', bytes: new Uint8Array(0) },
+        keyword: 'upload-file-empty',
+      },
+      {
+        name: 'whitespace-only file',
+        options: { fileName: 'ws.txt', bytes: new TextEncoder().encode('  \n\t ') },
+        keyword: 'upload-file-empty',
+      },
+      {
+        name: 'oversized file',
+        options: { fileName: 'big.txt', bytes: new TextEncoder().encode('a'.repeat(100_001)) },
+        keyword: 'upload-file-size',
+      },
+      {
+        name: 'invalid role field',
+        options: { fileName: 'ok.txt', role: 'reference' },
+        keyword: 'upload-field-invalid',
+      },
+      {
+        name: 'unknown extra field',
+        options: { fileName: 'ok.txt', extraFields: { sourceType: 'pasted_text' } },
+        keyword: 'upload-field-invalid',
+      },
+      {
+        name: 'overlong label field',
+        options: { fileName: 'ok.txt', label: 'x'.repeat(201) },
+        keyword: 'upload-field-invalid',
+      },
+    ];
+
+    for (const testCase of denialCases) {
+      const response = await uploadSourceRequest(state, cookie, pkg.id, testCase.options);
+      expect(response.status, `quarantine case unexpectedly accepted: ${testCase.name}`).toBe(422);
+      await expectUploadDenial(response, testCase.keyword);
+    }
+
+    // Adversarial filenames that a spec-compliant client (undici FormData)
+    // sanitizes away before sending must be posted as raw multipart so the
+    // SERVER-side quarantine is exercised. (Path separators in both directions
+    // are additionally stripped at the transport boundary by busboy's basename
+    // rule and are asserted separately; NUL/control-character filenames
+    // cannot traverse HTTP headers at all and remain Core unit coverage.)
+    const rawFilenameCases: ReadonlyArray<{ readonly name: string; readonly fileName: string }> = [
+      { name: 'empty filename', fileName: '' },
+    ];
+    for (const testCase of rawFilenameCases) {
+      const response = await rawMultipartUpload(state, cookie, pkg.id, testCase.fileName);
+      expect(response.status, `raw quarantine case unexpectedly accepted: ${testCase.name}`).toBe(422);
+      await expectUploadDenial(response, 'upload-file-name');
+    }
+
+    // Missing file part.
+    await expectUploadDenial(
+      await uploadSourceRequest(state, cookie, pkg.id, { omitFile: true }),
+      'upload-file-missing',
+    );
+    // Missing role field.
+    await expectUploadDenial(
+      await uploadSourceRequest(state, cookie, pkg.id, { fileName: 'ok.txt', omitRole: true }),
+      'upload-field-invalid',
+    );
+    // Two file parts.
+    const twoFiles = new FormData();
+    twoFiles.set('file', new Blob([new TextEncoder().encode('one')]), 'one.txt');
+    twoFiles.append('file', new Blob([new TextEncoder().encode('two')]), 'two.txt');
+    twoFiles.set('role', 'primary');
+    await expectUploadDenial(
+      await fetch(`${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/upload`, {
+        method: 'POST',
+        headers: { cookie, origin: state.webOrigin },
+        body: twoFiles,
+      }),
+      'upload-too-many-files',
+    );
+    // Non-multipart body against the upload route.
+    await expectUploadDenial(
+      await fetch(`${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/upload`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', cookie, origin: state.webOrigin },
+        body: JSON.stringify({ role: 'primary' }),
+      }),
+      'upload-media-type',
+    );
+
+    // Denied uploads leave no Object Store objects and no Sources behind.
+    expect(await bucketObjectCount(state)).toBe(objectCountBefore);
+    const listResponse = await fetch(`${state.apiOrigin}/v1/content-packages/${pkg.id}/sources`, {
+      headers: { cookie, origin: state.webOrigin },
+    });
+    const listBody = (await listResponse.json()) as { data: { items: ReadonlyArray<SourceListItem> } };
+    expect(listBody.data.items).toHaveLength(0);
+  });
+
+  it('never honors path traversal: the transport basename rule yields safe basename labels for both separators', async () => {
+    const state = requireState();
+    const cookie = await createSession(state, OWNER_USER_ID);
+    const pkg = await createPackage(state, cookie, 'Upload traversal probe package');
+
+    const forward = await rawMultipartUpload(state, cookie, pkg.id, '../evil.txt');
+    expect(forward.status).toBe(201);
+    const forwardBody = (await forward.json()) as { data: { source: SourceResource } };
+    expect(forwardBody.data.source.label).toBe('evil');
+    expect(forwardBody.data.source.captureType).toBe('uploaded_text');
+
+    const backslash = await rawMultipartUploadWithRole(state, cookie, pkg.id, 'dir\\evil2.txt', 'supporting');
+    expect(backslash.status).toBe(201);
+    const backslashJson = (await backslash.json()) as { data: { source: SourceResource } };
+    expect(backslashJson.data.source.label).toBe('evil2');
+    expect(backslashJson.data.source.role).toBe('supporting');
+  });
+
+  it('requires a Session, enforces owner scope, and rejects archived packages on upload', async () => {
+    const state = requireState();
+    const cookie = await createSession(state, OWNER_USER_ID);
+    const pkg = await createPackage(state, cookie, 'Upload auth package');
+
+    const unauthenticated = await uploadSourceRequest(state, 'contentos_session=invalid-credential', pkg.id, {
+      fileName: 'ok.txt',
+    });
+    expect(unauthenticated.status).toBe(401);
+
+    const otherOwnerCookie = await createSession(state, '00000000-0000-4000-8000-000000000004');
+    const crossOwner = await uploadSourceRequest(state, otherOwnerCookie, pkg.id, { fileName: 'ok.txt' });
+    expect(crossOwner.status).toBe(404);
+
+    await archivePackage(state, cookie, pkg);
+    const archived = await uploadSourceRequest(state, cookie, pkg.id, { fileName: 'ok.txt' });
+    expect(archived.status).toBe(409);
+    expect(((await archived.json()) as { error: { code: string } }).error.code).toBe('CONTENT_PACKAGE_STATE_CONFLICT');
+  });
+
+  it('enforces role limits across mixed capture types', async () => {
+    const state = requireState();
+    const cookie = await createSession(state, OWNER_USER_ID);
+    const pkg = await createPackage(state, cookie, 'Upload mixed role package');
+
+    await captureSource(state, cookie, pkg.id, 'primary', 'Pasted primary body');
+    const secondPrimary = await uploadSourceRequest(state, cookie, pkg.id, {
+      fileName: 'second.md',
+      role: 'primary',
+    });
+    expect(secondPrimary.status).toBe(409);
+    expect(((await secondPrimary.json()) as { error: { code: string } }).error.code).toBe('SOURCE_ROLE_LIMIT_EXCEEDED');
+
+    const supporting = await uploadSourceRequest(state, cookie, pkg.id, {
+      fileName: 'supporting.md',
+      role: 'supporting',
+    });
+    expect(supporting.status).toBe(201);
   });
 });

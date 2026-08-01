@@ -8,7 +8,7 @@ import {
   S3ServiceException,
 } from '@aws-sdk/client-s3';
 
-import { ObjectStoreError, type ObjectStore, type StoredObject } from '@contentos/core';
+import { ObjectStoreError, SOURCE_SNAPSHOT_CONTENT_TYPES, type ObjectStore, type StoredObject } from '@contentos/core';
 
 export interface S3ObjectStoreConfig {
   readonly endpoint: string;
@@ -19,7 +19,7 @@ export interface S3ObjectStoreConfig {
   readonly secretAccessKey: string;
 }
 
-const PASTED_TEXT_CONTENT_TYPE = 'text/plain; charset=utf-8';
+const SNAPSHOT_CONTENT_TYPE_SET = new Set<string>(SOURCE_SNAPSHOT_CONTENT_TYPES);
 
 function buildKey(input: {
   readonly ownerUserId: string;
@@ -53,7 +53,11 @@ export class S3ObjectStore implements ObjectStore {
     readonly sourceId: string;
     readonly snapshotId: string;
     readonly bytes: Uint8Array;
+    readonly contentType: string;
   }): Promise<StoredObject> {
+    if (!SNAPSHOT_CONTENT_TYPE_SET.has(input.contentType)) {
+      throw new ObjectStoreError('WRITE_FAILED', 'Unsupported snapshot content type');
+    }
     const storageKey = buildKey(input);
     const sha256 = createHash('sha256').update(input.bytes).digest('hex');
     const byteSize = input.bytes.byteLength;
@@ -64,7 +68,7 @@ export class S3ObjectStore implements ObjectStore {
           Bucket: this.bucket,
           Key: storageKey,
           Body: input.bytes,
-          ContentType: PASTED_TEXT_CONTENT_TYPE,
+          ContentType: input.contentType,
           IfNoneMatch: '*',
           Metadata: {
             sha256,
@@ -80,11 +84,14 @@ export class S3ObjectStore implements ObjectStore {
       throw new ObjectStoreError('WRITE_FAILED', 'Object store write failed');
     }
 
-    return { storageKey, sha256, byteSize, contentType: PASTED_TEXT_CONTENT_TYPE };
+    return { storageKey, sha256, byteSize, contentType: input.contentType };
   }
 
   async readForIntegrity(expected: StoredObject): Promise<boolean> {
     try {
+      if (!SNAPSHOT_CONTENT_TYPE_SET.has(expected.contentType)) {
+        return false;
+      }
       const response = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: expected.storageKey }));
       if (!response.Body) {
         return false;
@@ -96,8 +103,7 @@ export class S3ObjectStore implements ObjectStore {
         response.Metadata?.sha256 === expected.sha256 &&
         response.Metadata?.bytesize === String(expected.byteSize) &&
         bytes.byteLength === expected.byteSize &&
-        response.ContentType === expected.contentType &&
-        expected.contentType === PASTED_TEXT_CONTENT_TYPE
+        response.ContentType === expected.contentType
       );
     } catch {
       return false;

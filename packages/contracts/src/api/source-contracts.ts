@@ -3,7 +3,7 @@ import { Ajv2020, type ErrorObject, type ValidateFunction } from 'ajv/dist/2020.
 import type { ContractValidationError } from './auth-contracts.js';
 import type { PortableJsonSchema } from './error-contract.js';
 
-export const SOURCE_TYPES_DTO = ['pasted_text'] as const;
+export const SOURCE_TYPES_DTO = ['pasted_text', 'uploaded_text'] as const;
 export const SOURCE_ROLES_DTO = ['primary', 'supporting'] as const;
 
 export type SourceTypeDto = (typeof SOURCE_TYPES_DTO)[number];
@@ -13,6 +13,16 @@ export interface CreateSourceRequest {
   readonly sourceType: 'pasted_text';
   readonly role: 'primary' | 'supporting';
   readonly text: string;
+  readonly label?: string;
+}
+
+/**
+ * Non-file multipart fields for the `.md`/`.txt` upload capture route. The
+ * file part itself is validated by the Core Upload Quarantine gate, which
+ * Ajv cannot express.
+ */
+export interface UploadSourceFields {
+  readonly role: 'primary' | 'supporting';
   readonly label?: string;
 }
 
@@ -155,9 +165,21 @@ export const createSourceRequestSchema: PortableJsonSchema = {
   additionalProperties: false,
   required: ['sourceType', 'role', 'text'],
   properties: {
-    sourceType: { type: 'string', enum: [...SOURCE_TYPES_DTO] },
+    // The JSON capture route remains pasted-text only; uploaded-text capture
+    // uses the multipart upload route instead.
+    sourceType: { type: 'string', enum: ['pasted_text'] },
     role: { type: 'string', enum: [...SOURCE_ROLES_DTO] },
     text: { type: 'string', minLength: 1, maxLength: 100_000, pattern: WELL_FORMED_SOURCE_TEXT_PATTERN },
+    label: { type: 'string', minLength: 1, maxLength: 200, pattern: WELL_FORMED_SOURCE_TEXT_PATTERN },
+  },
+};
+
+export const uploadSourceFieldsSchema: PortableJsonSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['role'],
+  properties: {
+    role: { type: 'string', enum: [...SOURCE_ROLES_DTO] },
     label: { type: 'string', minLength: 1, maxLength: 200, pattern: WELL_FORMED_SOURCE_TEXT_PATTERN },
   },
 };
@@ -500,6 +522,9 @@ const validateCreateVersion = ajv.compile<CreateSourceVersionRequest>(
 const validateApprove = ajv.compile<ApproveSourceVersionRequest>(
   approveSourceVersionRequestSchema,
 ) as ValidateFunction<ApproveSourceVersionRequest>;
+const validateUploadFields = ajv.compile<UploadSourceFields>(
+  uploadSourceFieldsSchema,
+) as ValidateFunction<UploadSourceFields>;
 const validateListQuery = ajv.compile<Record<string, string>>(sourceListQuerySchema);
 
 function safeErrors(errors: ErrorObject[] | null | undefined): readonly ContractValidationError[] {
@@ -528,6 +553,10 @@ export function parseCreateSourceVersionRequest(input: unknown): ParseResult<Cre
 
 export function parseApproveSourceVersionRequest(input: unknown): ParseResult<ApproveSourceVersionRequest> {
   return parse(validateApprove, input);
+}
+
+export function parseUploadSourceFields(input: unknown): ParseResult<UploadSourceFields> {
+  return parse(validateUploadFields, input);
 }
 
 export function parseSourceListQuery(input: unknown): ParseResult<SourceListQuery> {

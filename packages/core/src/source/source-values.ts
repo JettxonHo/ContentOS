@@ -6,16 +6,25 @@ export type SourceWorkingCopyId = string & { readonly __brand: 'SourceWorkingCop
 export type SourceVersionId = string & { readonly __brand: 'SourceVersionId' };
 export type SourceApprovalId = string & { readonly __brand: 'SourceApprovalId' };
 
-export const SOURCE_TYPES = ['pasted_text'] as const;
+export const SOURCE_TYPES = ['pasted_text', 'uploaded_text'] as const;
 export type SourceType = (typeof SOURCE_TYPES)[number];
 
 export const SOURCE_ROLES = ['primary', 'supporting'] as const;
 export type SourceRole = (typeof SOURCE_ROLES)[number];
 
-export const SOURCE_CAPTURE_TYPES = ['pasted_text'] as const;
+export const SOURCE_CAPTURE_TYPES = ['pasted_text', 'uploaded_text'] as const;
 export type SourceCaptureType = (typeof SOURCE_CAPTURE_TYPES)[number];
 
 export const SOURCE_SCHEMA_VERSION = 'source/normalized/v1' as const;
+
+/**
+ * Allowlisted Raw Snapshot content types. Pasted Text is stored as
+ * `text/plain; charset=utf-8`; `.txt` uploads use the same value and `.md`
+ * uploads use `text/markdown; charset=utf-8`. Documented as a reversible
+ * implementation detail in `docs/architecture/source-foundation.md`.
+ */
+export const SOURCE_SNAPSHOT_CONTENT_TYPES = ['text/plain; charset=utf-8', 'text/markdown; charset=utf-8'] as const;
+export type SourceSnapshotContentType = (typeof SOURCE_SNAPSHOT_CONTENT_TYPES)[number];
 
 /**
  * The persisted Normalized Source body shape. Stored as `jsonb` in PostgreSQL
@@ -37,6 +46,25 @@ export interface NormalizedSourceBody {
  * trivially reviewable.
  */
 export const PASTED_TEXT_MAX_BYTES = 100_000;
+
+/**
+ * Maximum raw byte size for one uploaded `.md`/`.txt` file. The Security
+ * Baseline (§9) fixes the allowlist and leaves the numeric limit open; this
+ * bound is a reversible implementation detail documented in
+ * `docs/architecture/source-foundation.md`. It matches the pasted-text bound
+ * and stays within the `source_raw_snapshots_byte_size_check` constraint.
+ */
+export const UPLOAD_FILE_MAX_BYTES = 100_000;
+
+/**
+ * Maps the two MVP-allowed upload extensions to their stored Raw Snapshot
+ * content types (DEC-208 allowlist; DEC-268 input scope).
+ */
+export const UPLOAD_EXTENSION_CONTENT_TYPES = {
+  '.md': 'text/markdown; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
+} as const satisfies Record<string, SourceSnapshotContentType>;
+export type UploadExtension = keyof typeof UPLOAD_EXTENSION_CONTENT_TYPES;
 
 export const MAX_SUPPORTING_SOURCES = 5;
 export const MAX_PRIMARY_SOURCES = 1;
