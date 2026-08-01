@@ -12,9 +12,9 @@ Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Rend
 
 ## 当前状态
 
-仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001` 和 `M2-WF-002` 已完成，`M2-WF-003A`（Transactional Outbox Dispatcher）正在审查中。
+仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001`、`M2-WF-002` 和 `M2-WF-003A`（Transactional Outbox Dispatcher）已完成。`M2-WF-003A` 已通过 PR #69 squash merge，合并提交为 `3211c29ef8e6a934e6473a4f92caf36d8593abc3`。
 
-当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片，以及审查中的 Worker Outbox 到 BullMQ 投递边界。Worker 只将 PostgreSQL Outbox 投递为固定的最小 BullMQ envelope，需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`；当前不提供 Source UI、Fetcher execution、Queue consumer、Fetcher claim/result 行为、Agent、Render、发布行为、部署或开发服务器。
+当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片，以及 Worker Outbox 到 BullMQ 投递边界。Worker 只将 PostgreSQL Outbox 投递为固定的最小 BullMQ envelope，需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`；当前不提供 Source UI、Fetcher execution、Queue consumer、Fetcher claim/result 行为、Agent、Render、发布行为、部署或开发服务器。
 
 ## MVP 边界
 
@@ -116,7 +116,7 @@ corepack pnpm test:integration
 
 安装固定的 Chromium revision（`corepack pnpm exec playwright install chromium`）后，运行 `corepack pnpm test:browser` 以演练完整的 M1 owner loop。其安全、清理和范围边界请阅读 [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md)。
 
-这些命令仍只是受限的 M1 基础与审查中的 M2 Source 和 delivery slices。当前没有 `dev`、广泛的产品 E2E suite、Fetcher execution、当前持久请求／投递边界之外的 Workflow Engine、Queue consumer、Agent、Render 或内容发布功能。
+这些命令仍只是受限的 M1 基础，以及 M2 中已完成的 Source 和 delivery slices。当前没有 `dev`、广泛的产品 E2E suite、Fetcher execution、当前持久请求／投递边界之外的 Workflow Engine、Queue consumer、Agent、Render 或内容发布功能。
 
 ## 持续集成
 
