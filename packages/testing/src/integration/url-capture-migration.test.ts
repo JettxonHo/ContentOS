@@ -1,0 +1,334 @@
+import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { Client } from 'pg';
+import { describe, expect, it } from 'vitest';
+
+import { CONTENT_PACKAGE_DUAL_OUTPUT_V1_TEMPLATE } from '@contentos/core';
+
+import { readComposeCredentials, requireState } from './env.js';
+
+const MIGRATIONS_DIRECTORY = fileURLToPath(new URL('../../../../migrations/', import.meta.url));
+const MIGRATIONS = [
+  '0000_unusual_midnight.sql',
+  '0001_large_donald_blake.sql',
+  '0002_soft_war_machine.sql',
+  '0003_absent_prism.sql',
+  '0004_long_morph.sql',
+  '0005_mixed_doctor_strange.sql',
+] as const;
+
+function postgresConfig(database: string): {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+} {
+  const state = requireState();
+  const credentials = readComposeCredentials(state.envFile);
+  return {
+    host: '127.0.0.1',
+    port: state.ports.postgres,
+    user: 'smoke_user',
+    password: credentials.POSTGRES_PASSWORD ?? '',
+    database,
+  };
+}
+
+function quoteDatabase(database: string): string {
+  if (!/^m2wf002_[0-9a-f]{32}$/.test(database)) throw new Error('unexpected migration test database name');
+  return `"${database}"`;
+}
+
+async function applyMigration(client: Client, filename: string): Promise<void> {
+  const sql = await readFile(join(MIGRATIONS_DIRECTORY, filename), 'utf8');
+  for (const statement of sql.split('--> statement-breakpoint')) {
+    const trimmed = statement.trim();
+    if (trimmed.length > 0) await client.query(trimmed);
+  }
+}
+
+async function withIsolatedDatabase(action: (client: Client) => Promise<void>): Promise<void> {
+  const database = `m2wf002_${randomUUID().replaceAll('-', '')}`;
+  const maintenance = new Client(postgresConfig('postgres'));
+  let created = false;
+  await maintenance.connect();
+  try {
+    await maintenance.query(`CREATE DATABASE ${quoteDatabase(database)}`);
+    created = true;
+  } finally {
+    await maintenance.end();
+  }
+
+  const target = new Client(postgresConfig(database));
+  try {
+    await target.connect();
+    await action(target);
+  } finally {
+    await target.end();
+    if (created) {
+      const cleanup = new Client(postgresConfig('postgres'));
+      try {
+        await cleanup.connect();
+        await cleanup.query(`DROP DATABASE ${quoteDatabase(database)}`);
+      } finally {
+        await cleanup.end();
+      }
+    }
+  }
+}
+
+async function insertPackageAndSource(client: Client): Promise<{
+  packageId: string;
+  ownerUserId: string;
+  sourceId: string;
+}> {
+  const packageId = randomUUID();
+  const ownerUserId = randomUUID();
+  const sourceId = randomUUID();
+  await client.query(
+    `INSERT INTO content_packages
+      (id, owner_user_id, title, description, content_mode, requested_blog, requested_xiaohongshu,
+       lifecycle, revision, created_at, updated_at, archived_at)
+     VALUES ($1, $2, 'migration preservation package', NULL, 'creator_led', true, true, 'active', 1, now(), now(), NULL)`,
+    [packageId, ownerUserId],
+  );
+  await client.query(
+    `INSERT INTO sources
+      (id, content_package_id, owner_user_id, source_type, role, label, capture_type, created_at)
+     VALUES ($1, $2, $3, 'pasted_text', 'primary', 'preserved source', 'pasted_text', now())`,
+    [sourceId, packageId, ownerUserId],
+  );
+  return { packageId, ownerUserId, sourceId };
+}
+
+async function insertWorkflowHistory(
+  client: Client,
+  packageId: string,
+  ownerUserId: string,
+): Promise<{ instanceId: string; nodeId: string }> {
+  const instanceId = randomUUID();
+  const nodeId = randomUUID();
+  await client.query(
+    `INSERT INTO workflow_instances
+      (id, content_package_id, owner_user_id, template_id, template_version, definition_sha256,
+       lifecycle, revision, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, 'active', 1, now(), now())`,
+    [
+      instanceId,
+      packageId,
+      ownerUserId,
+      CONTENT_PACKAGE_DUAL_OUTPUT_V1_TEMPLATE.definition.templateId,
+      CONTENT_PACKAGE_DUAL_OUTPUT_V1_TEMPLATE.definition.templateVersion,
+      CONTENT_PACKAGE_DUAL_OUTPUT_V1_TEMPLATE.definitionSha256,
+    ],
+  );
+  await client.query(
+    `INSERT INTO workflow_nodes
+      (id, workflow_instance_id, content_package_id, owner_user_id, template_id, template_version,
+       template_node_key, state, revision, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, 'source_capture', 'ready', 1, now(), now())`,
+    [
+      nodeId,
+      instanceId,
+      packageId,
+      ownerUserId,
+      CONTENT_PACKAGE_DUAL_OUTPUT_V1_TEMPLATE.definition.templateId,
+      CONTENT_PACKAGE_DUAL_OUTPUT_V1_TEMPLATE.definition.templateVersion,
+    ],
+  );
+  await client.query(
+    `INSERT INTO workflow_events
+      (id, workflow_instance_id, content_package_id, owner_user_id, sequence, event_type, payload,
+       occurred_at, workflow_node_id)
+     VALUES ($1, $2, $3, $4, 1, 'fixture.migration_history', $5::jsonb, now(), $6)`,
+    [randomUUID(), instanceId, packageId, ownerUserId, JSON.stringify({ preserved: true }), nodeId],
+  );
+  return { instanceId, nodeId };
+}
+
+async function expectConstraint(
+  client: Client,
+  sql: string,
+  values: readonly unknown[],
+  expected: string,
+): Promise<void> {
+  try {
+    await client.query(sql, [...values]);
+    throw new Error(`expected constraint ${expected} to reject the statement`);
+  } catch (error) {
+    expect((error as { constraint?: string }).constraint).toBe(expected);
+  }
+}
+
+describe('M2-WF-002 additive migration', () => {
+  it('installs an empty database without URL-capture backfill', async () => {
+    await withIsolatedDatabase(async (client) => {
+      for (const migration of MIGRATIONS) await applyMigration(client, migration);
+      const counts = await Promise.all(
+        [
+          'url_source_references',
+          'url_capture_requests',
+          'workflow_tasks',
+          'workflow_outbox_records',
+          'workflow_instances',
+          'workflow_nodes',
+          'workflow_events',
+        ].map(
+          async (table) =>
+            (await client.query<{ count: number }>(`SELECT count(*)::int AS count FROM ${table}`)).rows[0]?.count,
+        ),
+      );
+      expect(counts).toEqual([0, 0, 0, 0, 0, 0, 0]);
+      expect(
+        (await client.query<{ count: number }>('SELECT count(*)::int AS count FROM workflow_templates')).rows[0]?.count,
+      ).toBe(1);
+    });
+  });
+
+  it('upgrades 0004 to 0005 without rewriting Package, Source, or Workflow history', async () => {
+    await withIsolatedDatabase(async (client) => {
+      for (const migration of MIGRATIONS.slice(0, 4)) await applyMigration(client, migration);
+      const history = await insertPackageAndSource(client);
+      await applyMigration(client, MIGRATIONS[4]);
+      const workflow = await insertWorkflowHistory(client, history.packageId, history.ownerUserId);
+
+      await applyMigration(client, MIGRATIONS[5]);
+
+      expect(
+        (await client.query('SELECT id FROM content_packages WHERE id=$1', [history.packageId])).rows,
+      ).toHaveLength(1);
+      expect((await client.query('SELECT id FROM sources WHERE id=$1', [history.sourceId])).rows).toHaveLength(1);
+      expect(
+        (await client.query('SELECT id FROM workflow_instances WHERE id=$1', [workflow.instanceId])).rows,
+      ).toHaveLength(1);
+      expect((await client.query('SELECT id FROM workflow_nodes WHERE id=$1', [workflow.nodeId])).rows).toHaveLength(1);
+      expect(
+        (
+          await client.query('SELECT event_type FROM workflow_events WHERE workflow_instance_id=$1', [
+            workflow.instanceId,
+          ])
+        ).rows,
+      ).toEqual([{ event_type: 'fixture.migration_history' }]);
+
+      const newTableCounts = await Promise.all(
+        ['url_source_references', 'url_capture_requests', 'workflow_tasks', 'workflow_outbox_records'].map(
+          async (table) =>
+            (await client.query<{ count: number }>(`SELECT count(*)::int AS count FROM ${table}`)).rows[0]?.count,
+        ),
+      );
+      expect(newTableCounts).toEqual([0, 0, 0, 0]);
+
+      const referenceId = randomUUID();
+      const requestId = randomUUID();
+      const taskId = randomUUID();
+      await client.query(
+        `INSERT INTO url_source_references
+          (id, content_package_id, owner_user_id, role, submitted_url, created_at)
+         VALUES ($1, $2, $3, 'primary', 'https://example.com/article?private=1#section', now())`,
+        [referenceId, history.packageId, history.ownerUserId],
+      );
+      await client.query(
+        `INSERT INTO url_capture_requests
+          (id, source_reference_id, workflow_instance_id, workflow_node_id, content_package_id, owner_user_id,
+           expected_package_revision, command_kind, idempotency_key, request_fingerprint, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, 1, 'url_capture_request', 'migration-key-0001', $7, now())`,
+        [
+          requestId,
+          referenceId,
+          workflow.instanceId,
+          workflow.nodeId,
+          history.packageId,
+          history.ownerUserId,
+          'a'.repeat(64),
+        ],
+      );
+      await client.query(
+        `INSERT INTO workflow_tasks
+          (id, workflow_instance_id, workflow_node_id, url_capture_request_id, content_package_id, owner_user_id,
+           kind, state, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, 'url_capture', 'queued', now(), now())`,
+        [taskId, workflow.instanceId, workflow.nodeId, requestId, history.packageId, history.ownerUserId],
+      );
+      await client.query(
+        `INSERT INTO workflow_outbox_records
+          (id, task_id, content_package_id, owner_user_id, category, envelope_version, payload, state, created_at)
+         VALUES ($1, $2, $3, $4, 'fetcher', 'fetcher-task/v1', $5::jsonb, 'pending', now())`,
+        [
+          randomUUID(),
+          taskId,
+          history.packageId,
+          history.ownerUserId,
+          JSON.stringify({ taskId, taskKind: 'url_capture', envelopeVersion: 'fetcher-task/v1' }),
+        ],
+      );
+      const secondReferenceId = randomUUID();
+      await client.query(
+        `INSERT INTO url_source_references
+          (id, content_package_id, owner_user_id, role, submitted_url, created_at)
+         VALUES ($1, $2, $3, 'supporting', 'https://example.com/second', now())`,
+        [secondReferenceId, history.packageId, history.ownerUserId],
+      );
+
+      await expectConstraint(
+        client,
+        `INSERT INTO url_source_references
+          (id, content_package_id, owner_user_id, role, submitted_url, created_at)
+         VALUES ($1, $2, $3, 'invalid', 'https://example.com', now())`,
+        [randomUUID(), history.packageId, history.ownerUserId],
+        'url_source_references_role_check',
+      );
+      await expectConstraint(
+        client,
+        `INSERT INTO url_capture_requests
+          (id, source_reference_id, workflow_instance_id, workflow_node_id, content_package_id, owner_user_id,
+           expected_package_revision, command_kind, idempotency_key, request_fingerprint, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, 1, 'url_capture_request', 'migration-key-0002', $7, now())`,
+        [
+          randomUUID(),
+          secondReferenceId,
+          workflow.instanceId,
+          workflow.nodeId,
+          history.packageId,
+          history.ownerUserId,
+          'b'.repeat(64),
+        ],
+        'url_capture_requests_node_unique',
+      );
+      await expectConstraint(
+        client,
+        `INSERT INTO workflow_outbox_records
+          (id, task_id, content_package_id, owner_user_id, category, envelope_version, payload, state, created_at)
+         VALUES ($1, $2, $3, $4, 'fetcher', 'fetcher-task/v1', $5::jsonb, 'pending', now())`,
+        [
+          randomUUID(),
+          taskId,
+          history.packageId,
+          history.ownerUserId,
+          JSON.stringify({ taskId, taskKind: 'url_capture' }),
+        ],
+        'workflow_outbox_records_payload_shape_check',
+      );
+      await expectConstraint(
+        client,
+        `INSERT INTO url_capture_requests
+          (id, source_reference_id, workflow_instance_id, workflow_node_id, content_package_id, owner_user_id,
+           expected_package_revision, command_kind, idempotency_key, request_fingerprint, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, 1, 'url_capture_request', 'migration-key-0003', $7, now())`,
+        [
+          randomUUID(),
+          randomUUID(),
+          workflow.instanceId,
+          randomUUID(),
+          history.packageId,
+          history.ownerUserId,
+          'c'.repeat(64),
+        ],
+        'url_capture_requests_source_reference_binding_fk',
+      );
+    });
+  });
+});

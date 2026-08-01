@@ -81,7 +81,7 @@ packages/database
 packages/object-storage
 ```
 
-`core`, `contracts`, and `config` expose the bounded authentication, Content Package, Source, and Workflow values/Ports, versioned HTTP contracts, and validated API configuration. `database` owns the Drizzle Session, Content Package, Source, and Workflow schemas, node-postgres connection, repository adapters, migration runner, and the test-only Workflow persistence boundary. `object-storage` owns the S3-compatible ObjectStore adapter that implements the Core-defined ObjectStore Port using opaque owner-scoped keys and immutable-put semantics. `testing` owns deterministic unit/repository support and the isolated integration harness. Package build outputs are generated under ignored `dist/` directories.
+`core`, `contracts`, and `config` expose the bounded authentication, Content Package, Source, and Workflow values/Ports, including the framework-independent URL-capture Command and its versioned HTTP contracts, plus validated API configuration. `database` owns the Drizzle Session, Content Package, Source, Workflow, URL Source Reference, Capture Request, Task, and Outbox schemas, node-postgres connection, transaction repository adapters, migration runner, and test-only persistence boundaries. `object-storage` owns the S3-compatible ObjectStore adapter that implements the Core-defined ObjectStore Port using opaque owner-scoped keys and immutable-put semantics. `testing` owns deterministic unit/repository support and the isolated integration harness. Package build outputs are generated under ignored `dist/` directories.
 
 M0-ENG-002 adds only these deployable-process skeletons:
 
@@ -93,7 +93,7 @@ apps/fetcher
 apps/renderer
 ```
 
-Web now owns the M1 login, active/archived Dashboard, new-package form, Workspace metadata editor, and typed browser API client; it never accesses PostgreSQL or Secrets. API composes liveness, authentication, exact-Origin enforcement, the Content Package routes, the Source routes (capture, list, get, working-copy edit, version creation, version list, approval), common errors, OpenAPI JSON, PostgreSQL adapters, and the S3-compatible ObjectStore adapter. Worker, fetcher, and renderer remain lifecycle skeletons. The root `migrations/` path contains the reviewed forward migrations and Drizzle metadata; the root `schemas/` directory contains the versioned Normalized Source JSON Schema 2020-12 document; every other planned infrastructure package remains absent.
+Web now owns the M1 login, active/archived Dashboard, new-package form, Workspace metadata editor, and typed browser API client; it never accesses PostgreSQL or Secrets. API composes liveness, authentication, exact-Origin enforcement, the Content Package routes, the Source routes (capture, list, get, working-copy edit, version creation, version list, approval), the protected owner URL-capture Command route, common errors, OpenAPI JSON, PostgreSQL adapters, and the S3-compatible ObjectStore adapter. The URL-capture route persists only a safe request/task/outbox boundary; it does not dispatch, fetch, or create Source evidence. Worker, fetcher, and renderer remain lifecycle skeletons. The root `migrations/` path contains the reviewed forward migrations and Drizzle metadata; the root `schemas/` directory contains the versioned Normalized Source JSON Schema 2020-12 document; every other planned infrastructure package remains absent.
 
 M0-QUAL-002 adds the integration smoke harness inside the existing `packages/testing` package, without adding a new package or application:
 
@@ -115,31 +115,31 @@ The workflow runs the existing workspace, Docker-independent quality, repository
 
 ## 3. `apps` Responsibilities
 
-| Planned path | Responsibility |
-|---|---|
-| `apps/web` | Next.js product UI, routes, structured Editors, API client composition, SSE client, and UI-specific state |
-| `apps/api` | NestJS/Fastify composition root, HTTP Controllers, Guards, DTO mapping, OpenAPI, SSE, and Adapter wiring |
-| `apps/worker` | General async process entry point, BullMQ Worker registration, Workflow asynchronous execution, and Agent Runtime composition |
-| `apps/fetcher` | Restricted Source-fetch process entry point, public-egress policy composition, extraction, and safe Source Candidate handling |
-| `apps/renderer` | Isolated Playwright/Chromium process entry point, render-job execution, validation, and output upload |
+| Planned path    | Responsibility                                                                                                                |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`      | Next.js product UI, routes, structured Editors, API client composition, SSE client, and UI-specific state                     |
+| `apps/api`      | NestJS/Fastify composition root, HTTP Controllers, Guards, DTO mapping, OpenAPI, SSE, and Adapter wiring                      |
+| `apps/worker`   | General async process entry point, BullMQ Worker registration, Workflow asynchronous execution, and Agent Runtime composition |
+| `apps/fetcher`  | Restricted Source-fetch process entry point, public-egress policy composition, extraction, and safe Source Candidate handling |
+| `apps/renderer` | Isolated Playwright/Chromium process entry point, render-job execution, validation, and output upload                         |
 
 An `apps` project primarily owns a deployable process entry point and composition. It does not become the cross-project home for Domain truth. Process-specific Controllers, bootstrap, lifecycle, and wiring belong in `apps`; reusable Domain and Adapter behavior belongs in the appropriate owned package.
 
 ## 4. `packages` Responsibilities
 
-| Planned package | Responsibility |
-|---|---|
-| `core` | Domain Modules, Application Use Cases, Ports, Domain Events, pure Validators, and Domain errors |
-| `contracts` | Generated or shared boundary types for API, Queue, Agent, Event, Artifact metadata, Validation, and Object References |
-| `database` | Drizzle Schema, Repository Adapters, Transactions, Query SQL, Outbox persistence, and lease persistence |
-| `queue` | Queue names, minimal Job Schemas, BullMQ Adapters, retry configuration, registrations, and reconciliation support |
-| `agent-runtime` | Context building, Prompt assembly, deterministic Model Router, execution, parsing, Schema validation, bounded repair, and budgets |
-| `model-adapters` | Provider-neutral model interface implementations, Provider-specific Adapters, error/usage normalization, and Fake Provider Adapter |
+| Planned package  | Responsibility                                                                                                                            |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `core`           | Domain Modules, Application Use Cases, Ports, Domain Events, pure Validators, and Domain errors                                           |
+| `contracts`      | Generated or shared boundary types for API, Queue, Agent, Event, Artifact metadata, Validation, and Object References                     |
+| `database`       | Drizzle Schema, Repository Adapters, Transactions, Query SQL, Outbox persistence, and lease persistence                                   |
+| `queue`          | Queue names, minimal Job Schemas, BullMQ Adapters, retry configuration, registrations, and reconciliation support                         |
+| `agent-runtime`  | Context building, Prompt assembly, deterministic Model Router, execution, parsing, Schema validation, bounded repair, and budgets         |
+| `model-adapters` | Provider-neutral model interface implementations, Provider-specific Adapters, error/usage normalization, and Fake Provider Adapter        |
 | `object-storage` | Implementations of the Core-owned ObjectStore Port, S3-compatible Adapters, quarantine operations, temporary access, and integrity checks |
-| `rendering` | Component Registry implementation, controlled templates, render orchestration, fit/layout validation, and Renderer-shared behavior |
-| `observability` | Structured logging, redaction, Correlation ID propagation, OpenTelemetry setup, and metric definitions |
-| `config` | Typed runtime configuration, process Schemas, Secret References, and configuration validation |
-| `testing` | Shared Fixtures, fakes, builders, database factories, Queue helpers, and Workflow test scenarios |
+| `rendering`      | Component Registry implementation, controlled templates, render orchestration, fit/layout validation, and Renderer-shared behavior        |
+| `observability`  | Structured logging, redaction, Correlation ID propagation, OpenTelemetry setup, and metric definitions                                    |
+| `config`         | Typed runtime configuration, process Schemas, Secret References, and configuration validation                                             |
+| `testing`        | Shared Fixtures, fakes, builders, database factories, Queue helpers, and Workflow test scenarios                                          |
 
 These are planned ownership boundaries. A package is created only when a bounded Work Item requires its responsibility.
 
@@ -303,13 +303,13 @@ The exact test runner, filename convention, and test-directory layout remain ope
 
 ## 14. Documentation Placement
 
-| Documentation layer | Planned location and role |
-|---|---|
-| Historical Sessions | `docs/sessions/` preserves discussion, alternatives, and historical context |
-| Decision Register | `docs/decisions/decisions.md` is the canonical Decision index; split files preserve detailed records |
+| Documentation layer          | Planned location and role                                                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Historical Sessions          | `docs/sessions/` preserves discussion, alternatives, and historical context                                                              |
+| Decision Register            | `docs/decisions/decisions.md` is the canonical Decision index; split files preserve detailed records                                     |
 | Current-truth Specifications | `docs/product/`, `docs/architecture/`, `docs/security/`, `docs/quality/`, and `docs/implementation/` define current implementation rules |
-| Implementation documentation | README and bounded implementation docs describe actual commands, environment, and operational procedures once implemented |
-| Agent governance | Root `AGENTS.md` defines concise, executable rules for coding agents |
+| Implementation documentation | README and bounded implementation docs describe actual commands, environment, and operational procedures once implemented                |
+| Agent governance             | Root `AGENTS.md` defines concise, executable rules for coding agents                                                                     |
 
 Current-truth documents must reflect later Accepted Decisions over conflicting historical Session text. Implementation docs must not describe planned paths as existing before they are created.
 
@@ -366,15 +366,15 @@ These choices belong to bounded M0 Engineering Work Items. They must preserve on
 
 ## 18. Decision Traceability
 
-| Repository concern | Accepted Decisions | Primary historical sources |
-|---|---|---|
-| Content Package, storage, structured output, and logical Agent boundaries | DEC-023–DEC-042 | [Session-006](../sessions/session-006.md), [Session-007](../sessions/session-007.md), [Session-008](../sessions/session-008.md) |
-| Renderer package and dependency isolation | DEC-111–DEC-124 | [Session-016](../sessions/session-016.md) |
-| Workflow, Command, Task, and Promotion ownership | DEC-125–DEC-139 | [Session-017](../sessions/session-017.md) |
-| Domain Modules, API DTO separation, Ports, Query Projections, and Outbox | DEC-160–DEC-176 | [Session-019](../sessions/session-019.md) |
-| Agent Runtime and Provider Adapter ownership | DEC-177–DEC-198 | [Session-020](../sessions/session-020.md) |
-| Security, Service Identity, Fetcher, Renderer, and Secret boundaries | DEC-199–DEC-220 | [Session-021](../sessions/session-021.md) |
-| Monorepo, stack, processes, packages, and dependency direction | DEC-221–DEC-243 | [Session-022](../sessions/session-022.md) |
-| M0 skeleton, Work Item sizing, documentation, and scope governance | DEC-267–DEC-293 | [Session-024](../sessions/session-024.md) |
+| Repository concern                                                        | Accepted Decisions | Primary historical sources                                                                                                      |
+| ------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Content Package, storage, structured output, and logical Agent boundaries | DEC-023–DEC-042    | [Session-006](../sessions/session-006.md), [Session-007](../sessions/session-007.md), [Session-008](../sessions/session-008.md) |
+| Renderer package and dependency isolation                                 | DEC-111–DEC-124    | [Session-016](../sessions/session-016.md)                                                                                       |
+| Workflow, Command, Task, and Promotion ownership                          | DEC-125–DEC-139    | [Session-017](../sessions/session-017.md)                                                                                       |
+| Domain Modules, API DTO separation, Ports, Query Projections, and Outbox  | DEC-160–DEC-176    | [Session-019](../sessions/session-019.md)                                                                                       |
+| Agent Runtime and Provider Adapter ownership                              | DEC-177–DEC-198    | [Session-020](../sessions/session-020.md)                                                                                       |
+| Security, Service Identity, Fetcher, Renderer, and Secret boundaries      | DEC-199–DEC-220    | [Session-021](../sessions/session-021.md)                                                                                       |
+| Monorepo, stack, processes, packages, and dependency direction            | DEC-221–DEC-243    | [Session-022](../sessions/session-022.md)                                                                                       |
+| M0 skeleton, Work Item sizing, documentation, and scope governance        | DEC-267–DEC-293    | [Session-024](../sessions/session-024.md)                                                                                       |
 
 The authoritative status and wording of every Decision is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).

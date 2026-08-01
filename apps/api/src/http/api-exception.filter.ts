@@ -9,6 +9,8 @@ import {
   ContentPackageDomainError,
   SourceApplicationError,
   SourceDomainError,
+  UrlCaptureApplicationError,
+  UrlCaptureDomainError,
   UploadQuarantineError,
 } from '@contentos/core';
 
@@ -125,6 +127,36 @@ export class ApiExceptionFilter implements ExceptionFilter {
               ? 'Source role limit exceeded'
               : 'Source state conflict';
       void reply.status(status).send(apiError(code, message, correlationId));
+      return;
+    }
+
+    if (exception instanceof UrlCaptureApplicationError) {
+      const notFound = exception.code === 'CONTENT_PACKAGE_NOT_FOUND';
+      const status = notFound ? 404 : 409;
+      const code = notFound
+        ? 'CONTENT_PACKAGE_NOT_FOUND'
+        : exception.code === 'REVISION_CONFLICT'
+          ? 'REVISION_CONFLICT'
+          : exception.code === 'PACKAGE_ARCHIVED'
+            ? 'CONTENT_PACKAGE_STATE_CONFLICT'
+            : exception.code === 'SOURCE_ROLE_LIMIT_EXCEEDED'
+              ? 'SOURCE_ROLE_LIMIT_EXCEEDED'
+              : 'SOURCE_STATE_CONFLICT';
+      const message = notFound
+        ? 'Content Package not found'
+        : exception.code === 'REVISION_CONFLICT'
+          ? 'Revision conflict'
+          : exception.code === 'PACKAGE_ARCHIVED'
+            ? 'Content Package is archived'
+            : exception.code === 'SOURCE_ROLE_LIMIT_EXCEEDED'
+              ? 'Source role limit exceeded'
+              : 'URL capture request conflict';
+      void reply.status(status).send(apiError(code, message, correlationId));
+      return;
+    }
+
+    if (exception instanceof UrlCaptureDomainError) {
+      void reply.status(422).send(apiError('INVALID_REQUEST', 'Invalid request', correlationId));
       return;
     }
 
