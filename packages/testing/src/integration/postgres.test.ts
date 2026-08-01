@@ -108,6 +108,12 @@ describe('postgres smoke', () => {
       'source_versions',
       'source_working_copies',
       'sources',
+      'workflow_events',
+      'workflow_instances',
+      'workflow_nodes',
+      'workflow_template_edges',
+      'workflow_template_nodes',
+      'workflow_templates',
     ]);
   });
 
