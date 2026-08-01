@@ -83,9 +83,9 @@ Process Topology permits a minimum Fetcher state path but not a general Domain w
 
 BullMQ provides at-least-once delivery, not authoritative Workflow history. A Fetcher-produced completion Job would still require a consuming process to decide whether a Task is active, claimed, cancelled, retryable, duplicate, stale, or eligible to create Source evidence. Encoding those decisions in a Queue consumer makes the Queue path a competing authority or merely recreates the proposed Gateway indirectly. The first foundation should have one authoritative result boundary.
 
-## 4. Recommended decision
+## 4. Selected decision
 
-**Recommend Option B: API-owned Fetcher Task Gateway.**
+**Option B: API-owned Fetcher Task Gateway.**
 
 The Gateway is a bounded application contract owned by the API module. “Gateway” names the authority boundary, not a new service, product, package, provider, or microservice. Its first implementation transport remains a later Work Item detail, but it must authenticate the Fetcher service identity and expose no browser/public-user capability.
 
