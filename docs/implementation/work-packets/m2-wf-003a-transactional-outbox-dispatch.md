@@ -1,6 +1,6 @@
 # WORK PACKET — M2-WF-003A
 
-**Status:** In Review
+**Status:** Completed
 
 **Purpose:** Durable planning-to-implementation handoff for the first
 PostgreSQL Transactional Outbox → BullMQ delivery boundary.
@@ -20,6 +20,7 @@ PostgreSQL Transactional Outbox → BullMQ delivery boundary.
 - **Reviewer:** independent review agent before Git publication
 - **Dependencies:** `M2-WF-002` merged through PR #60; `M2-DES-005` accepted
   through PR #64
+- **Merged:** PR #69, squash-merged as `3211c29ef8e6a934e6473a4f92caf36d8593abc3`
 - **Risk classification:** authoritative Outbox delivery ledger, PostgreSQL
   concurrency and migration, Redis/BullMQ transport, Worker lifecycle,
   recovery, temporary credentials, and Queue-payload confidentiality
@@ -498,7 +499,7 @@ After implementation evidence is complete:
 - update `AGENTS.md` and `README.md` with the truthful Worker dispatcher
   capability, required process configuration, and the fact that Fetcher
   execution remains unavailable;
-- update the M2 roadmap row to `In Review` only after implementation evidence
+- update the M2 roadmap row to `Completed` only after implementation evidence
   is complete; and
 - leave Accepted DEC and the Decision Register unchanged.
 

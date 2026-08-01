@@ -12,9 +12,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001`, `M2-SRC-002`, `M2-WF-001`, and `M2-WF-002` are completed, and `M2-WF-003A` (Transactional Outbox Dispatcher) is in review.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001`, `M2-SRC-002`, `M2-WF-001`, `M2-WF-002`, and `M2-WF-003A` (Transactional Outbox Dispatcher) are completed. `M2-WF-003A` was squash-merged through PR #69 as `3211c29ef8e6a934e6473a4f92caf36d8593abc3`.
 
-This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package and URL-capture API boundaries, the M1 Web thin slice, and the in-review Worker Outbox-to-BullMQ delivery boundary. It does not provide Source UI, URL fetch execution, Fetcher claim/result behavior, Agent, Render, publishing behavior, deployment, or a development server.
+This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package and URL-capture API boundaries, the M1 Web thin slice, and the Worker Outbox-to-BullMQ delivery boundary. It does not provide Source UI, URL fetch execution, Fetcher claim/result behavior, Agent, Render, publishing behavior, deployment, or a development server.
 
 ## MVP boundary
 
@@ -116,7 +116,7 @@ Run `corepack pnpm test:integration:concurrent` to launch two complete token-own
 
 After installing the pinned Chromium revision with `corepack pnpm exec playwright install chromium`, run `corepack pnpm test:browser` to exercise the complete M1 owner loop. Read [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md) for its security, cleanup, and scope boundaries.
 
-These commands remain a bounded M1 foundation plus the in-review M2 Source and delivery slices. There is no `dev`, broad product E2E suite, Fetcher execution, Workflow Engine beyond the current durable request/delivery boundary, Agent, Render, or publishing-content feature yet.
+These commands remain a bounded M1 foundation plus the completed M2 Source and delivery slices. There is no `dev`, broad product E2E suite, Fetcher execution, Workflow Engine beyond the current durable request/delivery boundary, Agent, Render, or publishing-content feature yet.
 
 ## Continuous integration
 
