@@ -134,26 +134,62 @@ function validAttemptNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1;
 }
 
-export function defineFetcherLeaseExpiredEventValue(input: {
-  readonly taskId: WorkflowTaskId;
-  readonly claimAttemptNumber: number;
-  readonly previousDeliveryGeneration: number;
-  readonly nextDeliveryGeneration: number;
-}): FetcherLeaseExpiredEventValue {
+const LEASE_EXPIRED_EVENT_KEYS: readonly string[] = [
+  'taskId',
+  'claimAttemptNumber',
+  'previousDeliveryGeneration',
+  'nextDeliveryGeneration',
+];
+
+type LeaseExpiredEventShape = {
+  readonly taskId: unknown;
+  readonly claimAttemptNumber: unknown;
+  readonly previousDeliveryGeneration: unknown;
+  readonly nextDeliveryGeneration: unknown;
+};
+
+/**
+ * Confirms `value` is a plain data object owning exactly the four approved
+ * keys as data (non-accessor) properties. Only the prototype, key set, and
+ * property descriptors are inspected; a getter is never invoked, so a hostile
+ * accessor cannot execute user code or observe validation.
+ */
+function isLeaseExpiredEventShape(value: unknown): value is LeaseExpiredEventShape {
+  if (typeof value !== 'object' || value === null) return false;
+  const proto = Object.getPrototypeOf(value);
+  if (proto !== null && proto !== Object.prototype) return false;
+  const ownKeys = Reflect.ownKeys(value);
+  if (ownKeys.length !== LEASE_EXPIRED_EVENT_KEYS.length) return false;
+  for (const key of ownKeys) {
+    if (typeof key !== 'string' || !LEASE_EXPIRED_EVENT_KEYS.includes(key)) return false;
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (descriptor === undefined || !('value' in descriptor)) return false;
+  }
+  return true;
+}
+
+export function defineFetcherLeaseExpiredEventValue(input: unknown): FetcherLeaseExpiredEventValue {
+  if (!isLeaseExpiredEventShape(input)) {
+    throw new FetcherGatewayDomainError('INVALID_FETCHER_LEASE_EXPIRED_EVENT');
+  }
+  const taskId = input.taskId;
+  const claimAttemptNumber = input.claimAttemptNumber;
+  const previousDeliveryGeneration = input.previousDeliveryGeneration;
+  const nextDeliveryGeneration = input.nextDeliveryGeneration;
   if (
-    !validTaskId(input.taskId) ||
-    !validAttemptNumber(input.claimAttemptNumber) ||
-    !validGeneration(input.previousDeliveryGeneration) ||
-    !validGeneration(input.nextDeliveryGeneration) ||
-    input.nextDeliveryGeneration !== input.previousDeliveryGeneration + 1
+    !validTaskId(taskId) ||
+    !validAttemptNumber(claimAttemptNumber) ||
+    !validGeneration(previousDeliveryGeneration) ||
+    !validGeneration(nextDeliveryGeneration) ||
+    nextDeliveryGeneration !== previousDeliveryGeneration + 1
   ) {
     throw new FetcherGatewayDomainError('INVALID_FETCHER_LEASE_EXPIRED_EVENT');
   }
   const payload: FetcherLeaseExpiredEventPayload = Object.freeze({
-    taskId: input.taskId,
-    claimAttemptNumber: input.claimAttemptNumber,
-    previousDeliveryGeneration: input.previousDeliveryGeneration,
-    nextDeliveryGeneration: input.nextDeliveryGeneration,
+    taskId,
+    claimAttemptNumber,
+    previousDeliveryGeneration,
+    nextDeliveryGeneration,
   });
   return Object.freeze({
     eventType: FETCHER_LEASE_EXPIRED_EVENT_TYPE,

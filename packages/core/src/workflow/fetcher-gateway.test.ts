@@ -117,3 +117,104 @@ describe('Fetcher Gateway Core contract', () => {
     });
   });
 });
+
+describe('defineFetcherLeaseExpiredEventValue exact shape', () => {
+  const validBase = {
+    taskId,
+    claimAttemptNumber: 2,
+    previousDeliveryGeneration: 4,
+    nextDeliveryGeneration: 5,
+  };
+
+  function expectInvalid(input: unknown): void {
+    expect(() => defineFetcherLeaseExpiredEventValue(input)).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_LEASE_EXPIRED_EVENT'),
+    );
+  }
+
+  it('accepts a plain object with exactly the four approved data fields', () => {
+    const value = defineFetcherLeaseExpiredEventValue({ ...validBase });
+    expect(Object.keys(value.payload)).toEqual([
+      'taskId',
+      'claimAttemptNumber',
+      'previousDeliveryGeneration',
+      'nextDeliveryGeneration',
+    ]);
+  });
+
+  it('rejects null, arrays, primitives, functions, dates, and class instances', () => {
+    expectInvalid(null);
+    expectInvalid([taskId, 2, 4, 5]);
+    expectInvalid('not-an-object');
+    expectInvalid(42);
+    expectInvalid(true);
+    expectInvalid(Symbol('s'));
+    expectInvalid(() => undefined);
+    expectInvalid(new Date());
+    expectInvalid(new (class Instance {})());
+    expectInvalid(Object.create({}));
+  });
+
+  it('rejects any missing approved field', () => {
+    expectInvalid({ taskId, claimAttemptNumber: 2, previousDeliveryGeneration: 4 });
+    expectInvalid({ claimAttemptNumber: 2, previousDeliveryGeneration: 4, nextDeliveryGeneration: 5 });
+  });
+
+  it('rejects any extra string field, including sensitive identifiers', () => {
+    expectInvalid({ ...validBase, extra: 'x' });
+    expectInvalid({ ...validBase, claim: opaqueClaim });
+    expectInvalid({ ...validBase, claimHash: 'abc' });
+    expectInvalid({ ...validBase, submittedUrl: 'https://example.com/private' });
+    expectInvalid({ ...validBase, ownerUserId: '00000000-0000-4000-8000-000000000099' });
+    expectInvalid({ ...validBase, contentPackageId: '00000000-0000-4000-8000-000000000099' });
+    expectInvalid({ ...validBase, sourceReferenceId: '00000000-0000-4000-8000-000000000099' });
+    expectInvalid({ ...validBase, jobId: 'fetcher-task-1' });
+    expectInvalid({ ...validBase, queueName: 'contentos-fetcher' });
+  });
+
+  it('rejects symbol keys', () => {
+    expectInvalid({ ...validBase, [Symbol('leak')]: 'x' });
+    const symbolForField: Record<string | symbol, unknown> = {
+      claimAttemptNumber: 2,
+      previousDeliveryGeneration: 4,
+      nextDeliveryGeneration: 5,
+    };
+    symbolForField[Symbol('taskId')] = taskId;
+    expectInvalid(symbolForField);
+  });
+
+  it('rejects accessor properties without invoking them', () => {
+    const withAccessor: Record<string, unknown> = {
+      claimAttemptNumber: 2,
+      previousDeliveryGeneration: 4,
+      nextDeliveryGeneration: 5,
+    };
+    Object.defineProperty(withAccessor, 'taskId', {
+      get: () => taskId,
+      enumerable: true,
+      configurable: true,
+    });
+    expectInvalid(withAccessor);
+  });
+
+  it('never executes a hostile getter and returns the stable Domain Error', () => {
+    let getterCalled = false;
+    const hostile: Record<string, unknown> = {
+      claimAttemptNumber: 2,
+      previousDeliveryGeneration: 4,
+      nextDeliveryGeneration: 5,
+    };
+    Object.defineProperty(hostile, 'taskId', {
+      enumerable: true,
+      configurable: true,
+      get: () => {
+        getterCalled = true;
+        throw new Error('BOOM');
+      },
+    });
+    expect(() => defineFetcherLeaseExpiredEventValue(hostile)).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_LEASE_EXPIRED_EVENT'),
+    );
+    expect(getterCalled).toBe(false);
+  });
+});

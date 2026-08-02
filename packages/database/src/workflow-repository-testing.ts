@@ -4,10 +4,7 @@ import type { FetcherGatewayClaimRepository } from '@contentos/core';
 import { createDatabaseConnection } from './client.js';
 import { DrizzleWorkflowRepository } from './workflow-repository.js';
 import { DrizzleWorkflowCommandRepository } from './workflow-command-repository.js';
-import {
-  DrizzleWorkflowDispatchRepository,
-  type WorkflowDispatchRepositoryOptions,
-} from './workflow-dispatch-repository.js';
+import { DrizzleWorkflowDispatchRepository } from './workflow-dispatch-repository.js';
 import { DrizzleWorkflowFetcherGatewayRepository } from './workflow-fetcher-gateway-repository.js';
 import type { WorkflowDispatchRepository } from './runtime.js';
 
@@ -69,9 +66,19 @@ export interface WorkflowDispatchRepositoryTestBoundary {
   close(): Promise<void>;
 }
 
+/**
+ * Local structural test-options type, kept distinct from the repository's
+ * internal options: referencing that type in this helper's public signature
+ * would pull the Drizzle client declaration surface into the emitted `.d.ts`
+ * and leak third-party optional-peer declarations into consumer builds.
+ */
+export interface WorkflowDispatchRepositoryTestOptions {
+  readonly afterLeaseRecoveryStage?: (stage: 'task' | 'outbox' | 'event') => void | Promise<void>;
+}
+
 export function createWorkflowDispatchRepositoryTestBoundary(
   databaseUrl: string,
-  options?: WorkflowDispatchRepositoryOptions,
+  options?: WorkflowDispatchRepositoryTestOptions,
 ): WorkflowDispatchRepositoryTestBoundary {
   const connection = createDatabaseConnection(databaseUrl);
   return {
