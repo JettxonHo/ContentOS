@@ -213,7 +213,14 @@ describe('process lifecycle', () => {
               DATABASE_URL: `postgresql://smoke_user:${encodeURIComponent(credentials.POSTGRES_PASSWORD ?? '')}@127.0.0.1:${state.ports.postgres}/smoke_db`,
               REDIS_URL: `redis://:${encodeURIComponent(credentials.REDIS_PASSWORD ?? '')}@127.0.0.1:${state.ports.redis}`,
             }
-          : process.env;
+          : service === 'fetcher'
+            ? {
+                ...process.env,
+                CONTENTOS_ENV: 'test',
+                CONTENTOS_FETCHER_GATEWAY_SECRET: credentials.CONTENTOS_FETCHER_GATEWAY_SECRET,
+                CONTENTOS_FETCHER_GATEWAY_API_ORIGIN: 'http://127.0.0.1:3001',
+              }
+            : process.env;
       const child = spawn(process.execPath, [join(appDir, 'dist', 'main.js')], {
         cwd: appDir,
         env: serviceEnv,
@@ -489,5 +496,37 @@ describe('worker startup failure lifecycle', () => {
       parser.flush();
       await databaseProxy.close();
     }
+  });
+});
+
+describe('Fetcher startup configuration boundary', () => {
+  it('fails non-zero with a redacted configuration error and no lifecycle start', async () => {
+    const state = requireState();
+    const marker = 'fetcher-secret-marker-must-not-appear';
+    const child = spawn(process.execPath, [join(state.repoRoot, 'apps', 'fetcher', 'dist', 'main.js')], {
+      cwd: join(state.repoRoot, 'apps', 'fetcher'),
+      env: {
+        ...process.env,
+        CONTENTOS_ENV: 'test',
+        CONTENTOS_FETCHER_GATEWAY_SECRET: marker,
+        CONTENTOS_FETCHER_GATEWAY_API_ORIGIN: 'http://localhost:3001',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout?.setEncoding('utf8');
+    child.stderr?.setEncoding('utf8');
+    child.stdout?.on('data', (chunk: string) => {
+      stdout += chunk;
+    });
+    child.stderr?.on('data', (chunk: string) => {
+      stderr += chunk;
+    });
+    const code = await waitForExit(child, 15_000);
+    expect(code).not.toBe(0);
+    expect(stdout).not.toContain('process.started');
+    expect(stderr).toContain('CONTENTOS_FETCHER_GATEWAY_SECRET');
+    expect(stderr).not.toContain(marker);
   });
 });

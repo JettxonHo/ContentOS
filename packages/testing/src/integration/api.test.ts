@@ -47,6 +47,8 @@ describe('api smoke', () => {
     );
     expect(document.components?.securitySchemes).toHaveProperty('contentos_session');
     const sourcePaths = document.paths as Record<string, Record<string, { responses?: Record<string, unknown> }>>;
+    expect(document.paths).not.toHaveProperty('/internal/fetcher/tasks/{taskId}/claim');
+    expect(document.paths).not.toHaveProperty('/internal/fetcher/tasks/{taskId}/heartbeat');
     const expectedSourceResponses = [
       ['/v1/content-packages/{packageId}/sources', 'post', ['201', '400', '401', '403', '404', '409', '422', '500']],
       ['/v1/content-packages/{packageId}/sources', 'get', ['200', '401', '404', '409', '422']],

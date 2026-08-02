@@ -5,6 +5,7 @@ import type {
   UrlCaptureCommandRepository,
   WorkflowOutboxDeliveryCandidate,
   WorkflowOutboxRecordState,
+  FetcherGatewayClaimRepository,
 } from '@contentos/core';
 
 import { createDatabaseConnection, DATABASE_UNAVAILABLE_ERROR_CODE } from './client.js';
@@ -13,6 +14,7 @@ import { DrizzleSessionRepository } from './session-repository.js';
 import { DrizzleSourceRepository } from './source-repository.js';
 import { DrizzleWorkflowCommandRepository } from './workflow-command-repository.js';
 import { DrizzleWorkflowDispatchRepository } from './workflow-dispatch-repository.js';
+import { DrizzleWorkflowFetcherGatewayRepository } from './workflow-fetcher-gateway-repository.js';
 
 export const DISPATCHER_LEASE_MS = 30_000;
 export const DISPATCH_BATCH_LIMIT = 10;
@@ -31,6 +33,7 @@ export interface DatabaseRuntime {
   readonly contentPackages: ContentPackageRepository;
   readonly sources: SourceRepository;
   readonly urlCapture: UrlCaptureCommandRepository;
+  readonly fetcherGateway: FetcherGatewayClaimRepository;
   close(): Promise<void>;
 }
 
@@ -47,6 +50,7 @@ export function createDatabaseRuntime(databaseUrl: string): DatabaseRuntime {
     contentPackages: new DrizzleContentPackageRepository(connection),
     sources: new DrizzleSourceRepository(connection),
     urlCapture: new DrizzleWorkflowCommandRepository(connection),
+    fetcherGateway: new DrizzleWorkflowFetcherGatewayRepository(connection),
     async close(): Promise<void> {
       await connection.close();
     },

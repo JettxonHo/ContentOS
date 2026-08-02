@@ -1,6 +1,6 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import type { ApiConfig, ApiSecrets } from '@contentos/config';
 import { S3ObjectStore } from '@contentos/object-storage';
@@ -22,6 +22,8 @@ import {
   type WorkflowTaskId,
   type WorkflowOutboxRecordId,
   type WorkflowEventId,
+  FetcherGatewayService,
+  type FetcherGatewayClaimGenerator,
 } from '@contentos/core';
 import type { UserId } from '@contentos/core';
 
@@ -35,6 +37,8 @@ import { ApiExceptionFilter } from './http/api-exception.filter';
 import { TrustedOriginGuard } from './http/trusted-origin.guard';
 import { SourceController } from './source/source.controller';
 import { UrlCaptureController } from './url-capture/url-capture.controller';
+import { FetcherGatewayController } from './fetcher-gateway/fetcher-gateway.controller';
+import { FetcherGatewaySecretGuard } from './fetcher-gateway/fetcher-gateway.guard';
 import { AjvNormalizedBodyValidator } from './source/ajv-body-validator';
 import {
   API_CONFIG,
@@ -44,6 +48,7 @@ import {
   OBJECT_STORE,
   SOURCE_SERVICE,
   URL_CAPTURE_SERVICE,
+  FETCHER_GATEWAY_SERVICE,
 } from './runtime.tokens';
 
 @Module({})
@@ -51,11 +56,19 @@ export class AppModule {
   static register(config: ApiConfig, secrets: ApiSecrets): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, AuthController, ContentPackageController, SourceController, UrlCaptureController],
+      controllers: [
+        HealthController,
+        AuthController,
+        ContentPackageController,
+        SourceController,
+        UrlCaptureController,
+        FetcherGatewayController,
+      ],
       providers: [
         { provide: API_CONFIG, useValue: config },
         { provide: API_SECRETS, useValue: secrets },
         DatabaseService,
+        FetcherGatewaySecretGuard,
         LoginAttemptLimiter,
         {
           provide: AUTHENTICATION_SERVICE,
@@ -129,6 +142,18 @@ export class AppModule {
                 generateWorkflowOutboxRecordId: () => randomUUID() as WorkflowOutboxRecordId,
                 generateWorkflowEventId: () => randomUUID() as WorkflowEventId,
               },
+              { now: () => new Date() },
+            ),
+        },
+        {
+          provide: FETCHER_GATEWAY_SERVICE,
+          inject: [DatabaseService],
+          useFactory: (database: DatabaseService): FetcherGatewayService =>
+            new FetcherGatewayService(
+              database.fetcherGateway,
+              {
+                generate: (): string => randomBytes(32).toString('base64url'),
+              } satisfies FetcherGatewayClaimGenerator,
               { now: () => new Date() },
             ),
         },

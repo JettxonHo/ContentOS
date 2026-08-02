@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ConfigurationError, loadApiConfig, loadApiSecrets } from './api-config.js';
 
 const validHash = `scrypt$v=1$N=16384$r=8$p=1$${'a'.repeat(22)}$${'b'.repeat(43)}`;
+const gatewaySecret = 'A'.repeat(43);
 
 function validConfigEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   return {
@@ -28,6 +29,7 @@ describe('API configuration', () => {
       CONTENTOS_OBJECT_STORAGE_BUCKET: 'contentos-test',
       OBJECT_STORAGE_ACCESS_KEY: 'test-access-key',
       OBJECT_STORAGE_SECRET_KEY: 'test-secret-key',
+      CONTENTOS_FETCHER_GATEWAY_SECRET: gatewaySecret,
     };
 
     expect(loadApiConfig(env)).toMatchObject({
@@ -46,6 +48,7 @@ describe('API configuration', () => {
       ownerPasswordHash: validHash,
       objectStorageAccessKey: 'test-access-key',
       objectStorageSecretKey: 'test-secret-key',
+      fetcherGatewaySecret: gatewaySecret,
     });
   });
 

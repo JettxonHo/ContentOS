@@ -132,7 +132,13 @@ function resultFromRows(request: UrlCaptureRequestRow, task: WorkflowTaskRow): U
     contentPackageId: task.contentPackageId as ContentPackageId,
     ownerUserId: task.ownerUserId as ContentPackageOwnerId,
     kind: task.kind as 'url_capture',
-    state: task.state as 'queued',
+    state: task.state as 'queued' | 'leased',
+    claimAttemptNumber: task.claimAttemptNumber,
+    claimHash: task.claimHash,
+    claimedBy: task.claimedBy as 'fetcher' | null,
+    leaseStartedAt: task.leaseStartedAt,
+    leaseExpiresAt: task.leaseExpiresAt,
+    leaseHeartbeatAt: task.leaseHeartbeatAt,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
   });
@@ -143,7 +149,7 @@ function resultFromRows(request: UrlCaptureRequestRow, task: WorkflowTaskRow): U
     workflowInstanceId: request.workflowInstanceId as WorkflowInstanceId,
     workflowNodeId: request.workflowNodeId as WorkflowNodeId,
     taskId: taskState.id,
-    taskState: taskState.state,
+    taskState: 'queued',
     createdAt: request.createdAt,
   };
 }
@@ -255,7 +261,13 @@ async function findRequestResult(
     contentPackageId: task.contentPackageId as ContentPackageId,
     ownerUserId: task.ownerUserId as ContentPackageOwnerId,
     kind: task.kind as 'url_capture',
-    state: task.state as 'queued',
+    state: task.state as 'queued' | 'leased',
+    claimAttemptNumber: task.claimAttemptNumber,
+    claimHash: task.claimHash,
+    claimedBy: task.claimedBy as 'fetcher' | null,
+    leaseStartedAt: task.leaseStartedAt,
+    leaseExpiresAt: task.leaseExpiresAt,
+    leaseHeartbeatAt: task.leaseHeartbeatAt,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
   });
@@ -537,6 +549,12 @@ export class DrizzleWorkflowCommandRepository implements UrlCaptureCommandReposi
         ownerUserId: task.ownerUserId,
         kind: task.kind,
         state: task.state,
+        claimAttemptNumber: task.claimAttemptNumber,
+        claimHash: task.claimHash,
+        claimedBy: task.claimedBy,
+        leaseStartedAt: task.leaseStartedAt,
+        leaseExpiresAt: task.leaseExpiresAt,
+        leaseHeartbeatAt: task.leaseHeartbeatAt,
         createdAt: task.createdAt,
         updatedAt: task.updatedAt,
       });
@@ -592,7 +610,7 @@ export class DrizzleWorkflowCommandRepository implements UrlCaptureCommandReposi
         workflowInstanceId: instance.id,
         workflowNodeId: node.id,
         taskId: task.id,
-        taskState: task.state,
+        taskState: 'queued',
         createdAt: request.createdAt,
       };
     });

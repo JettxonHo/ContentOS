@@ -198,6 +198,7 @@ function captureRuntimeEvidence(state: SmokeState): RuntimeEvidence {
     'REDIS_PASSWORD',
     'OBJECT_STORAGE_ACCESS_KEY',
     'OBJECT_STORAGE_SECRET_KEY',
+    'CONTENTOS_FETCHER_GATEWAY_SECRET',
     'CONTENTOS_TEST_OWNER_PASSWORD',
   ] as const;
   const credentialFingerprints: Record<string, string> = {};
