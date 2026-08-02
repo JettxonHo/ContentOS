@@ -62,19 +62,20 @@ The baseline covers at least:
 - encryption key;
 - TLS private key;
 - signing Secret;
+- Fetcher Gateway service Secret;
 - future Image Provider Credential.
 
 Future OAuth refresh tokens, webhook signing Secrets, or third-party integration Credentials enter the same boundary only after the dedicated security review required for those capabilities.
 
 ## 4. Process-specific Secret Access
 
-| Process | Minimum required Secret access | Explicitly prohibited or not held by default |
-|---|---|---|
-| `web` | None; browser-visible configuration is non-secret | All server Secrets, database/Redis/Object Storage Credentials, Provider keys, signing and encryption keys |
-| `api` | Only API-owned database/session/signing/encryption and scoped Object access required by its use cases | Provider Credentials exposed to Browser; Fetcher or Renderer identity; universal storage administration |
-| `worker` | Scoped database/Queue/Object access and only approved Provider Credential References required for assigned Agent work | Universal Object Storage administration; Fetcher or Renderer identity; unrelated Provider keys; automatic Approval or publish authority |
-| `fetcher` | Only its Queue/state path and restricted quarantine/Snapshot Object Storage Credential | Model or Image Provider keys; Human Opinion access; general database Credential; signing or export Credentials |
-| `renderer` | Only its Queue/state path and scoped approved-input/render-output Object Storage Credential | Model or Image Provider keys; public-fetch Credential; Raw Human Opinion; general database or storage administration |
+| Process    | Minimum required Secret access                                                                                                              | Explicitly prohibited or not held by default                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `web`      | None; browser-visible configuration is non-secret                                                                                           | All server Secrets, database/Redis/Object Storage Credentials, Provider keys, signing and encryption keys                               |
+| `api`      | Only API-owned database/session/signing/encryption and scoped Object access required by its use cases; Fetcher Gateway service Secret       | Provider Credentials exposed to Browser; Fetcher or Renderer identity; universal storage administration                                 |
+| `worker`   | Scoped database/Queue/Object access and only approved Provider Credential References required for assigned Agent work                       | Universal Object Storage administration; Fetcher or Renderer identity; unrelated Provider keys; automatic Approval or publish authority |
+| `fetcher`  | Fetcher Gateway service Secret and the explicitly approved Gateway API origin; no Queue/state or storage Credential in the current skeleton | Model or Image Provider keys; Human Opinion access; general database Credential; signing or export Credentials                          |
+| `renderer` | Only its Queue/state path and scoped approved-input/render-output Object Storage Credential                                                 | Model or Image Provider keys; public-fetch Credential; Raw Human Opinion; general database or storage administration                    |
 
 Each process resolves only the Secrets declared by its typed startup configuration. API never returns a Provider Credential to the Browser. Worker access to a Provider key does not give the Agent or model access to that key; only the Adapter uses the value for the intended request.
 
@@ -110,6 +111,11 @@ No production Secret Manager is selected here.
 - Provider Adapter resolves an approved Credential Reference outside the model-facing Context and uses it only for the intended Provider request.
 - Error normalization and exception handling redact authorization material before persistence or client response.
 - A subprocess, Browser, Fetcher, Renderer, model, or Tool receives no inherited Secret environment beyond its explicit process contract.
+- `CONTENTOS_FETCHER_GATEWAY_SECRET` is injected only into the API and Fetcher
+  process contracts. The API compares its SHA-256 digest in constant time;
+  the opaque claim is sent only in the private Heartbeat header and only its
+  hash is persisted. `CONTENTOS_FETCHER_GATEWAY_API_ORIGIN` is non-secret and
+  is restricted to the approved loopback HTTP(S) origin.
 - A signed URL is temporary credential material: it is short-lived, scoped, excluded from ordinary logs, and never a permanent Object Reference.
 
 ## 8. Rotation and Revocation
@@ -207,6 +213,8 @@ This is the minimum lifecycle, not a complete Incident Runbook.
 - Rotation never rewrites historical Artifact or Agent Run content.
 - Exposure requires revocation and recovery validation, not only hiding or deleting the visible value.
 - Web, Fetcher, and Renderer have no Model Provider Credential.
+- The Fetcher Gateway Secret is never stored in a Task, Queue payload, URL,
+  log, error response, OpenAPI document, or Object.
 - Signed URL never becomes a long-lived Object Reference.
 
 ## 14. Open Implementation Decisions
@@ -224,12 +232,12 @@ The following remain open and are not selected here:
 
 ## 15. Decision Traceability
 
-| Area | Accepted Decisions | Primary historical sources |
-|---|---|---|
-| Model Configuration Credential Reference and Secret separation | DEC-180, DEC-197 | [Session-020](../sessions/session-020.md) |
-| Private-by-default, identities, Secret Layer, encryption, redaction, and security review | DEC-199–DEC-203, DEC-210–DEC-220 | [Session-021](../sessions/session-021.md) |
+| Area                                                                                                     | Accepted Decisions                                 | Primary historical sources                |
+| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------- |
+| Model Configuration Credential Reference and Secret separation                                           | DEC-180, DEC-197                                   | [Session-020](../sessions/session-020.md) |
+| Private-by-default, identities, Secret Layer, encryption, redaction, and security review                 | DEC-199–DEC-203, DEC-210–DEC-220                   | [Session-021](../sessions/session-021.md) |
 | Process isolation, Queue minimization, Object Storage, telemetry, typed configuration, and Fake Provider | DEC-221, DEC-228, DEC-230–DEC-232, DEC-239–DEC-242 | [Session-022](../sessions/session-022.md) |
-| Zero-tolerance leakage and security/recovery release gates | DEC-245, DEC-250, DEC-259, DEC-262, DEC-264 | [Session-023](../sessions/session-023.md) |
-| M0 boundary, horizontal security, hardening, and release recovery | DEC-278, DEC-284–DEC-285, DEC-291–DEC-293 | [Session-024](../sessions/session-024.md) |
+| Zero-tolerance leakage and security/recovery release gates                                               | DEC-245, DEC-250, DEC-259, DEC-262, DEC-264        | [Session-023](../sessions/session-023.md) |
+| M0 boundary, horizontal security, hardening, and release recovery                                        | DEC-278, DEC-284–DEC-285, DEC-291–DEC-293          | [Session-024](../sessions/session-024.md) |
 
 The authoritative status and wording of every Decision is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).

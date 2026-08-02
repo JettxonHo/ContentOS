@@ -1,9 +1,11 @@
 import type { UrlCaptureCommandRepository, WorkflowRepository } from '@contentos/core';
+import type { FetcherGatewayClaimRepository } from '@contentos/core';
 
 import { createDatabaseConnection } from './client.js';
 import { DrizzleWorkflowRepository } from './workflow-repository.js';
 import { DrizzleWorkflowCommandRepository } from './workflow-command-repository.js';
 import { DrizzleWorkflowDispatchRepository } from './workflow-dispatch-repository.js';
+import { DrizzleWorkflowFetcherGatewayRepository } from './workflow-fetcher-gateway-repository.js';
 import type { WorkflowDispatchRepository } from './runtime.js';
 
 /** Disposable PostgreSQL boundary for Workflow persistence and migration tests. */
@@ -70,6 +72,28 @@ export function createWorkflowDispatchRepositoryTestBoundary(
   const connection = createDatabaseConnection(databaseUrl);
   return {
     repository: new DrizzleWorkflowDispatchRepository(connection),
+    async query<TRow extends Record<string, unknown>>(
+      text: string,
+      values: readonly unknown[] = [],
+    ): Promise<readonly TRow[]> {
+      const result = await connection.pool.query<TRow>(text, [...values]);
+      return result.rows;
+    },
+    close: () => connection.close(),
+  };
+}
+
+/** Disposable PostgreSQL boundary for private Fetcher Gateway Claim/Heartbeat tests. */
+export interface FetcherGatewayRepositoryTestBoundary {
+  readonly repository: FetcherGatewayClaimRepository;
+  query<TRow extends Record<string, unknown>>(text: string, values?: readonly unknown[]): Promise<readonly TRow[]>;
+  close(): Promise<void>;
+}
+
+export function createFetcherGatewayRepositoryTestBoundary(databaseUrl: string): FetcherGatewayRepositoryTestBoundary {
+  const connection = createDatabaseConnection(databaseUrl);
+  return {
+    repository: new DrizzleWorkflowFetcherGatewayRepository(connection),
     async query<TRow extends Record<string, unknown>>(
       text: string,
       values: readonly unknown[] = [],

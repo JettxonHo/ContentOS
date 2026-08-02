@@ -20,6 +20,7 @@ const MIGRATIONS = [
   '0005_mixed_doctor_strange.sql',
   '0006_special_triton.sql',
 ] as const;
+const LEASE_MIGRATION = '0007_silent_alex_power.sql';
 
 function postgresConfig(database: string): {
   host: string;
@@ -169,6 +170,7 @@ describe('M2-WF-002 additive migration', () => {
   it('installs an empty database without URL-capture backfill', async () => {
     await withIsolatedDatabase(async (client) => {
       for (const migration of MIGRATIONS) await applyMigration(client, migration);
+      await applyMigration(client, LEASE_MIGRATION);
       const counts = await Promise.all(
         [
           'url_source_references',
@@ -333,7 +335,7 @@ describe('M2-WF-002 additive migration', () => {
     });
   });
 
-  it('upgrades 0005 to 0006 with delivery defaults, no history rewrite, and named ledger checks', async () => {
+  it('upgrades 0005 to 0006 and 0007 with safe lease defaults, no history rewrite, and named checks', async () => {
     await withIsolatedDatabase(async (client) => {
       for (const migration of MIGRATIONS.slice(0, 6)) await applyMigration(client, migration);
       const history = await insertPackageAndSource(client);
@@ -385,6 +387,7 @@ describe('M2-WF-002 additive migration', () => {
       );
 
       await applyMigration(client, MIGRATIONS[6]);
+      await applyMigration(client, LEASE_MIGRATION);
 
       const preservedCounts = await Promise.all(
         ['content_packages', 'sources', 'workflow_instances', 'workflow_nodes', 'workflow_events'].map(
@@ -393,6 +396,48 @@ describe('M2-WF-002 additive migration', () => {
         ),
       );
       expect(preservedCounts).toEqual([1, 1, 1, 1, 1]);
+
+      const taskDefaults = await client.query<{
+        state: string;
+        claim_attempt_number: number;
+        claim_hash: string | null;
+        claimed_by: string | null;
+        lease_started_at: Date | null;
+        lease_expires_at: Date | null;
+        lease_heartbeat_at: Date | null;
+      }>(
+        `SELECT state, claim_attempt_number, claim_hash, claimed_by, lease_started_at,
+                lease_expires_at, lease_heartbeat_at
+         FROM workflow_tasks WHERE id = $1`,
+        [taskId],
+      );
+      expect(taskDefaults.rows[0]).toEqual({
+        state: 'queued',
+        claim_attempt_number: 0,
+        claim_hash: null,
+        claimed_by: null,
+        lease_started_at: null,
+        lease_expires_at: null,
+        lease_heartbeat_at: null,
+      });
+      await expectConstraint(
+        client,
+        'UPDATE workflow_tasks SET claim_attempt_number = -1 WHERE id = $1',
+        [taskId],
+        'workflow_tasks_claim_attempt_number_check',
+      );
+      await expectConstraint(
+        client,
+        "UPDATE workflow_tasks SET claim_hash = 'not-a-hash' WHERE id = $1",
+        [taskId],
+        'workflow_tasks_claim_hash_format_check',
+      );
+      await expectConstraint(
+        client,
+        "UPDATE workflow_tasks SET state = 'leased' WHERE id = $1",
+        [taskId],
+        'workflow_tasks_lease_state_check',
+      );
 
       await expectConstraint(
         client,

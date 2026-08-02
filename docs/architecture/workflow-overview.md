@@ -104,6 +104,16 @@ generation delivery while the Task is still `queued`; this boundary creates no
 Fetcher consumer, Claim, execution lease, result, Source evidence, public
 request, or Object Storage record.
 
+M2-WF-003B adds the private API-owned Fetcher Gateway Claim/Heartbeat boundary.
+Only an eligible, dispatched `url_capture` Task can move from `queued` to
+`leased`. The API stores the SHA-256 hash of an opaque per-lease claim, the
+literal `fetcher` claimant, attempt number, and lease timestamps in PostgreSQL.
+The initial lease is 60 seconds; Heartbeat renewal is cadence-limited to 20
+seconds and cannot extend the lease beyond 120 seconds from its start. The
+Gateway returns the submitted URL and fixed policy versions only to the
+authenticated Fetcher service route; it performs no public retrieval, Queue
+consumption, Source evidence creation, or lease recovery/requeue.
+
 ## 4. Workflow Instance
 
 A Workflow Instance is one Content Package-specific enactment of one exact Workflow Template Version.
@@ -366,6 +376,11 @@ These requirements do not select a metrics backend or exact SSE Event Contract. 
 - Duplicate Commands, Jobs, and Promotions do not create duplicate Artifact Versions, Tasks, or Approvals.
 - Artifact, Node, Task, and Workflow state remain separate.
 - Redis, BullMQ, SSE, and browser state are not Workflow authority.
+- A Task is `queued` before an eligible dispatched Fetcher claim and `leased`
+  only while its bounded API-owned lease fields satisfy their state invariant.
+- A queued Task has no claim, claimant, or lease timestamps; a leased Task has
+  a positive attempt number, only the `fetcher` claimant, and a stored claim
+  hash rather than the opaque claim value.
 - Template changes do not rewrite running or historical Instances.
 - Skip never fabricates a successful Artifact.
 
@@ -377,7 +392,6 @@ Accepted Decisions do not yet fix:
 - Workflow Command Schema;
 - Workflow Event type catalog;
 - the precise boundary of Pause for in-flight work;
-- lease duration and heartbeat interval;
 - Reconciliation frequency;
 - Workflow Projection implementation;
 - SSE Event Contract.

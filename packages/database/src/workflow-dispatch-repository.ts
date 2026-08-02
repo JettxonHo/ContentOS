@@ -38,6 +38,7 @@ interface DispatchRow {
   task_state: string;
   task_created_at: Date;
   task_updated_at: Date;
+  task_claim_attempt_number: number;
 }
 
 interface OutboxRow {
@@ -116,6 +117,12 @@ function candidateFromRow(row: DispatchRow): WorkflowOutboxDeliveryCandidate {
     ownerUserId: row.owner_user_id as never,
     kind: row.task_kind as 'url_capture',
     state: row.task_state as 'queued',
+    claimAttemptNumber: row.task_claim_attempt_number,
+    claimHash: null,
+    claimedBy: null,
+    leaseStartedAt: null,
+    leaseExpiresAt: null,
+    leaseHeartbeatAt: null,
     createdAt: databaseTimestamp(row.task_created_at),
     updatedAt: databaseTimestamp(row.task_updated_at),
   };
@@ -189,7 +196,8 @@ export class DrizzleWorkflowDispatchRepository implements WorkflowDispatchReposi
           t.kind AS task_kind,
           t.state AS task_state,
           t.created_at AS task_created_at,
-          t.updated_at AS task_updated_at
+          t.updated_at AS task_updated_at,
+          t.claim_attempt_number AS task_claim_attempt_number
         FROM workflow_outbox_records o
         JOIN workflow_tasks t
           ON t.id = o.task_id

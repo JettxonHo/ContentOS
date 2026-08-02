@@ -252,6 +252,7 @@ function writeEnvFile(envFile: string): void {
     `REDIS_PASSWORD=${randomCredential(32)}`,
     `OBJECT_STORAGE_ACCESS_KEY=${randomCredential(20)}`,
     `OBJECT_STORAGE_SECRET_KEY=${randomCredential(40)}`,
+    `CONTENTOS_FETCHER_GATEWAY_SECRET=${randomCredential(43)}`,
     'CONTENTOS_OWNER_USER_ID=00000000-0000-4000-8000-000000000001',
     // Compose treats single-quoted env-file values literally, so the `$`
     // separators in the scrypt hash cannot be expanded or exposed as warnings.
@@ -404,7 +405,15 @@ async function setupRuntime(): Promise<SmokeState> {
   const ownerPasswordHash = credentials.CONTENTOS_OWNER_PASSWORD_HASH;
   const objectStorageAccessKey = credentials.OBJECT_STORAGE_ACCESS_KEY;
   const objectStorageSecretKey = credentials.OBJECT_STORAGE_SECRET_KEY;
-  if (!postgresPassword || !ownerUserId || !ownerPasswordHash || !objectStorageAccessKey || !objectStorageSecretKey) {
+  const fetcherGatewaySecret = credentials.CONTENTOS_FETCHER_GATEWAY_SECRET;
+  if (
+    !postgresPassword ||
+    !ownerUserId ||
+    !ownerPasswordHash ||
+    !objectStorageAccessKey ||
+    !objectStorageSecretKey ||
+    !fetcherGatewaySecret
+  ) {
     throw new Error('smoke credential setup is incomplete');
   }
   const databaseUrl = `postgresql://smoke_user:${encodeURIComponent(postgresPassword)}@127.0.0.1:${runtime.ports.postgres}/smoke_db`;
@@ -470,6 +479,7 @@ async function setupRuntime(): Promise<SmokeState> {
       CONTENTOS_OBJECT_STORAGE_FORCE_PATH_STYLE: 'true',
       OBJECT_STORAGE_ACCESS_KEY: objectStorageAccessKey,
       OBJECT_STORAGE_SECRET_KEY: objectStorageSecretKey,
+      CONTENTOS_FETCHER_GATEWAY_SECRET: fetcherGatewaySecret,
     },
     detached: true,
     stdio: ['ignore', apiLog, apiLog],

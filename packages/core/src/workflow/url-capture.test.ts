@@ -51,7 +51,7 @@ function repository(): { repository: UrlCaptureCommandRepository; get(): unknown
           workflowInstanceId: command.workflowInstanceId,
           workflowNodeId: command.workflowNodeId,
           taskId: command.workflowTask.id,
-          taskState: command.workflowTask.state,
+          taskState: 'queued',
           createdAt: command.urlCaptureRequest.createdAt,
         };
         received = command;
@@ -208,6 +208,12 @@ describe('URL capture Core Command', () => {
       ownerUserId,
       kind: URL_CAPTURE_TASK_KIND,
       state: 'queued',
+      claimAttemptNumber: 0,
+      claimHash: null,
+      claimedBy: null,
+      leaseStartedAt: null,
+      leaseExpiresAt: null,
+      leaseHeartbeatAt: null,
       createdAt: now,
       updatedAt: now,
     };

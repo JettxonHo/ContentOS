@@ -22,19 +22,19 @@ Related documents:
 
 The MVP has five deployable processes:
 
-| Process | Primary responsibility | Trust boundary |
-|---|---|---|
-| `web` | Product UI and structured editing experience | Browser-facing; no authoritative storage access |
-| `api` | Authenticated Queries, authoritative writes, Workflow Commands, and SSE | Primary application boundary |
-| `worker` | Workflow asynchronous work and Agent Runtime | Model-capable but no arbitrary public Source fetch or Browser Final Render |
-| `fetcher` | Controlled public URL retrieval and Source safety processing | Public-egress boundary with restricted credentials |
-| `renderer` | Deterministic Preview and Final Browser rendering | Chromium boundary with public egress disabled |
+| Process    | Primary responsibility                                                  | Trust boundary                                                             |
+| ---------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `web`      | Product UI and structured editing experience                            | Browser-facing; no authoritative storage access                            |
+| `api`      | Authenticated Queries, authoritative writes, Workflow Commands, and SSE | Primary application boundary                                               |
+| `worker`   | Workflow asynchronous work and Agent Runtime                            | Model-capable but no arbitrary public Source fetch or Browser Final Render |
+| `fetcher`  | Controlled public URL retrieval and Source safety processing            | Public-egress boundary with restricted credentials                         |
+| `renderer` | Deterministic Preview and Final Browser rendering                       | Chromium boundary with public egress disabled                              |
 
 The processes share one Repository, one authoritative Domain model, one primary PostgreSQL database, and one coordinated release context.
 
-### Current M0-ENG-002 skeleton boundary
+### Current implementation boundary
 
-M0-ENG-002 creates only independently buildable and startable entry points. The Web page is not a product Workspace; API exposes only liveness and has no external state connection; worker, fetcher, and renderer only report lifecycle events. These skeletons do not yet implement the responsibility tables or communication paths described below.
+M0-ENG-002 created independently buildable and startable entry points. The current M2 boundary extends that skeleton only with the accepted API-owned URL-capture Command, Outbox Dispatcher, and private Fetcher Gateway Claim/Heartbeat lease. Web, Worker, and Renderer have no new responsibility here. The Fetcher process validates its two startup settings and maintains lifecycle only; it is not a Queue consumer and does not make public requests or access PostgreSQL, Redis, or Object Storage.
 
 ## 2. Runtime Topology Diagram
 
@@ -120,6 +120,13 @@ The `api` process owns:
 
 The API is the authoritative external entry point for Domain writes. It invokes owning-module Application Use Cases; it does not grant Controllers unrestricted table-write authority.
 
+The API also owns the private Fetcher Gateway at
+`/internal/fetcher/tasks/:taskId/{claim,heartbeat}`. These service routes use
+the dedicated gateway Secret and opaque claim headers, are excluded from
+OpenAPI, and update only the bounded PostgreSQL Task lease. They do not expose
+a session or Cookie fallback and do not perform Fetcher network or storage
+work.
+
 The API must not execute long-running Agent calls, public URL fetches, or Browser Final Renders inline. It creates durable Tasks and Outbox records for asynchronous work.
 
 ## 5. Worker Process
@@ -158,7 +165,7 @@ The `fetcher` process owns the controlled Source-capture boundary:
 
 The Fetcher has an independent Service Identity and controlled public HTTP/HTTPS egress. It receives restricted Object Storage permissions for quarantine and Source snapshots.
 
-The Fetcher has no Model Provider Credential, no general Domain write permission, no Approval authority, and no access to Human Opinion. Its exact database access mechanism remains open, but any access must be limited to the minimum Task and Source state required by its contract.
+The Fetcher has no Model Provider Credential, no general Domain write permission, no Approval authority, and no access to Human Opinion. In the current M2-WF-003B skeleton it has no database, Queue, or Object Storage access: the API owns Claim/Heartbeat and the durable lease. Later execution work may add only the separately approved bounded access required by its Contract.
 
 JavaScript-heavy Browser Capture is not part of the baseline MVP. It may be proposed only if the supported Source Vertical Slice demonstrates a concrete need.
 
@@ -198,46 +205,47 @@ For local development only, the M0 Compose baseline uses one SeaweedFS `weed min
 
 ## 9. Process Identity and Least Privilege
 
-| Process | Allowed services | Minimum data scope | Credentials it must not have | Network boundary |
-|---|---|---|---|---|
-| `web` | API through product origin | User-visible DTOs and provisional editor state | Database, Redis, Object Store administrative, Provider, server Secret | Browser/client network only |
-| `api` | PostgreSQL, authorized Object Storage operations, limited Redis if required | Owner-scoped Domain data, Commands, Queries, transfer authorization | Arbitrary public-fetch or Model Provider credentials unless a later explicit boundary requires them | Ingress through proxy; no arbitrary Source fetch |
-| `worker` | PostgreSQL, Redis/BullMQ, Object Storage, approved Model Providers | Assigned Task, frozen inputs, Agent config, Candidates, execution records | Fetcher identity, Renderer identity, broad storage administration | Provider egress only as configured; no arbitrary public Source access |
-| `fetcher` | BullMQ channel, restricted Object Storage, approved public HTTP/HTTPS destinations, minimum state path | Fetch Task, URL policy, Source/quarantine objects, safe Candidate metadata | Model Provider, Human Opinion, Approval, general database, Render credentials | Controlled public egress; private/reserved destinations denied |
-| `renderer` | BullMQ channel, scoped render state path, approved Object Storage objects | exact approved render dependencies and output metadata | Model Provider, Raw Human Opinion, general database, public-fetch credentials | Public egress disabled; controlled internal services only |
+| Process    | Allowed services                                                                                       | Minimum data scope                                                         | Credentials it must not have                                                                        | Network boundary                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `web`      | API through product origin                                                                             | User-visible DTOs and provisional editor state                             | Database, Redis, Object Store administrative, Provider, server Secret                               | Browser/client network only                                           |
+| `api`      | PostgreSQL, authorized Object Storage operations, limited Redis if required                            | Owner-scoped Domain data, Commands, Queries, transfer authorization        | Arbitrary public-fetch or Model Provider credentials unless a later explicit boundary requires them | Ingress through proxy; no arbitrary Source fetch                      |
+| `worker`   | PostgreSQL, Redis/BullMQ, Object Storage, approved Model Providers                                     | Assigned Task, frozen inputs, Agent config, Candidates, execution records  | Fetcher identity, Renderer identity, broad storage administration                                   | Provider egress only as configured; no arbitrary public Source access |
+| `fetcher`  | BullMQ channel, restricted Object Storage, approved public HTTP/HTTPS destinations, minimum state path | Fetch Task, URL policy, Source/quarantine objects, safe Candidate metadata | Model Provider, Human Opinion, Approval, general database, Render credentials                       | Controlled public egress; private/reserved destinations denied        |
+| `renderer` | BullMQ channel, scoped render state path, approved Object Storage objects                              | exact approved render dependencies and output metadata                     | Model Provider, Raw Human Opinion, general database, public-fetch credentials                       | Public egress disabled; controlled internal services only             |
 
 The table states architectural limits, not concrete IAM rules. Exact service accounts, roles, firewall rules, and policy syntax are deferred.
 
 ## 10. Communication Paths
 
-| Path | Purpose and constraint |
-|---|---|
-| Browser → Web | Page requests and client application assets through the product origin |
-| Browser / Web → API | Authenticated Queries, Commands, edits, Version operations, and transfer authorization |
-| API → PostgreSQL | Authoritative Application Use Cases, Transactions, Query Projections, Task and Outbox creation |
-| API → Redis | Only optional bounded coordination; never the authoritative Task-dispatch path or state authority |
-| Dispatcher → Redis / BullMQ | Deliver an already-created PostgreSQL Task from the Transactional Outbox |
-| Worker → PostgreSQL | Load authoritative Task/frozen input and persist execution, Candidate, and controlled Domain results |
-| Worker → Redis / BullMQ | Consume Jobs and coordinate bounded retries |
-| Worker → Object Storage | Read authorized inputs and write classified large outputs |
-| Worker → Model Provider | Send minimum Task-required context through an approved Model Adapter |
-| Fetcher → Public Internet | Controlled HTTP/HTTPS Source retrieval after SSRF, DNS, and redirect checks |
-| Fetcher → Restricted Storage | Write quarantine, Raw Snapshot, extracted, or Candidate objects under scoped permissions |
-| Renderer → PostgreSQL / state path | Read exact render-job references and persist render-owned metadata through the chosen scoped mechanism |
-| Renderer → Object Storage | Read exact approved dependencies and upload Render Outputs |
-| API → SSE Client | Non-authoritative progress notifications; client recovers through full Queries and Polling |
+| Path                               | Purpose and constraint                                                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Browser → Web                      | Page requests and client application assets through the product origin                                                  |
+| Browser / Web → API                | Authenticated Queries, Commands, edits, Version operations, and transfer authorization                                  |
+| API → PostgreSQL                   | Authoritative Application Use Cases, Transactions, Query Projections, Task and Outbox creation                          |
+| API → Redis                        | Only optional bounded coordination; never the authoritative Task-dispatch path or state authority                       |
+| Fetcher → API Gateway              | Private Claim/Heartbeat calls using the dedicated service Secret and opaque per-lease claim; no Cookie/session fallback |
+| Dispatcher → Redis / BullMQ        | Deliver an already-created PostgreSQL Task from the Transactional Outbox                                                |
+| Worker → PostgreSQL                | Load authoritative Task/frozen input and persist execution, Candidate, and controlled Domain results                    |
+| Worker → Redis / BullMQ            | Consume Jobs and coordinate bounded retries                                                                             |
+| Worker → Object Storage            | Read authorized inputs and write classified large outputs                                                               |
+| Worker → Model Provider            | Send minimum Task-required context through an approved Model Adapter                                                    |
+| Fetcher → Public Internet          | Controlled HTTP/HTTPS Source retrieval after SSRF, DNS, and redirect checks                                             |
+| Fetcher → Restricted Storage       | Write quarantine, Raw Snapshot, extracted, or Candidate objects under scoped permissions                                |
+| Renderer → PostgreSQL / state path | Read exact render-job references and persist render-owned metadata through the chosen scoped mechanism                  |
+| Renderer → Object Storage          | Read exact approved dependencies and upload Render Outputs                                                              |
+| API → SSE Client                   | Non-authoritative progress notifications; client recovers through full Queries and Polling                              |
 
 ## 11. Failure and Recovery Boundaries
 
-| Failure | Durable truth and recovery |
-|---|---|
-| API restart | In-flight HTTP requests may fail; committed PostgreSQL state remains. Clients retry idempotent Commands or reload Queries. |
-| Worker crash | Lease and heartbeat expire; BullMQ may redeliver; Reconciliation verifies PostgreSQL state before safe retry. |
-| Redis loss | PostgreSQL Tasks and Runs remain; Reconciliation recreates missing Queue Jobs. |
-| Fetch failure | Fetch Task records classified failure and bounded retry eligibility; incomplete content cannot become an approved Source. |
-| Renderer crash | Temporary files are not Final output; persisted Render Job state and exact dependencies permit safe retry without mutating prior outputs. |
-| Object Storage failure | Metadata records the failure; no database reference is promoted as usable until object write and integrity checks succeed. |
-| SSE disconnect | Client reconnects and uses Polling/full Query to recover; missed events do not change Workflow truth. |
+| Failure                | Durable truth and recovery                                                                                                                |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| API restart            | In-flight HTTP requests may fail; committed PostgreSQL state remains. Clients retry idempotent Commands or reload Queries.                |
+| Worker crash           | Lease and heartbeat expire; BullMQ may redeliver; Reconciliation verifies PostgreSQL state before safe retry.                             |
+| Redis loss             | PostgreSQL Tasks and Runs remain; Reconciliation recreates missing Queue Jobs.                                                            |
+| Fetch failure          | Fetch Task records classified failure and bounded retry eligibility; incomplete content cannot become an approved Source.                 |
+| Renderer crash         | Temporary files are not Final output; persisted Render Job state and exact dependencies permit safe retry without mutating prior outputs. |
+| Object Storage failure | Metadata records the failure; no database reference is promoted as usable until object write and integrity checks succeed.                |
+| SSE disconnect         | Client reconnects and uses Polling/full Query to recover; missed events do not change Workflow truth.                                     |
 
 In every case, PostgreSQL-backed state determines the final status. Queue, process memory, SSE delivery, and local files are evidence or transport, not authority.
 
@@ -255,17 +263,21 @@ Worker, Fetcher, and Renderer may later scale independently according to Queue c
 - **Graceful shutdown** stops accepting new work, prevents new retry/repair starts, handles safe in-flight work, stops lease renewal, closes Browser/database/Redis resources, and flushes telemetry.
 - **Lease expiration** permits recovery after a process stops renewing its ownership; it does not replace BullMQ's internal lock.
 
-Exact health dependencies, lease durations, heartbeat intervals, and shutdown timeouts are not selected here.
+The current Fetcher Gateway uses a 60-second initial lease, a 20-second
+heartbeat cadence, and a 120-second total lease cap. These values apply only
+to the M2-WF-003B API-owned lease boundary; lease recovery and requeue remain
+outside that Work Item. Other process health dependencies and shutdown
+timeouts remain implementation-specific.
 
 ## 14. Process Boundary Matrix
 
-| Process | Primary Responsibility | PostgreSQL Access | Redis Access | Object Storage Access | Public Egress | Model Credential | Chromium | Domain Write Authority |
-|---|---|---|---|---|---|---|---|---|
-| `web` | UI and Editors | None | None | Only through authorized API/URLs | Product origin | No | No | None |
-| `api` | Auth, Queries, Commands, Versions, SSE | Read/write through owning Use Cases and projections | Optional limited coordination | Authorize transfers and scoped metadata operations | No arbitrary Source egress | No by default | No | Authoritative external entry point; ownership remains modular |
-| `worker` | Async Workflow and Agent Runtime | Scoped Task, execution, and Use Case access | Queue consumer/dispatcher as assigned | Scoped Task inputs and outputs | Approved Model Providers only | Yes, by reference and least privilege | No | Only through owning Use Cases and Promotion policy |
-| `fetcher` | Safe public Source capture | Minimum scoped access; mechanism open | Assigned Source Queue | Quarantine and Source snapshot scope | Controlled public HTTP/HTTPS | No | No in baseline MVP | Source-owned Candidate/result path only; no general writes |
-| `renderer` | Deterministic Browser render | Minimum scoped access; mechanism open | Assigned Render Queue | Approved inputs and Render output scope | No | No | Yes, pinned | Render-owned result metadata only; no canonical-content writes |
+| Process    | Primary Responsibility                 | PostgreSQL Access                                   | Redis Access                          | Object Storage Access                              | Public Egress                 | Model Credential                      | Chromium           | Domain Write Authority                                         |
+| ---------- | -------------------------------------- | --------------------------------------------------- | ------------------------------------- | -------------------------------------------------- | ----------------------------- | ------------------------------------- | ------------------ | -------------------------------------------------------------- |
+| `web`      | UI and Editors                         | None                                                | None                                  | Only through authorized API/URLs                   | Product origin                | No                                    | No                 | None                                                           |
+| `api`      | Auth, Queries, Commands, Versions, SSE | Read/write through owning Use Cases and projections | Optional limited coordination         | Authorize transfers and scoped metadata operations | No arbitrary Source egress    | No by default                         | No                 | Authoritative external entry point; ownership remains modular  |
+| `worker`   | Async Workflow and Agent Runtime       | Scoped Task, execution, and Use Case access         | Queue consumer/dispatcher as assigned | Scoped Task inputs and outputs                     | Approved Model Providers only | Yes, by reference and least privilege | No                 | Only through owning Use Cases and Promotion policy             |
+| `fetcher`  | Safe public Source capture             | Minimum scoped access; mechanism open               | Assigned Source Queue                 | Quarantine and Source snapshot scope               | Controlled public HTTP/HTTPS  | No                                    | No in baseline MVP | Source-owned Candidate/result path only; no general writes     |
+| `renderer` | Deterministic Browser render           | Minimum scoped access; mechanism open               | Assigned Render Queue                 | Approved inputs and Render output scope            | No                            | No                                    | Yes, pinned        | Render-owned result metadata only; no canonical-content writes |
 
 ## 15. Open Implementation Decisions
 
@@ -283,13 +295,13 @@ No choice is made in this document.
 
 ## 16. Decision Traceability
 
-| Process concern | Accepted Decisions | Primary historical sources |
-|---|---|---|
-| Logical Agents, deterministic coordination, and no Agent microservices | DEC-023–DEC-025, DEC-038–DEC-039, DEC-125–DEC-139 | [Session-006](../sessions/session-006.md), [Session-008](../sessions/session-008.md), [Session-017](../sessions/session-017.md) |
-| Renderer execution and Final qualification | DEC-111–DEC-124 | [Session-016](../sessions/session-016.md) |
-| Task, Outbox, idempotency, and execution records | DEC-160–DEC-198 | [Session-019](../sessions/session-019.md), [Session-020](../sessions/session-020.md) |
-| Process identity, SSRF, render isolation, Secrets, and telemetry privacy | DEC-199–DEC-220 | [Session-021](../sessions/session-021.md) |
-| Five processes, queues, reconciliation, health, and deployment | DEC-221–DEC-243 | [Session-022](../sessions/session-022.md) |
-| M0 and MVP implementation boundary | DEC-267–DEC-293 | [Session-024](../sessions/session-024.md) |
+| Process concern                                                          | Accepted Decisions                                | Primary historical sources                                                                                                      |
+| ------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Logical Agents, deterministic coordination, and no Agent microservices   | DEC-023–DEC-025, DEC-038–DEC-039, DEC-125–DEC-139 | [Session-006](../sessions/session-006.md), [Session-008](../sessions/session-008.md), [Session-017](../sessions/session-017.md) |
+| Renderer execution and Final qualification                               | DEC-111–DEC-124                                   | [Session-016](../sessions/session-016.md)                                                                                       |
+| Task, Outbox, idempotency, and execution records                         | DEC-160–DEC-198                                   | [Session-019](../sessions/session-019.md), [Session-020](../sessions/session-020.md)                                            |
+| Process identity, SSRF, render isolation, Secrets, and telemetry privacy | DEC-199–DEC-220                                   | [Session-021](../sessions/session-021.md)                                                                                       |
+| Five processes, queues, reconciliation, health, and deployment           | DEC-221–DEC-243                                   | [Session-022](../sessions/session-022.md)                                                                                       |
+| M0 and MVP implementation boundary                                       | DEC-267–DEC-293                                   | [Session-024](../sessions/session-024.md)                                                                                       |
 
 The authoritative status and wording of every Decision is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).

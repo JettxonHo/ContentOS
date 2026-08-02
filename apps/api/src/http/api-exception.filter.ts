@@ -3,6 +3,7 @@ import { Catch, HttpException } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { apiError } from '@contentos/contracts';
+import type { ApiErrorCode } from '@contentos/contracts';
 import {
   AuthenticationError,
   ContentPackageApplicationError,
@@ -12,9 +13,24 @@ import {
   UrlCaptureApplicationError,
   UrlCaptureDomainError,
   UploadQuarantineError,
+  FetcherGatewayApplicationError,
+  FetcherGatewayDomainError,
 } from '@contentos/core';
 
 import { ApiHttpError } from './api-http-error';
+
+const FETCHER_GATEWAY_TASK_ROUTE = /^\/internal\/fetcher\/tasks\/[^/]+\/(?:claim|heartbeat)$/;
+const FASTIFY_INVALID_JSON_BODY_MESSAGE = "Body is not valid JSON but content-type is set to 'application/json'";
+
+function isFetcherGatewayMalformedJsonError(request: FastifyRequest, exception: unknown): boolean {
+  return (
+    request.method === 'POST' &&
+    FETCHER_GATEWAY_TASK_ROUTE.test(request.url.split('?', 1)[0] ?? '') &&
+    exception instanceof HttpException &&
+    exception.getStatus() === 400 &&
+    exception.message === FASTIFY_INVALID_JSON_BODY_MESSAGE
+  );
+}
 
 function ownerToken(request: FastifyRequest): string {
   const candidate = (request as { currentSession?: { principal?: { userId?: unknown } } }).currentSession?.principal
@@ -28,6 +44,13 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const request = host.switchToHttp().getRequest<FastifyRequest>();
     const reply = host.switchToHttp().getResponse<FastifyReply>();
     const correlationId = String(request.id);
+
+    if (isFetcherGatewayMalformedJsonError(request, exception)) {
+      void reply
+        .status(422)
+        .send(apiError('INVALID_GATEWAY_REQUEST' as ApiErrorCode, 'Invalid Gateway request', correlationId));
+      return;
+    }
 
     if (exception instanceof ApiHttpError) {
       if (exception.retryAfterSeconds !== undefined) {
@@ -157,6 +180,20 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof UrlCaptureDomainError) {
       void reply.status(422).send(apiError('INVALID_REQUEST', 'Invalid request', correlationId));
+      return;
+    }
+
+    if (exception instanceof FetcherGatewayApplicationError) {
+      void reply
+        .status(409)
+        .send(apiError(exception.code as ApiErrorCode, 'Fetcher operation is unavailable', correlationId));
+      return;
+    }
+
+    if (exception instanceof FetcherGatewayDomainError) {
+      void reply
+        .status(422)
+        .send(apiError('INVALID_GATEWAY_REQUEST' as ApiErrorCode, 'Invalid Gateway request', correlationId));
       return;
     }
 

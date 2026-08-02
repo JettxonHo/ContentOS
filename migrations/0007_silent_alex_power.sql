@@ -1,0 +1,12 @@
+ALTER TABLE "workflow_tasks" DROP CONSTRAINT "workflow_tasks_state_check";--> statement-breakpoint
+ALTER TABLE "workflow_tasks" ADD COLUMN "claim_attempt_number" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "workflow_tasks" ADD COLUMN "claim_hash" char(64);--> statement-breakpoint
+ALTER TABLE "workflow_tasks" ADD COLUMN "claimed_by" varchar(16);--> statement-breakpoint
+ALTER TABLE "workflow_tasks" ADD COLUMN "lease_started_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "workflow_tasks" ADD COLUMN "lease_expires_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "workflow_tasks" ADD COLUMN "lease_heartbeat_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "workflow_tasks" ADD CONSTRAINT "workflow_tasks_claim_attempt_number_check" CHECK ("workflow_tasks"."claim_attempt_number" >= 0);--> statement-breakpoint
+ALTER TABLE "workflow_tasks" ADD CONSTRAINT "workflow_tasks_claim_hash_format_check" CHECK ("workflow_tasks"."claim_hash" IS NULL OR "workflow_tasks"."claim_hash" ~ '^[0-9a-f]{64}$');--> statement-breakpoint
+ALTER TABLE "workflow_tasks" ADD CONSTRAINT "workflow_tasks_claimed_by_check" CHECK ("workflow_tasks"."claimed_by" IS NULL OR "workflow_tasks"."claimed_by" = 'fetcher');--> statement-breakpoint
+ALTER TABLE "workflow_tasks" ADD CONSTRAINT "workflow_tasks_lease_state_check" CHECK (("workflow_tasks"."state" = 'queued' AND "workflow_tasks"."claim_hash" IS NULL AND "workflow_tasks"."claimed_by" IS NULL AND "workflow_tasks"."lease_started_at" IS NULL AND "workflow_tasks"."lease_expires_at" IS NULL AND "workflow_tasks"."lease_heartbeat_at" IS NULL) OR ("workflow_tasks"."state" = 'leased' AND "workflow_tasks"."claim_attempt_number" >= 1 AND "workflow_tasks"."claim_hash" IS NOT NULL AND "workflow_tasks"."claimed_by" = 'fetcher' AND "workflow_tasks"."lease_started_at" IS NOT NULL AND "workflow_tasks"."lease_expires_at" IS NOT NULL AND "workflow_tasks"."lease_heartbeat_at" IS NOT NULL AND "workflow_tasks"."lease_started_at" <= "workflow_tasks"."lease_heartbeat_at" AND "workflow_tasks"."lease_heartbeat_at" < "workflow_tasks"."lease_expires_at"));--> statement-breakpoint
+ALTER TABLE "workflow_tasks" ADD CONSTRAINT "workflow_tasks_state_check" CHECK ("workflow_tasks"."state" IN ('queued', 'leased'));

@@ -50,6 +50,13 @@
       "when": 1785605936772,
       "tag": "0006_special_triton",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785619266887,
+      "tag": "0007_silent_alex_power",
+      "breakpoints": true
     }
   ]
 }

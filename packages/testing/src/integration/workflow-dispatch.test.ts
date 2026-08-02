@@ -210,6 +210,7 @@ describe('M2-WF-003A PostgreSQL Outbox Dispatcher repository', () => {
     const boundary = createWorkflowDispatchRepositoryTestBoundary(databaseUrl());
     const now = new Date('2026-08-02T00:00:00.000Z');
     let taskStateCheckDropped = false;
+    let taskLeaseStateCheckDropped = false;
     try {
       const claim = (await boundary.repository.claimDispatchBatch(10, now))[0];
       if (!claim) throw new Error('dispatcher did not claim a candidate');
@@ -219,6 +220,8 @@ describe('M2-WF-003A PostgreSQL Outbox Dispatcher repository', () => {
 
       await boundary.query('ALTER TABLE workflow_tasks DROP CONSTRAINT workflow_tasks_state_check');
       taskStateCheckDropped = true;
+      await boundary.query('ALTER TABLE workflow_tasks DROP CONSTRAINT workflow_tasks_lease_state_check');
+      taskLeaseStateCheckDropped = true;
       await boundary.query("UPDATE workflow_tasks SET state = 'completed' WHERE id = $1", [fixture.taskId]);
       expect(await boundary.repository.listDispatchedForReconciliation(10)).toHaveLength(0);
       expect(await boundary.repository.resetMissingDispatched(dispatched, now)).toBe(false);
@@ -234,7 +237,30 @@ describe('M2-WF-003A PostgreSQL Outbox Dispatcher repository', () => {
       if (taskStateCheckDropped) {
         await boundary.query("UPDATE workflow_tasks SET state = 'queued' WHERE id = $1", [fixture.taskId]);
         await boundary.query(
-          "ALTER TABLE workflow_tasks ADD CONSTRAINT workflow_tasks_state_check CHECK (state = 'queued')",
+          "ALTER TABLE workflow_tasks ADD CONSTRAINT workflow_tasks_state_check CHECK (state IN ('queued', 'leased'))",
+        );
+      }
+      if (taskLeaseStateCheckDropped) {
+        await boundary.query(
+          `ALTER TABLE workflow_tasks
+           ADD CONSTRAINT workflow_tasks_lease_state_check CHECK (
+             (state = 'queued'
+               AND claim_hash IS NULL
+               AND claimed_by IS NULL
+               AND lease_started_at IS NULL
+               AND lease_expires_at IS NULL
+               AND lease_heartbeat_at IS NULL)
+             OR
+             (state = 'leased'
+               AND claim_attempt_number >= 1
+               AND claim_hash IS NOT NULL
+               AND claimed_by = 'fetcher'
+               AND lease_started_at IS NOT NULL
+               AND lease_expires_at IS NOT NULL
+               AND lease_heartbeat_at IS NOT NULL
+               AND lease_started_at <= lease_heartbeat_at
+               AND lease_heartbeat_at < lease_expires_at)
+           )`,
         );
       }
       await closeFixtures(fixture, [boundary]);

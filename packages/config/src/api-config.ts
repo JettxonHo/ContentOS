@@ -1,5 +1,6 @@
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SCRYPT_HASH_PATTERN = /^scrypt\$v=1\$N=16384\$r=8\$p=1\$[A-Za-z0-9_-]{22}\$[A-Za-z0-9_-]{43}$/;
+const FETCHER_GATEWAY_SECRET_PATTERN = /^[A-Za-z0-9_-]{43,128}$/;
 
 export type RuntimeEnvironment = 'development' | 'test' | 'production';
 
@@ -27,6 +28,7 @@ export interface ApiSecrets {
   readonly ownerPasswordHash: string;
   readonly objectStorageAccessKey: string;
   readonly objectStorageSecretKey: string;
+  readonly fetcherGatewaySecret: string;
 }
 
 export class ConfigurationError extends Error {
@@ -145,7 +147,15 @@ export function loadApiSecrets(env: NodeJS.ProcessEnv): ApiSecrets {
     throw new ConfigurationError('OBJECT_STORAGE_SECRET_KEY', 'value is required');
   }
 
-  return { databaseUrl, ownerPasswordHash, objectStorageAccessKey, objectStorageSecretKey };
+  const fetcherGatewaySecret = required(env, 'CONTENTOS_FETCHER_GATEWAY_SECRET');
+  if (!FETCHER_GATEWAY_SECRET_PATTERN.test(fetcherGatewaySecret)) {
+    throw new ConfigurationError(
+      'CONTENTOS_FETCHER_GATEWAY_SECRET',
+      'must be a 43-128 character URL-safe base64url token',
+    );
+  }
+
+  return { databaseUrl, ownerPasswordHash, objectStorageAccessKey, objectStorageSecretKey, fetcherGatewaySecret };
 }
 
 function loadObjectStorageConfig(env: NodeJS.ProcessEnv): ObjectStorageConfig {

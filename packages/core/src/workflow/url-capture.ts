@@ -22,6 +22,8 @@ export const URL_CAPTURE_COMMAND_KIND = 'url_capture_request' as const;
 export const URL_CAPTURE_EVENT_TYPE = 'url_capture_requested.v1' as const;
 export const URL_CAPTURE_TASK_KIND = 'url_capture' as const;
 export const URL_CAPTURE_TASK_STATE = 'queued' as const;
+export const URL_CAPTURE_TASK_STATE_VALUES = ['queued', 'leased'] as const;
+export type UrlCaptureTaskState = (typeof URL_CAPTURE_TASK_STATE_VALUES)[number];
 export const URL_CAPTURE_OUTBOX_CATEGORY = 'fetcher' as const;
 export const URL_CAPTURE_OUTBOX_ENVELOPE_VERSION = 'fetcher-task/v1' as const;
 export const URL_CAPTURE_OUTBOX_STATE = 'pending' as const;
@@ -70,7 +72,14 @@ export interface WorkflowTaskState {
   readonly contentPackageId: ContentPackageId;
   readonly ownerUserId: ContentPackageOwnerId;
   readonly kind: typeof URL_CAPTURE_TASK_KIND;
-  readonly state: typeof URL_CAPTURE_TASK_STATE;
+  readonly state: UrlCaptureTaskState;
+  /** Optional only for pre-003B in-memory Worker fixtures; persisted rows are explicit. */
+  readonly claimAttemptNumber?: number;
+  readonly claimHash?: string | null;
+  readonly claimedBy?: 'fetcher' | null;
+  readonly leaseStartedAt?: Date | null;
+  readonly leaseExpiresAt?: Date | null;
+  readonly leaseHeartbeatAt?: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
@@ -232,6 +241,36 @@ function validNullableDate(value: unknown): value is Date | null {
   return value === null || validDate(value);
 }
 
+function validTaskLeaseShape(input: WorkflowTaskState): boolean {
+  const claimAttemptNumber = input.claimAttemptNumber ?? 0;
+  const claimHash = input.claimHash ?? null;
+  const claimedBy = input.claimedBy ?? null;
+  const leaseStartedAt = input.leaseStartedAt ?? null;
+  const leaseExpiresAt = input.leaseExpiresAt ?? null;
+  const leaseHeartbeatAt = input.leaseHeartbeatAt ?? null;
+  if (!safeNonNegativeInteger(claimAttemptNumber)) return false;
+  if (input.state === 'queued') {
+    return (
+      claimHash === null &&
+      claimedBy === null &&
+      leaseStartedAt === null &&
+      leaseExpiresAt === null &&
+      leaseHeartbeatAt === null
+    );
+  }
+  return (
+    claimAttemptNumber >= 1 &&
+    typeof claimHash === 'string' &&
+    /^[0-9a-f]{64}$/.test(claimHash) &&
+    claimedBy === 'fetcher' &&
+    validDate(leaseStartedAt) &&
+    validDate(leaseExpiresAt) &&
+    validDate(leaseHeartbeatAt) &&
+    leaseStartedAt.getTime() <= leaseHeartbeatAt.getTime() &&
+    leaseHeartbeatAt.getTime() < leaseExpiresAt.getTime()
+  );
+}
+
 function wellFormedScalarText(value: string): boolean {
   for (let index = 0; index < value.length; index += 1) {
     const code = value.charCodeAt(index);
@@ -360,7 +399,8 @@ export function defineWorkflowTask(input: WorkflowTaskState, request: UrlCapture
     input.contentPackageId !== request.contentPackageId ||
     input.ownerUserId !== request.ownerUserId ||
     input.kind !== URL_CAPTURE_TASK_KIND ||
-    input.state !== URL_CAPTURE_TASK_STATE ||
+    !URL_CAPTURE_TASK_STATE_VALUES.includes(input.state) ||
+    !validTaskLeaseShape(input) ||
     !validDate(input.createdAt) ||
     !validDate(input.updatedAt) ||
     input.updatedAt.getTime() < input.createdAt.getTime()
@@ -369,6 +409,12 @@ export function defineWorkflowTask(input: WorkflowTaskState, request: UrlCapture
   }
   return Object.freeze({
     ...input,
+    claimAttemptNumber: input.claimAttemptNumber ?? 0,
+    claimHash: input.claimHash ?? null,
+    claimedBy: input.claimedBy ?? null,
+    leaseStartedAt: input.leaseStartedAt == null ? null : new Date(input.leaseStartedAt.getTime()),
+    leaseExpiresAt: input.leaseExpiresAt == null ? null : new Date(input.leaseExpiresAt.getTime()),
+    leaseHeartbeatAt: input.leaseHeartbeatAt == null ? null : new Date(input.leaseHeartbeatAt.getTime()),
     createdAt: new Date(input.createdAt.getTime()),
     updatedAt: new Date(input.updatedAt.getTime()),
   });
@@ -391,7 +437,8 @@ export function rehydrateWorkflowTask(input: WorkflowTaskState): WorkflowTaskSta
     !boundedIdentity(input.contentPackageId) ||
     !boundedIdentity(input.ownerUserId) ||
     input.kind !== URL_CAPTURE_TASK_KIND ||
-    input.state !== URL_CAPTURE_TASK_STATE ||
+    !URL_CAPTURE_TASK_STATE_VALUES.includes(input.state) ||
+    !validTaskLeaseShape(input) ||
     !validDate(input.createdAt) ||
     !validDate(input.updatedAt) ||
     input.updatedAt.getTime() < input.createdAt.getTime()
@@ -400,6 +447,12 @@ export function rehydrateWorkflowTask(input: WorkflowTaskState): WorkflowTaskSta
   }
   return Object.freeze({
     ...input,
+    claimAttemptNumber: input.claimAttemptNumber ?? 0,
+    claimHash: input.claimHash ?? null,
+    claimedBy: input.claimedBy ?? null,
+    leaseStartedAt: input.leaseStartedAt == null ? null : new Date(input.leaseStartedAt.getTime()),
+    leaseExpiresAt: input.leaseExpiresAt == null ? null : new Date(input.leaseExpiresAt.getTime()),
+    leaseHeartbeatAt: input.leaseHeartbeatAt == null ? null : new Date(input.leaseHeartbeatAt.getTime()),
     createdAt: new Date(input.createdAt.getTime()),
     updatedAt: new Date(input.updatedAt.getTime()),
   });
@@ -492,6 +545,7 @@ export function defineWorkflowOutboxDeliveryCandidate(
     outbox.taskId !== rehydratedTask.id ||
     outbox.contentPackageId !== rehydratedTask.contentPackageId ||
     outbox.ownerUserId !== rehydratedTask.ownerUserId ||
+    rehydratedTask.state !== 'queued' ||
     outbox.state !== 'dispatching' ||
     outbox.dispatchLeaseExpiresAt === null
   ) {
@@ -593,6 +647,12 @@ export class UrlCaptureService {
         ownerUserId: command.ownerUserId,
         kind: URL_CAPTURE_TASK_KIND,
         state: URL_CAPTURE_TASK_STATE,
+        claimAttemptNumber: 0,
+        claimHash: null,
+        claimedBy: null,
+        leaseStartedAt: null,
+        leaseExpiresAt: null,
+        leaseHeartbeatAt: null,
         createdAt,
         updatedAt: createdAt,
       },

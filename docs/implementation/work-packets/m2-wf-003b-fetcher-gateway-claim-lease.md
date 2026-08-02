@@ -1,6 +1,6 @@
 # WORK PACKET — M2-WF-003B
 
-**Status:** Ready
+**Status:** In Review
 
 **Purpose:** Durable planning-to-implementation handoff for the private,
 API-owned Fetcher Gateway Claim and bounded-heartbeat Lease boundary.
@@ -11,7 +11,7 @@ API-owned Fetcher Gateway Claim and bounded-heartbeat Lease boundary.
 - **Title:** Fetcher Gateway Claim and Bounded Lease
 - **Milestone:** M2 — Source and Workflow Foundation
 - **Issue:** [#71](https://github.com/JettxonHo/ContentOS/issues/71)
-- **Status:** Ready — not started
+- **Status:** In Review — implementation complete; awaiting independent review
 - **Executor profile:** `BACKEND_GENERAL_EXECUTOR`
 - **Reviewer:** independent review agent before Git publication
 - **Dependencies:** `M2-WF-003A` completed through PR #69; `M2-DES-005`
@@ -231,6 +231,10 @@ stack, and database URL.
 
 - `apps/api/src/{app.module,runtime.tokens}.ts`
 - new `apps/api/src/fetcher-gateway/**`
+- `apps/api/src/database.service.ts` — only exposes the Fetcher Gateway
+  repository from the API's existing Database Runtime to the API-owned service
+- `apps/api/src/http/api-exception.filter.ts` — only maps existing Core Gateway
+  errors to stable, redacted HTTP errors
 - `apps/api/src/http/trusted-origin.guard.ts` and only the new narrowly scoped
   service-transport metadata helper it requires
 - `apps/fetcher/src/main.ts`

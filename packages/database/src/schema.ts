@@ -665,6 +665,12 @@ export const workflowTasks = pgTable(
     ownerUserId: uuid('owner_user_id').notNull(),
     kind: varchar('kind', { length: 32 }).notNull(),
     state: varchar('state', { length: 16 }).notNull(),
+    claimAttemptNumber: integer('claim_attempt_number').notNull().default(0),
+    claimHash: char('claim_hash', { length: 64 }),
+    claimedBy: varchar('claimed_by', { length: 16 }),
+    leaseStartedAt: timestamp('lease_started_at', { withTimezone: true, mode: 'date' }),
+    leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true, mode: 'date' }),
+    leaseHeartbeatAt: timestamp('lease_heartbeat_at', { withTimezone: true, mode: 'date' }),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
   },
@@ -693,7 +699,17 @@ export const workflowTasks = pgTable(
     }).onDelete('restrict'),
     index('workflow_tasks_owner_package_state_idx').on(table.ownerUserId, table.contentPackageId, table.state),
     check('workflow_tasks_kind_check', sql`${table.kind} = 'url_capture'`),
-    check('workflow_tasks_state_check', sql`${table.state} = 'queued'`),
+    check('workflow_tasks_state_check', sql`${table.state} IN ('queued', 'leased')`),
+    check('workflow_tasks_claim_attempt_number_check', sql`${table.claimAttemptNumber} >= 0`),
+    check(
+      'workflow_tasks_claim_hash_format_check',
+      sql`${table.claimHash} IS NULL OR ${table.claimHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check('workflow_tasks_claimed_by_check', sql`${table.claimedBy} IS NULL OR ${table.claimedBy} = 'fetcher'`),
+    check(
+      'workflow_tasks_lease_state_check',
+      sql`(${table.state} = 'queued' AND ${table.claimHash} IS NULL AND ${table.claimedBy} IS NULL AND ${table.leaseStartedAt} IS NULL AND ${table.leaseExpiresAt} IS NULL AND ${table.leaseHeartbeatAt} IS NULL) OR (${table.state} = 'leased' AND ${table.claimAttemptNumber} >= 1 AND ${table.claimHash} IS NOT NULL AND ${table.claimedBy} = 'fetcher' AND ${table.leaseStartedAt} IS NOT NULL AND ${table.leaseExpiresAt} IS NOT NULL AND ${table.leaseHeartbeatAt} IS NOT NULL AND ${table.leaseStartedAt} <= ${table.leaseHeartbeatAt} AND ${table.leaseHeartbeatAt} < ${table.leaseExpiresAt})`,
+    ),
   ],
 );
 
