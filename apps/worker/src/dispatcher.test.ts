@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import type { WorkflowOutboxDeliveryCandidate, WorkflowOutboxRecordState, WorkflowTaskState } from '@contentos/core';
+import type {
+  FetcherLeaseRecoveryCandidate,
+  WorkflowOutboxDeliveryCandidate,
+  WorkflowOutboxRecordState,
+  WorkflowTaskState,
+} from '@contentos/core';
 import { defineWorkflowOutboxDeliveryCandidate } from '@contentos/core';
 import type { WorkflowDispatchRepository } from '@contentos/database';
 
@@ -10,7 +15,7 @@ import { closeWorkerResources } from './main.js';
 
 const now = new Date('2026-08-02T00:00:00.000Z');
 
-function candidate(): WorkflowOutboxDeliveryCandidate {
+function candidate(deliveryGeneration = 1): WorkflowOutboxDeliveryCandidate {
   const task: WorkflowTaskState = {
     id: 'task-1' as never,
     workflowInstanceId: 'instance-1' as never,
@@ -34,7 +39,7 @@ function candidate(): WorkflowOutboxDeliveryCandidate {
       payload: { taskId: task.id, taskKind: 'url_capture', envelopeVersion: 'fetcher-task/v1' },
       state: 'dispatching',
       createdAt: now,
-      deliveryGeneration: 1,
+      deliveryGeneration,
       dispatchAttemptCount: 1,
       dispatchLeaseExpiresAt: new Date(now.getTime() + 30_000),
       lastDispatchAt: null,
@@ -67,6 +72,12 @@ function dispatchedRecord(): WorkflowOutboxRecordState {
 
 function repository(overrides: Partial<WorkflowDispatchRepository> = {}): WorkflowDispatchRepository {
   return {
+    async listExpiredFetcherLeases(): Promise<readonly FetcherLeaseRecoveryCandidate[]> {
+      return [];
+    },
+    async recoverExpiredFetcherLease(): Promise<boolean> {
+      return false;
+    },
     async claimDispatchBatch(): Promise<readonly WorkflowOutboxDeliveryCandidate[]> {
       return [candidate()];
     },
@@ -99,6 +110,93 @@ function queue(overrides: Partial<FetcherQueueTransport> = {}): FetcherQueueTran
 }
 
 describe('Outbox Dispatcher', () => {
+  it('recovers expired leases before normal reconciliation and publishes the next generation', async () => {
+    const recovery: FetcherLeaseRecoveryCandidate = {
+      taskId: 'task-1' as never,
+      claimAttemptNumber: 4,
+      deliveryGeneration: 3,
+    };
+    const order: string[] = [];
+    let published: WorkflowOutboxDeliveryCandidate | undefined;
+    const target = new OutboxDispatcher(
+      repository({
+        async listExpiredFetcherLeases(): Promise<readonly FetcherLeaseRecoveryCandidate[]> {
+          order.push('list-expired');
+          return [recovery];
+        },
+        async recoverExpiredFetcherLease(input): Promise<boolean> {
+          order.push('recover');
+          expect(input.candidate).toEqual(recovery);
+          expect(input.eventId).toBe('event-1');
+          return true;
+        },
+        async listDispatchedForReconciliation(): Promise<readonly WorkflowOutboxRecordState[]> {
+          order.push('list-dispatched');
+          return [];
+        },
+        async claimDispatchBatch(): Promise<readonly WorkflowOutboxDeliveryCandidate[]> {
+          order.push('claim');
+          return [candidate(4)];
+        },
+      }),
+      queue({
+        async publishFetcherTask(value): Promise<void> {
+          order.push('publish');
+          published = value;
+        },
+      }),
+      { now: () => now },
+      undefined,
+      { generate: () => 'event-1' },
+    );
+
+    await expect(target.runPass()).resolves.toMatchObject({
+      inspectedExpiredLeases: 1,
+      recoveredExpiredLeases: 1,
+      acknowledged: 1,
+    });
+    expect(order).toEqual(['list-expired', 'recover', 'list-dispatched', 'claim', 'publish']);
+    expect(published?.deliveryGeneration).toBe(4);
+  });
+
+  it('caps expired lease recovery at ten candidates and fails closed on repository failure', async () => {
+    let recovered = 0;
+    const target = new OutboxDispatcher(
+      repository({
+        async listExpiredFetcherLeases(): Promise<readonly FetcherLeaseRecoveryCandidate[]> {
+          return Array.from({ length: 11 }, (_, index) => ({
+            taskId: `task-${index}` as never,
+            claimAttemptNumber: 1,
+            deliveryGeneration: 1,
+          }));
+        },
+        async recoverExpiredFetcherLease(): Promise<boolean> {
+          recovered += 1;
+          return false;
+        },
+      }),
+      queue(),
+      { now: () => now },
+    );
+
+    await expect(target.runPass()).resolves.toMatchObject({ inspectedExpiredLeases: 10 });
+    expect(recovered).toBe(10);
+
+    const unavailable = new OutboxDispatcher(
+      repository({
+        async listExpiredFetcherLeases(): Promise<readonly FetcherLeaseRecoveryCandidate[]> {
+          throw new Error('database secret and stack must not escape');
+        },
+      }),
+      queue(),
+      { now: () => now },
+    );
+    await expect(unavailable.runPass()).rejects.toMatchObject({
+      message: 'dispatcher_recovery_unavailable',
+      dispatcherPhase: 'recovery',
+    });
+  });
+
   it('publishes, acknowledges, and never overlaps passes', async () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {

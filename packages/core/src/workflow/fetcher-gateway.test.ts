@@ -4,7 +4,9 @@ import {
   FETCHER_GATEWAY_CONNECTION_POLICY_VERSION,
   FETCHER_GATEWAY_RESOURCE_POLICY_VERSION,
   FetcherGatewayApplicationError,
+  FetcherGatewayDomainError,
   FetcherGatewayService,
+  defineFetcherLeaseExpiredEventValue,
   defineFetcherGatewayClaimResponse,
   hashFetcherGatewayClaim,
 } from './fetcher-gateway.js';
@@ -14,6 +16,49 @@ const now = new Date('2026-08-02T00:00:00.000Z');
 const opaqueClaim = 'A'.repeat(43);
 
 describe('Fetcher Gateway Core contract', () => {
+  it('defines the exact safe lease-expiry Event payload and rejects illegal values', () => {
+    const value = defineFetcherLeaseExpiredEventValue({
+      taskId,
+      claimAttemptNumber: 2,
+      previousDeliveryGeneration: 4,
+      nextDeliveryGeneration: 5,
+    });
+    expect(value.eventType).toBe('fetcher_lease_expired.v1');
+    expect(value.payload).toEqual({
+      taskId,
+      claimAttemptNumber: 2,
+      previousDeliveryGeneration: 4,
+      nextDeliveryGeneration: 5,
+    });
+    expect(Object.keys(value.payload)).toEqual([
+      'taskId',
+      'claimAttemptNumber',
+      'previousDeliveryGeneration',
+      'nextDeliveryGeneration',
+    ]);
+    const serialized = JSON.stringify(value.payload);
+    expect(serialized).not.toContain('https://');
+    expect(serialized).not.toContain(opaqueClaim);
+    expect(serialized).not.toContain('package');
+
+    for (const invalid of [
+      { taskId: '', claimAttemptNumber: 1, previousDeliveryGeneration: 1, nextDeliveryGeneration: 2 },
+      { taskId, claimAttemptNumber: 0, previousDeliveryGeneration: 1, nextDeliveryGeneration: 2 },
+      { taskId, claimAttemptNumber: 1, previousDeliveryGeneration: 0, nextDeliveryGeneration: 1 },
+      { taskId, claimAttemptNumber: 1, previousDeliveryGeneration: 1, nextDeliveryGeneration: 3 },
+      {
+        taskId,
+        claimAttemptNumber: Number.MAX_SAFE_INTEGER + 1,
+        previousDeliveryGeneration: 1,
+        nextDeliveryGeneration: 2,
+      },
+    ]) {
+      expect(() => defineFetcherLeaseExpiredEventValue(invalid as never)).toThrow(
+        new FetcherGatewayDomainError('INVALID_FETCHER_LEASE_EXPIRED_EVENT'),
+      );
+    }
+  });
+
   it('hashes only the opaque claim and preserves the fixed policy identifiers', () => {
     expect(hashFetcherGatewayClaim(opaqueClaim)).toMatch(/^[0-9a-f]{64}$/);
     const response = defineFetcherGatewayClaimResponse({
@@ -70,5 +115,145 @@ describe('Fetcher Gateway Core contract', () => {
       leaseExpiresAt: new Date(now.getTime() + 60_000),
       claim: opaqueClaim,
     });
+  });
+});
+
+describe('defineFetcherLeaseExpiredEventValue exact shape', () => {
+  const validBase = {
+    taskId,
+    claimAttemptNumber: 2,
+    previousDeliveryGeneration: 4,
+    nextDeliveryGeneration: 5,
+  };
+
+  function expectInvalid(input: unknown): void {
+    expect(() => defineFetcherLeaseExpiredEventValue(input)).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_LEASE_EXPIRED_EVENT'),
+    );
+  }
+
+  it('accepts a plain object with exactly the four approved data fields', () => {
+    const value = defineFetcherLeaseExpiredEventValue({ ...validBase });
+    expect(Object.keys(value.payload)).toEqual([
+      'taskId',
+      'claimAttemptNumber',
+      'previousDeliveryGeneration',
+      'nextDeliveryGeneration',
+    ]);
+  });
+
+  it('rejects null, arrays, primitives, functions, dates, and class instances', () => {
+    expectInvalid(null);
+    expectInvalid([taskId, 2, 4, 5]);
+    expectInvalid('not-an-object');
+    expectInvalid(42);
+    expectInvalid(true);
+    expectInvalid(Symbol('s'));
+    expectInvalid(() => undefined);
+    expectInvalid(new Date());
+    expectInvalid(new (class Instance {})());
+    expectInvalid(Object.create({}));
+  });
+
+  it('rejects any missing approved field', () => {
+    expectInvalid({ taskId, claimAttemptNumber: 2, previousDeliveryGeneration: 4 });
+    expectInvalid({ claimAttemptNumber: 2, previousDeliveryGeneration: 4, nextDeliveryGeneration: 5 });
+  });
+
+  it('rejects any extra string field, including sensitive identifiers', () => {
+    expectInvalid({ ...validBase, extra: 'x' });
+    expectInvalid({ ...validBase, claim: opaqueClaim });
+    expectInvalid({ ...validBase, claimHash: 'abc' });
+    expectInvalid({ ...validBase, submittedUrl: 'https://example.com/private' });
+    expectInvalid({ ...validBase, ownerUserId: '00000000-0000-4000-8000-000000000099' });
+    expectInvalid({ ...validBase, contentPackageId: '00000000-0000-4000-8000-000000000099' });
+    expectInvalid({ ...validBase, sourceReferenceId: '00000000-0000-4000-8000-000000000099' });
+    expectInvalid({ ...validBase, jobId: 'fetcher-task-1' });
+    expectInvalid({ ...validBase, queueName: 'contentos-fetcher' });
+  });
+
+  it('rejects symbol keys', () => {
+    expectInvalid({ ...validBase, [Symbol('leak')]: 'x' });
+    const symbolForField: Record<string | symbol, unknown> = {
+      claimAttemptNumber: 2,
+      previousDeliveryGeneration: 4,
+      nextDeliveryGeneration: 5,
+    };
+    symbolForField[Symbol('taskId')] = taskId;
+    expectInvalid(symbolForField);
+  });
+
+  it('rejects accessor properties without invoking them', () => {
+    const withAccessor: Record<string, unknown> = {
+      claimAttemptNumber: 2,
+      previousDeliveryGeneration: 4,
+      nextDeliveryGeneration: 5,
+    };
+    Object.defineProperty(withAccessor, 'taskId', {
+      get: () => taskId,
+      enumerable: true,
+      configurable: true,
+    });
+    expectInvalid(withAccessor);
+  });
+
+  it('never executes a hostile getter and returns the stable Domain Error', () => {
+    let getterCalled = false;
+    const hostile: Record<string, unknown> = {
+      claimAttemptNumber: 2,
+      previousDeliveryGeneration: 4,
+      nextDeliveryGeneration: 5,
+    };
+    Object.defineProperty(hostile, 'taskId', {
+      enumerable: true,
+      configurable: true,
+      get: () => {
+        getterCalled = true;
+        throw new Error('BOOM');
+      },
+    });
+    expect(() => defineFetcherLeaseExpiredEventValue(hostile)).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_LEASE_EXPIRED_EVENT'),
+    );
+    expect(getterCalled).toBe(false);
+  });
+
+  it('reads legal descriptor values without triggering a Proxy get trap', () => {
+    let getTrapCalled = false;
+    const proxied = new Proxy(
+      { ...validBase },
+      {
+        get: () => {
+          getTrapCalled = true;
+          throw new Error('TRAP_BOOM');
+        },
+      },
+    );
+    const value = defineFetcherLeaseExpiredEventValue(proxied);
+    expect(getTrapCalled).toBe(false);
+    expect(value.eventType).toBe('fetcher_lease_expired.v1');
+    expect(value.payload).toEqual({
+      taskId,
+      claimAttemptNumber: 2,
+      previousDeliveryGeneration: 4,
+      nextDeliveryGeneration: 5,
+    });
+  });
+
+  it('returns the stable Domain Error for a revoked Proxy without leaking TypeError', () => {
+    const revocable = Proxy.revocable({ ...validBase }, {});
+    revocable.revoke();
+    expect(() => defineFetcherLeaseExpiredEventValue(revocable.proxy)).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_LEASE_EXPIRED_EVENT'),
+    );
+  });
+
+  it('returns the stable Domain Error when a reflection trap throws', () => {
+    const boom = (): never => {
+      throw new Error('REFLECT_BOOM');
+    };
+    expectInvalid(new Proxy({ ...validBase }, { getPrototypeOf: boom }));
+    expectInvalid(new Proxy({ ...validBase }, { ownKeys: boom }));
+    expectInvalid(new Proxy({ ...validBase }, { getOwnPropertyDescriptor: boom }));
   });
 });

@@ -1,8 +1,11 @@
 import { sql } from 'drizzle-orm';
 
 import {
+  defineFetcherLeaseExpiredEventValue,
   defineWorkflowOutboxDeliveryCandidate,
   rehydrateWorkflowOutboxRecord,
+  type FetcherLeaseRecoveryCandidate,
+  type FetcherLeaseRecoveryRequest,
   type WorkflowOutboxDeliveryCandidate,
   type WorkflowOutboxRecordState,
   type WorkflowTaskState,
@@ -13,6 +16,24 @@ import type { WorkflowDispatchRepository } from './runtime.js';
 
 const DISPATCHER_LEASE_MS = 30_000;
 const DISPATCH_BATCH_LIMIT = 10;
+
+export type WorkflowLeaseRecoveryStage = 'task' | 'outbox' | 'event';
+
+export interface WorkflowDispatchRepositoryOptions {
+  readonly afterLeaseRecoveryStage?: (stage: WorkflowLeaseRecoveryStage) => void | Promise<void>;
+}
+
+interface RecoveryRow {
+  [key: string]: unknown;
+  task_id: string;
+  workflow_instance_id: string;
+  workflow_node_id: string;
+  content_package_id: string;
+  owner_user_id: string;
+  outbox_id: string;
+  claim_attempt_number: number;
+  delivery_generation: number;
+}
 
 interface DispatchRow {
   [key: string]: unknown;
@@ -165,7 +186,270 @@ function acknowledgementIdentity(candidate: WorkflowOutboxDeliveryCandidate): {
 export class DrizzleWorkflowDispatchRepository implements WorkflowDispatchRepository {
   private reconciliationCursor: ReconciliationCursor | undefined;
 
-  constructor(private readonly connection: DatabaseConnection) {}
+  constructor(
+    private readonly connection: DatabaseConnection,
+    private readonly options: WorkflowDispatchRepositoryOptions = {},
+  ) {}
+
+  async listExpiredFetcherLeases(limit: number, now: Date): Promise<readonly FetcherLeaseRecoveryCandidate[]> {
+    this.connection.assertAvailable();
+    const bounded = boundedLimit(limit);
+    const currentTime = validTimestamp(now);
+    const result = await this.connection.pool.query<FetcherLeaseRecoveryCandidate>(
+      `SELECT t.id AS "taskId",
+              t.claim_attempt_number AS "claimAttemptNumber",
+              o.delivery_generation AS "deliveryGeneration"
+       FROM workflow_tasks t
+       JOIN workflow_instances i
+         ON i.id = t.workflow_instance_id
+        AND i.content_package_id = t.content_package_id
+        AND i.owner_user_id = t.owner_user_id
+       JOIN workflow_nodes n
+         ON n.id = t.workflow_node_id
+        AND n.workflow_instance_id = t.workflow_instance_id
+        AND n.content_package_id = t.content_package_id
+        AND n.owner_user_id = t.owner_user_id
+       JOIN content_packages p
+         ON p.id = t.content_package_id
+        AND p.owner_user_id = t.owner_user_id
+       JOIN url_capture_requests c
+         ON c.id = t.url_capture_request_id
+        AND c.workflow_instance_id = t.workflow_instance_id
+        AND c.workflow_node_id = t.workflow_node_id
+        AND c.content_package_id = t.content_package_id
+        AND c.owner_user_id = t.owner_user_id
+       JOIN url_source_references r
+         ON r.id = c.source_reference_id
+        AND r.content_package_id = c.content_package_id
+        AND r.owner_user_id = c.owner_user_id
+       JOIN workflow_outbox_records o
+         ON o.task_id = t.id
+        AND o.content_package_id = t.content_package_id
+        AND o.owner_user_id = t.owner_user_id
+       WHERE t.kind = 'url_capture'
+         AND t.state = 'leased'
+         AND t.claim_attempt_number >= 1
+         AND t.claim_hash IS NOT NULL
+         AND t.claimed_by = 'fetcher'
+         AND t.lease_started_at IS NOT NULL
+         AND t.lease_heartbeat_at IS NOT NULL
+         AND t.lease_expires_at <= $1
+         AND i.lifecycle = 'active'
+         AND n.template_node_key = 'source_capture'
+         AND n.state = 'ready'
+         AND p.lifecycle = 'active'
+         AND c.command_kind = 'url_capture_request'
+         AND o.category = 'fetcher'
+         AND o.envelope_version = 'fetcher-task/v1'
+         AND o.state = 'dispatched'
+         AND o.dispatch_lease_expires_at IS NULL
+         AND o.last_dispatch_at IS NOT NULL
+         AND o.dispatched_at IS NOT NULL
+         AND o.last_dispatch_at = o.dispatched_at
+         AND o.payload = jsonb_build_object(
+           'taskId', t.id::text,
+           'taskKind', 'url_capture',
+           'envelopeVersion', 'fetcher-task/v1'
+         )
+       ORDER BY t.lease_expires_at, t.id
+       LIMIT $2`,
+      [currentTime, bounded],
+    );
+    return result.rows.map((row) => ({
+      taskId: row.taskId as never,
+      claimAttemptNumber: row.claimAttemptNumber,
+      deliveryGeneration: row.deliveryGeneration,
+    }));
+  }
+
+  async recoverExpiredFetcherLease(input: FetcherLeaseRecoveryRequest): Promise<boolean> {
+    this.connection.assertAvailable();
+    const recoveredAt = validTimestamp(input.recoveredAt);
+    const candidate = input.candidate;
+    if (
+      typeof candidate.taskId !== 'string' ||
+      candidate.taskId.length === 0 ||
+      !Number.isSafeInteger(candidate.claimAttemptNumber) ||
+      candidate.claimAttemptNumber < 1 ||
+      !Number.isSafeInteger(candidate.deliveryGeneration) ||
+      candidate.deliveryGeneration < 1
+    ) {
+      throw new Error('invalid_fetcher_lease_recovery_candidate');
+    }
+
+    const client = await this.connection.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const eligible = await client.query<RecoveryRow>(
+        `SELECT t.id AS task_id,
+                t.workflow_instance_id,
+                t.workflow_node_id,
+                t.content_package_id,
+                t.owner_user_id,
+                o.id AS outbox_id,
+                t.claim_attempt_number,
+                o.delivery_generation
+         FROM workflow_tasks t
+         JOIN workflow_instances i
+           ON i.id = t.workflow_instance_id
+          AND i.content_package_id = t.content_package_id
+          AND i.owner_user_id = t.owner_user_id
+         JOIN workflow_nodes n
+           ON n.id = t.workflow_node_id
+          AND n.workflow_instance_id = t.workflow_instance_id
+          AND n.content_package_id = t.content_package_id
+          AND n.owner_user_id = t.owner_user_id
+         JOIN content_packages p
+           ON p.id = t.content_package_id
+          AND p.owner_user_id = t.owner_user_id
+         JOIN url_capture_requests c
+           ON c.id = t.url_capture_request_id
+          AND c.workflow_instance_id = t.workflow_instance_id
+          AND c.workflow_node_id = t.workflow_node_id
+          AND c.content_package_id = t.content_package_id
+          AND c.owner_user_id = t.owner_user_id
+         JOIN url_source_references r
+           ON r.id = c.source_reference_id
+          AND r.content_package_id = c.content_package_id
+          AND r.owner_user_id = c.owner_user_id
+         JOIN workflow_outbox_records o
+           ON o.task_id = t.id
+          AND o.content_package_id = t.content_package_id
+          AND o.owner_user_id = t.owner_user_id
+         WHERE t.id = $1
+           AND t.kind = 'url_capture'
+           AND t.state = 'leased'
+           AND t.claim_attempt_number >= 1
+           AND t.claim_hash IS NOT NULL
+           AND t.claimed_by = 'fetcher'
+           AND t.lease_started_at IS NOT NULL
+           AND t.lease_heartbeat_at IS NOT NULL
+           AND t.claim_attempt_number = $2
+           AND t.lease_expires_at <= $4
+           AND i.lifecycle = 'active'
+           AND n.template_node_key = 'source_capture'
+           AND n.state = 'ready'
+           AND p.lifecycle = 'active'
+           AND c.command_kind = 'url_capture_request'
+           AND o.category = 'fetcher'
+           AND o.envelope_version = 'fetcher-task/v1'
+           AND o.state = 'dispatched'
+           AND o.dispatch_lease_expires_at IS NULL
+           AND o.delivery_generation = $3
+           AND o.last_dispatch_at IS NOT NULL
+           AND o.dispatched_at IS NOT NULL
+           AND o.last_dispatch_at = o.dispatched_at
+           AND o.payload = jsonb_build_object(
+             'taskId', t.id::text,
+             'taskKind', 'url_capture',
+             'envelopeVersion', 'fetcher-task/v1'
+           )
+         FOR UPDATE OF t, i, n, p, c, r, o`,
+        [candidate.taskId, candidate.claimAttemptNumber, candidate.deliveryGeneration, recoveredAt],
+      );
+      const row = eligible.rows[0];
+      if (!row) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+
+      const event = defineFetcherLeaseExpiredEventValue({
+        taskId: row.task_id as never,
+        claimAttemptNumber: row.claim_attempt_number,
+        previousDeliveryGeneration: row.delivery_generation,
+        nextDeliveryGeneration: row.delivery_generation + 1,
+      });
+
+      const taskUpdated = await client.query(
+        `UPDATE workflow_tasks
+         SET state = 'queued',
+             claim_hash = NULL,
+             claimed_by = NULL,
+             lease_started_at = NULL,
+             lease_expires_at = NULL,
+             lease_heartbeat_at = NULL,
+             updated_at = $2
+         WHERE id = $1
+           AND state = 'leased'
+           AND claim_attempt_number = $3
+           AND lease_expires_at <= $2
+         RETURNING id`,
+        [row.task_id, recoveredAt, row.claim_attempt_number],
+      );
+      if (taskUpdated.rows.length !== 1) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+      await this.options.afterLeaseRecoveryStage?.('task');
+
+      const outboxUpdated = await client.query(
+        `UPDATE workflow_outbox_records
+         SET state = 'pending',
+             delivery_generation = delivery_generation + 1,
+             dispatch_lease_expires_at = NULL,
+             last_dispatch_at = NULL,
+             dispatched_at = NULL,
+             updated_at = $2
+         WHERE id = $1
+           AND task_id = $3
+           AND content_package_id = $4
+           AND owner_user_id = $5
+           AND category = 'fetcher'
+           AND envelope_version = 'fetcher-task/v1'
+           AND state = 'dispatched'
+           AND delivery_generation = $6
+           AND last_dispatch_at IS NOT NULL
+           AND dispatched_at IS NOT NULL
+           AND last_dispatch_at = dispatched_at
+         RETURNING id`,
+        [row.outbox_id, recoveredAt, row.task_id, row.content_package_id, row.owner_user_id, row.delivery_generation],
+      );
+      if (outboxUpdated.rows.length !== 1) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+      await this.options.afterLeaseRecoveryStage?.('outbox');
+
+      const sequenceResult = await client.query<{ next_sequence: number }>(
+        `SELECT coalesce(max(sequence), 0) + 1 AS next_sequence
+         FROM workflow_events
+         WHERE workflow_instance_id = $1
+           AND content_package_id = $2
+           AND owner_user_id = $3`,
+        [row.workflow_instance_id, row.content_package_id, row.owner_user_id],
+      );
+      const sequence = Number(sequenceResult.rows[0]?.next_sequence ?? 1);
+      await client.query(
+        `INSERT INTO workflow_events
+          (id, workflow_instance_id, content_package_id, owner_user_id, sequence,
+           event_type, payload, occurred_at, workflow_node_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)`,
+        [
+          input.eventId,
+          row.workflow_instance_id,
+          row.content_package_id,
+          row.owner_user_id,
+          sequence,
+          event.eventType,
+          JSON.stringify(event.payload),
+          recoveredAt,
+          row.workflow_node_id,
+        ],
+      );
+      await this.options.afterLeaseRecoveryStage?.('event');
+      await client.query('COMMIT');
+      return true;
+    } catch (error) {
+      try {
+        await client.query('ROLLBACK');
+      } catch {
+        // Preserve the stable outer error boundary; never emit database details.
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 
   async claimDispatchBatch(limit: number, now: Date): Promise<readonly WorkflowOutboxDeliveryCandidate[]> {
     this.connection.assertAvailable();

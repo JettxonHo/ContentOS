@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { composeExec, composeHealth, composePort } from './compose.js';
 import { requireState } from './env.js';
+import { cleanupOwnedFetcherQueue } from './harness.js';
 import { loopbackReachable } from './process.js';
 
 describe('redis smoke', () => {
@@ -35,6 +36,25 @@ describe('redis smoke', () => {
       `redis-cli --no-auth-warning -a "$REDIS_PASSWORD" dbsize`,
     ]);
     // Robust to both "0" and "(integer) 0" output forms across redis-cli versions.
+    expect(Number.parseInt(size.stdout, 10)).toBe(0);
+  });
+
+  it('removes the owned contentos-fetcher queue keys a spawned Worker leaves behind', async () => {
+    const state = requireState();
+    // Recreate the exact residue the CI Integration smoke failure observed: a
+    // BullMQ queue-metadata key left behind because a spawned Worker's
+    // production shutdown preserves queue data.
+    await composeExec(state, 'redis', [
+      'sh',
+      '-c',
+      `redis-cli --no-auth-warning -a "$REDIS_PASSWORD" hset 'bull:contentos-fetcher:meta' paused 1`,
+    ]);
+    await cleanupOwnedFetcherQueue(state);
+    const size = await composeExec(state, 'redis', [
+      'sh',
+      '-c',
+      `redis-cli --no-auth-warning -a "$REDIS_PASSWORD" dbsize`,
+    ]);
     expect(Number.parseInt(size.stdout, 10)).toBe(0);
   });
 });

@@ -12,9 +12,9 @@ Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Rend
 
 ## 当前状态
 
-仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001` 和 `M2-WF-002` 已完成。`M2-WF-003A`（Transactional Outbox Dispatcher）已通过 PR #69 squash merge，合并提交为 `3211c29ef8e6a934e6473a4f92caf36d8593abc3`；`M2-WF-003B`（Fetcher Gateway Claim and Bounded Lease）已通过 PR #73 合并，合并提交为 `c9c92b70a0ccd99be944107120f03dd3a1776da3`（`feat: add fetcher gateway claim lease (#73)`）。`M2-WF-003C`、`M2-SRC-003` 和 `M2-FETCH-001` 仍未启动。
+仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001` 和 `M2-WF-002` 已完成。`M2-WF-003A`（Transactional Outbox Dispatcher）已通过 PR #69 squash merge，合并提交为 `3211c29ef8e6a934e6473a4f92caf36d8593abc3`；`M2-WF-003B`（Fetcher Gateway Claim and Bounded Lease）已通过 PR #73 合并，合并提交为 `c9c92b70a0ccd99be944107120f03dd3a1776da3`（`feat: add fetcher gateway claim lease (#73)`）。`M2-WF-003C`（Lease and Delivery Reconciliation）处于 **In Review**；`M2-SRC-003` 和 `M2-FETCH-001` 仍未启动。
 
-当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 到 BullMQ 投递边界，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat lease。Worker 仍只将 PostgreSQL Outbox 投递为固定的最小 BullMQ envelope，需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`。M2-WF-003B 仅提供该 Claim/Heartbeat lease 边界，不新增 Fetcher URL execution、Fetcher Queue consumer、Fetcher result 或 Source evidence 写入、用于 Fetcher 结果的 Object Storage 写入或 lease recovery。当前仓库不提供 Source UI、Agent、Render、发布行为、部署或开发服务器。
+当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 到 BullMQ 投递边界，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat lease。Worker 仍只将 PostgreSQL Outbox 投递为固定的最小 BullMQ envelope，需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`。M2-WF-003C（**In Review**）新增 Worker 侧有界 lease/delivery reconciliation：每轮在普通 Queue reconciliation/dispatch 之前最多处理十个符合条件的过期 lease，将其重排队为既有 Task 与 Outbox 记录并推进 delivery generation；PostgreSQL 仍是唯一状态真相，Queue envelope、Job name 与 `attempts` 保持不变。该 slice 不新增 Fetcher URL execution、Fetcher Queue consumer、公网请求（DNS/TCP/TLS/HTTP）、Fetcher Result、Source evidence、Object Storage 写入、Owner Retry 或 terminal Task state。当前仓库不提供 Source UI、Agent、Render、发布行为、部署或开发服务器。
 
 ## MVP 边界
 
@@ -80,7 +80,7 @@ corepack pnpm repository:check
 
 在 Commit 前运行 `corepack pnpm check`。它会按顺序执行 `format:check`、`lint`、`typecheck`、`test` 和 `build`，不会启动 Docker 服务、访问网络或读取 Secrets。依赖 Docker 的 `test:integration`、`test:integration:concurrent` 和 `test:browser` 不属于 `check`。`corepack pnpm repository:check`（以及聚焦的 `check:docs`、`check:decisions` 和 `check:secrets`）会对 Git 跟踪文件执行无依赖的仓库完整性检查。
 
-构建成功后，可使用 `corepack pnpm start:web`、`start:api`、`start:worker`、`start:fetcher` 或 `start:renderer` 启动相应进程。Web 提供登录、活跃／已归档 Dashboard 视图、Content Package 创建，以及元数据／归档 Workspace。API 提供存活检查、三个 `/v1/auth/*` 端点、受保护的 `/v1/content-packages` 路由、受保护的 `/v1/content-packages/:packageId/sources` 路由（粘贴文本捕获、`.md`／`.txt` 文件上传捕获、列表、读取、Working Copy 编辑、Version 创建、Version 列表、批准）、受保护的 URL-capture request 路由、私有且不进入 OpenAPI 的 Fetcher Gateway Claim/Heartbeat 路由，以及 `/openapi.json`；Worker 运行有界的 Outbox Dispatcher，需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`，只发布固定的最小 BullMQ envelope。Fetcher 只校验 `CONTENTOS_FETCHER_GATEWAY_SECRET` 与 `CONTENTOS_FETCHER_GATEWAY_API_ORIGIN`，仍是不会消费 Queue、调用 API 或发起公网请求的生命周期骨架。Web 与 API 的启动要求提供 `.env.example` 所记录的已验证值。
+构建成功后，可使用 `corepack pnpm start:web`、`start:api`、`start:worker`、`start:fetcher` 或 `start:renderer` 启动相应进程。Web 提供登录、活跃／已归档 Dashboard 视图、Content Package 创建，以及元数据／归档 Workspace。API 提供存活检查、三个 `/v1/auth/*` 端点、受保护的 `/v1/content-packages` 路由、受保护的 `/v1/content-packages/:packageId/sources` 路由（粘贴文本捕获、`.md`／`.txt` 文件上传捕获、列表、读取、Working Copy 编辑、Version 创建、Version 列表、批准）、受保护的 URL-capture request 路由、私有且不进入 OpenAPI 的 Fetcher Gateway Claim/Heartbeat 路由，以及 `/openapi.json`；Worker 运行有界的 Outbox Dispatcher 以及 M2-WF-003C 的 lease/delivery reconciliation（**In Review**），需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`，只发布固定的最小 BullMQ envelope，且不消费 Fetcher Job。Fetcher 只校验 `CONTENTOS_FETCHER_GATEWAY_SECRET` 与 `CONTENTOS_FETCHER_GATEWAY_API_ORIGIN`，仍是不会消费 Queue、调用 API 或发起公网请求的生命周期骨架。Web 与 API 的启动要求提供 `.env.example` 所记录的已验证值。
 
 交互式生成本地 owner-password hash，然后仅在通过环境变量提供目标 PostgreSQL URL 后应用已提交的数据库迁移：
 
@@ -116,7 +116,7 @@ corepack pnpm test:integration
 
 安装固定的 Chromium revision（`corepack pnpm exec playwright install chromium`）后，运行 `corepack pnpm test:browser` 以演练完整的 M1 owner loop。其安全、清理和范围边界请阅读 [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md)。
 
-这些命令仍只是受限的 M1 基础，以及 M2 中已完成的 Source、delivery 和 M2-WF-003B Claim/Heartbeat lease slices。当前没有 `dev`、广泛的产品 E2E suite、Fetcher execution 或 Queue consumer、当前持久请求／投递／lease 边界之外的 Workflow Engine、Agent、Render 或内容发布功能。
+这些命令仍只是受限的 M1 基础，以及 M2 中已完成的 Source、delivery 和 M2-WF-003B Claim/Heartbeat lease slices，加上正在审查的 M2-WF-003C reconciliation 实现。当前没有 `dev`、广泛的产品 E2E suite、Fetcher execution 或 Queue consumer、当前持久请求／投递／lease／recovery 边界之外的 Workflow Engine、Agent、Render 或内容发布功能。
 
 ## 持续集成
 
@@ -130,7 +130,7 @@ corepack pnpm test:integration
 
 ## 下一步实施工作
 
-1. M2 — 来源与工作流基础 — 正在进行。`M2-WF-003B` 已通过 PR #73 合并，合并提交为 `c9c92b70a0ccd99be944107120f03dd3a1776da3`；`M2-WF-003C`、`M2-SRC-003` 和 `M2-FETCH-001` 仍未启动。Fetcher execution 和后续 Workflow transitions 需要各自的 Ready Work Items。
+1. M2 — 来源与工作流基础 — 正在进行。`M2-WF-003B` 已通过 PR #73 合并，合并提交为 `c9c92b70a0ccd99be944107120f03dd3a1776da3`；`M2-WF-003C` 处于 In Review，`M2-SRC-003` 和 `M2-FETCH-001` 仍未启动。Fetcher execution 和后续 Workflow transitions 需要各自的 Ready Work Items。
 2. 不要从当前阶段推断 M2 范围，也不要开始 Agent、Research 或发布路径。
 
 本仓库不承诺完成日期。

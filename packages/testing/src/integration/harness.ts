@@ -20,7 +20,7 @@ import { randomBytes, scryptSync } from 'node:crypto';
 import * as smokeEnv from './env.ts';
 import type { SmokeOwnershipClaim, SmokeState } from './env.ts';
 import { allocateLoopbackPort, run, waitForHttpOk } from './process.ts';
-import { composeDown, composePort, composeUp, listComposeProjectNames } from './compose.ts';
+import { composeDown, composeExec, composePort, composeUp, listComposeProjectNames } from './compose.ts';
 import { signedFetch, type AwsCredentials } from './sigv4.ts';
 import { captureManagedProcessIdentity, stopManagedProcess, type ManagedProcessIdentity } from './process-identity.ts';
 
@@ -855,6 +855,44 @@ export async function emptyAndDeleteBucket(
 
   if (errors.length > 0) {
     throw new Error(`S3 bucket cleanup failed (${errors.length} step(s)): ${errors.join('; ')}`);
+  }
+}
+
+/**
+ * Remove every Redis key owned by this isolated smoke run's `contentos-fetcher`
+ * BullMQ queue and verify none remain before returning. Spawned Workers open
+ * this queue (BullMQ default prefix `bull`), and their production shutdown
+ * deliberately preserves queue data, so the isolated test run owns the cleanup.
+ * Only the fixed `bull:contentos-fetcher:*` prefix is scanned and deleted; no
+ * unknown key is ever touched. Must be called only after the owning Worker is
+ * fully stopped and any test-side queue client is closed.
+ */
+export async function cleanupOwnedFetcherQueue(state: SmokeState): Promise<void> {
+  const pattern = 'bull:contentos-fetcher:*';
+  const scanOwnedKeys = async (): Promise<string[]> => {
+    const result = await composeExec(state, 'redis', [
+      'sh',
+      '-c',
+      `redis-cli --no-auth-warning -a "$REDIS_PASSWORD" --scan --pattern '${pattern}'`,
+    ]);
+    return result.stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  };
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const ownedKeys = await scanOwnedKeys();
+    if (ownedKeys.length === 0) return;
+    const delArguments = ownedKeys.map((key) => `'${key}'`).join(' ');
+    await composeExec(state, 'redis', [
+      'sh',
+      '-c',
+      `redis-cli --no-auth-warning -a "$REDIS_PASSWORD" del ${delArguments}`,
+    ]);
+  }
+  const remaining = await scanOwnedKeys();
+  if (remaining.length > 0) {
+    throw new Error(`owned fetcher queue keys remain after cleanup: ${remaining.join(', ')}`);
   }
 }
 

@@ -141,6 +141,13 @@ The `worker` process owns general asynchronous application work, including:
 - Outbox Dispatch or Maintenance when those roles have not been split into separate processes;
 - Task lease, heartbeat, idempotency, cancellation, and recovery checks.
 
+The M2-WF-003C lease/delivery reconciliation slice is **In Review**. It runs
+inside the existing Worker pass, inspects at most ten expired eligible
+Fetcher leases, and atomically requeues one Task, advances its existing Outbox
+delivery generation, and records one redacted recovery Event before normal
+current-generation dispatch. It does not consume Fetcher Jobs or perform URL,
+result, Source, Object Storage, or public-network work.
+
 The Worker may call approved Model Providers with minimum required data through Model Adapters. It must not:
 
 - Fetch arbitrary public Sources;
@@ -240,7 +247,7 @@ The table states architectural limits, not concrete IAM rules. Exact service acc
 | Failure                | Durable truth and recovery                                                                                                                |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | API restart            | In-flight HTTP requests may fail; committed PostgreSQL state remains. Clients retry idempotent Commands or reload Queries.                |
-| Worker crash           | Lease and heartbeat expire; BullMQ may redeliver; Reconciliation verifies PostgreSQL state before safe retry.                             |
+| Worker crash           | Lease and heartbeat expire; BullMQ may retain an old Job; bounded Reconciliation verifies PostgreSQL state, records safe lease recovery, and dispatches only the next current generation. |
 | Redis loss             | PostgreSQL Tasks and Runs remain; Reconciliation recreates missing Queue Jobs.                                                            |
 | Fetch failure          | Fetch Task records classified failure and bounded retry eligibility; incomplete content cannot become an approved Source.                 |
 | Renderer crash         | Temporary files are not Final output; persisted Render Job state and exact dependencies permit safe retry without mutating prior outputs. |
@@ -265,9 +272,10 @@ Worker, Fetcher, and Renderer may later scale independently according to Queue c
 
 The current Fetcher Gateway uses a 60-second initial lease, a 20-second
 heartbeat cadence, and a 120-second total lease cap. These values apply only
-to the M2-WF-003B API-owned lease boundary; lease recovery and requeue remain
-outside that Work Item. Other process health dependencies and shutdown
-timeouts remain implementation-specific.
+to the M2-WF-003B API-owned lease boundary. M2-WF-003C is **In Review** for
+Worker-owned expiry recovery and requeue; it does not change Fetcher
+capabilities or add URL execution. Other process health dependencies and
+shutdown timeouts remain implementation-specific.
 
 ## 14. Process Boundary Matrix
 

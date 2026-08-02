@@ -66,12 +66,23 @@ export interface WorkflowDispatchRepositoryTestBoundary {
   close(): Promise<void>;
 }
 
+/**
+ * Local structural test-options type, kept distinct from the repository's
+ * internal options: referencing that type in this helper's public signature
+ * would pull the Drizzle client declaration surface into the emitted `.d.ts`
+ * and leak third-party optional-peer declarations into consumer builds.
+ */
+export interface WorkflowDispatchRepositoryTestOptions {
+  readonly afterLeaseRecoveryStage?: (stage: 'task' | 'outbox' | 'event') => void | Promise<void>;
+}
+
 export function createWorkflowDispatchRepositoryTestBoundary(
   databaseUrl: string,
+  options?: WorkflowDispatchRepositoryTestOptions,
 ): WorkflowDispatchRepositoryTestBoundary {
   const connection = createDatabaseConnection(databaseUrl);
   return {
-    repository: new DrizzleWorkflowDispatchRepository(connection),
+    repository: new DrizzleWorkflowDispatchRepository(connection, options),
     async query<TRow extends Record<string, unknown>>(
       text: string,
       values: readonly unknown[] = [],

@@ -3,6 +3,8 @@ import type {
   SessionRepository,
   SourceRepository,
   UrlCaptureCommandRepository,
+  FetcherLeaseRecoveryCandidate,
+  FetcherLeaseRecoveryRequest,
   WorkflowOutboxDeliveryCandidate,
   WorkflowOutboxRecordState,
   FetcherGatewayClaimRepository,
@@ -21,6 +23,8 @@ export const DISPATCH_BATCH_LIMIT = 10;
 export const QUEUE_UNAVAILABLE_ERROR_CODE = 'queue_unavailable' as const;
 
 export interface WorkflowDispatchRepository {
+  listExpiredFetcherLeases(limit: number, now: Date): Promise<readonly FetcherLeaseRecoveryCandidate[]>;
+  recoverExpiredFetcherLease(input: FetcherLeaseRecoveryRequest): Promise<boolean>;
   claimDispatchBatch(limit: number, now: Date): Promise<readonly WorkflowOutboxDeliveryCandidate[]>;
   acknowledgeDispatch(candidate: WorkflowOutboxDeliveryCandidate, acknowledgedAt: Date): Promise<boolean>;
   failDispatch(candidate: WorkflowOutboxDeliveryCandidate, failedAt: Date): Promise<boolean>;

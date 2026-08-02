@@ -4,9 +4,10 @@ import { createConnection, createServer, type Server, type Socket } from 'node:n
 import { join } from 'node:path';
 
 import { Client } from 'pg';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { readComposeCredentials, requireState } from './env.js';
+import { cleanupOwnedFetcherQueue } from './harness.js';
 
 interface LifecycleRecord {
   event?: string;
@@ -198,6 +199,14 @@ async function reclaim(child: ChildProcess): Promise<void> {
   await sleep(500);
   await terminate(child, 10_000);
 }
+
+// Spawned Workers open the `contentos-fetcher` BullMQ queue, and their
+// production shutdown deliberately preserves queue data, so this isolated run
+// owns the Redis cleanup. Verify no owned queue key survives any test here
+// (redis.test.ts asserts the database holds zero keys).
+afterEach(async () => {
+  await cleanupOwnedFetcherQueue(requireState());
+});
 
 describe('process lifecycle', () => {
   for (const service of SERVICES) {

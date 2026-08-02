@@ -69,7 +69,7 @@ function dependencyFailure(code: 'database_unavailable' | 'redis_unavailable'): 
 function dispatcherPhase(error: unknown): string {
   if (error && typeof error === 'object' && 'dispatcherPhase' in error) {
     const phase = (error as { dispatcherPhase?: unknown }).dispatcherPhase;
-    if (phase === 'reconciliation' || phase === 'claim') return phase;
+    if (phase === 'recovery' || phase === 'reconciliation' || phase === 'claim') return phase;
   }
   return 'unknown';
 }
