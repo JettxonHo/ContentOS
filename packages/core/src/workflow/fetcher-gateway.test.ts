@@ -4,7 +4,9 @@ import {
   FETCHER_GATEWAY_CONNECTION_POLICY_VERSION,
   FETCHER_GATEWAY_RESOURCE_POLICY_VERSION,
   FetcherGatewayApplicationError,
+  FetcherGatewayDomainError,
   FetcherGatewayService,
+  defineFetcherLeaseExpiredEventValue,
   defineFetcherGatewayClaimResponse,
   hashFetcherGatewayClaim,
 } from './fetcher-gateway.js';
@@ -14,6 +16,49 @@ const now = new Date('2026-08-02T00:00:00.000Z');
 const opaqueClaim = 'A'.repeat(43);
 
 describe('Fetcher Gateway Core contract', () => {
+  it('defines the exact safe lease-expiry Event payload and rejects illegal values', () => {
+    const value = defineFetcherLeaseExpiredEventValue({
+      taskId,
+      claimAttemptNumber: 2,
+      previousDeliveryGeneration: 4,
+      nextDeliveryGeneration: 5,
+    });
+    expect(value.eventType).toBe('fetcher_lease_expired.v1');
+    expect(value.payload).toEqual({
+      taskId,
+      claimAttemptNumber: 2,
+      previousDeliveryGeneration: 4,
+      nextDeliveryGeneration: 5,
+    });
+    expect(Object.keys(value.payload)).toEqual([
+      'taskId',
+      'claimAttemptNumber',
+      'previousDeliveryGeneration',
+      'nextDeliveryGeneration',
+    ]);
+    const serialized = JSON.stringify(value.payload);
+    expect(serialized).not.toContain('https://');
+    expect(serialized).not.toContain(opaqueClaim);
+    expect(serialized).not.toContain('package');
+
+    for (const invalid of [
+      { taskId: '', claimAttemptNumber: 1, previousDeliveryGeneration: 1, nextDeliveryGeneration: 2 },
+      { taskId, claimAttemptNumber: 0, previousDeliveryGeneration: 1, nextDeliveryGeneration: 2 },
+      { taskId, claimAttemptNumber: 1, previousDeliveryGeneration: 0, nextDeliveryGeneration: 1 },
+      { taskId, claimAttemptNumber: 1, previousDeliveryGeneration: 1, nextDeliveryGeneration: 3 },
+      {
+        taskId,
+        claimAttemptNumber: Number.MAX_SAFE_INTEGER + 1,
+        previousDeliveryGeneration: 1,
+        nextDeliveryGeneration: 2,
+      },
+    ]) {
+      expect(() => defineFetcherLeaseExpiredEventValue(invalid as never)).toThrow(
+        new FetcherGatewayDomainError('INVALID_FETCHER_LEASE_EXPIRED_EVENT'),
+      );
+    }
+  });
+
   it('hashes only the opaque claim and preserves the fixed policy identifiers', () => {
     expect(hashFetcherGatewayClaim(opaqueClaim)).toMatch(/^[0-9a-f]{64}$/);
     const response = defineFetcherGatewayClaimResponse({

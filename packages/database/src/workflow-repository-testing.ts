@@ -4,7 +4,10 @@ import type { FetcherGatewayClaimRepository } from '@contentos/core';
 import { createDatabaseConnection } from './client.js';
 import { DrizzleWorkflowRepository } from './workflow-repository.js';
 import { DrizzleWorkflowCommandRepository } from './workflow-command-repository.js';
-import { DrizzleWorkflowDispatchRepository } from './workflow-dispatch-repository.js';
+import {
+  DrizzleWorkflowDispatchRepository,
+  type WorkflowDispatchRepositoryOptions,
+} from './workflow-dispatch-repository.js';
 import { DrizzleWorkflowFetcherGatewayRepository } from './workflow-fetcher-gateway-repository.js';
 import type { WorkflowDispatchRepository } from './runtime.js';
 
@@ -68,10 +71,11 @@ export interface WorkflowDispatchRepositoryTestBoundary {
 
 export function createWorkflowDispatchRepositoryTestBoundary(
   databaseUrl: string,
+  options?: WorkflowDispatchRepositoryOptions,
 ): WorkflowDispatchRepositoryTestBoundary {
   const connection = createDatabaseConnection(databaseUrl);
   return {
-    repository: new DrizzleWorkflowDispatchRepository(connection),
+    repository: new DrizzleWorkflowDispatchRepository(connection, options),
     async query<TRow extends Record<string, unknown>>(
       text: string,
       values: readonly unknown[] = [],

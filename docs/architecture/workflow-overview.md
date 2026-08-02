@@ -114,6 +114,17 @@ Gateway returns the submitted URL and fixed policy versions only to the
 authenticated Fetcher service route; it performs no public retrieval, Queue
 consumption, Source evidence creation, or lease recovery/requeue.
 
+`M2-WF-003C` is **In Review**. The Worker extends the same bounded
+reconciliation pass with at most ten expired, still-eligible `leased`
+`url_capture` Tasks. One PostgreSQL transaction fences the Task and its exact
+Workflow/Source-capture bindings, returns the Task to `queued` while clearing
+its claim fields, returns the matching dispatched Outbox record to `pending`
+with delivery generation `N + 1`, and appends one safe immutable
+`fetcher_lease_expired.v1` Event. The existing Dispatcher may then publish only
+the deterministic current-generation Job with the unchanged three-field
+envelope. This review boundary adds no Fetcher consumer, URL request, result,
+Source evidence, Object Storage write, or public-network capability.
+
 ## 4. Workflow Instance
 
 A Workflow Instance is one Content Package-specific enactment of one exact Workflow Template Version.
@@ -381,6 +392,10 @@ These requirements do not select a metrics backend or exact SSE Event Contract. 
 - A queued Task has no claim, claimant, or lease timestamps; a leased Task has
   a positive attempt number, only the `fetcher` claimant, and a stored claim
   hash rather than the opaque claim value.
+- An expired eligible Fetcher lease is recovered only by the Worker’s bounded
+  reconciliation transaction: Task and Outbox state plus one safe recovery
+  Event commit together, and the next delivery generation receives a new
+  deterministic Job ID while an old Job remains non-authoritative.
 - Template changes do not rewrite running or historical Instances.
 - Skip never fabricates a successful Artifact.
 

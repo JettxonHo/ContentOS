@@ -6,6 +6,7 @@ import { Queue } from 'bullmq';
 import { describe, expect, it } from 'vitest';
 
 import {
+  hashFetcherGatewayClaim,
   UrlCaptureService,
   type ContentPackageId,
   type ContentPackageOwnerId,
@@ -239,6 +240,112 @@ describe('M2-WF-003A Worker integration', () => {
     } finally {
       const jobId = fixture ? `fetcher-${fixture.taskId}-1` : undefined;
       if (jobId) {
+        const job = await queue.getJob(jobId);
+        if (job) await job.remove();
+      }
+      await stopWorker(worker.child).catch(() => {
+        if (worker.child.exitCode === null && worker.child.signalCode === null) worker.child.kill('SIGKILL');
+      });
+      await queue.obliterate({ force: true });
+      await queue.close();
+      if (fixture) await cleanupTask(boundary, fixture.packageId);
+      await boundary.close();
+    }
+  });
+
+  it('recovers an expired lease and dispatches generation N+1 while retaining the old Job', async () => {
+    const boundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const queue = new Queue('contentos-fetcher', { connection: { url: redisUrl() } });
+    const worker = startWorker();
+    let fixture: Awaited<ReturnType<typeof createTask>> | undefined;
+    let oldJobId = '';
+    let newJobId = '';
+    const claim = 'A'.repeat(43);
+    try {
+      fixture = await createTask(boundary);
+      await queue.waitUntilReady();
+      oldJobId = `fetcher-${fixture.taskId}-1`;
+      await waitFor(
+        () => queue.getJob(oldJobId),
+        (value) => value !== undefined,
+      );
+      const recoveryAt = new Date(Date.now() - 1_000);
+      const startedAt = new Date(recoveryAt.getTime() - 60_000);
+      await boundary.query(
+        `UPDATE workflow_tasks
+         SET state = 'leased',
+             claim_attempt_number = 1,
+             claim_hash = $2,
+             claimed_by = 'fetcher',
+             lease_started_at = $3,
+             lease_expires_at = $4,
+             lease_heartbeat_at = $3,
+             updated_at = $3
+         WHERE id = $1`,
+        [fixture.taskId, hashFetcherGatewayClaim(claim), startedAt, recoveryAt],
+      );
+      newJobId = `fetcher-${fixture.taskId}-2`;
+
+      const newJob = await waitFor(
+        () => queue.getJob(newJobId),
+        (value) => value !== undefined,
+        () => `worker stdout=${worker.stdout.join('').trim()} stderr=${worker.stderr.join('').trim()}`,
+      );
+      expect(newJob.name).toBe('fetcher-task');
+      expect(newJob.data).toEqual({
+        taskId: fixture.taskId,
+        taskKind: 'url_capture',
+        envelopeVersion: 'fetcher-task/v1',
+      });
+      expect(newJob.opts.attempts).toBe(1);
+      expect(await queue.getJob(oldJobId)).toBeDefined();
+
+      const task = await boundary.query<{
+        state: string;
+        claim_attempt_number: number;
+        claim_hash: string | null;
+        lease_expires_at: Date | null;
+      }>('SELECT state, claim_attempt_number, claim_hash, lease_expires_at FROM workflow_tasks WHERE id = $1', [
+        fixture.taskId,
+      ]);
+      expect(task[0]).toEqual({ state: 'queued', claim_attempt_number: 1, claim_hash: null, lease_expires_at: null });
+      const ledger = await boundary.query<{
+        state: string;
+        delivery_generation: number;
+        dispatch_attempt_count: number;
+        last_dispatch_at: Date | null;
+        dispatched_at: Date | null;
+      }>(
+        `SELECT state, delivery_generation, dispatch_attempt_count, last_dispatch_at, dispatched_at
+         FROM workflow_outbox_records WHERE id = $1`,
+        [fixture.outboxId],
+      );
+      expect(ledger[0]).toMatchObject({
+        state: 'dispatched',
+        delivery_generation: 2,
+        dispatch_attempt_count: 2,
+        last_dispatch_at: expect.any(Date),
+        dispatched_at: expect.any(Date),
+      });
+      const events = await boundary.query<{ event_type: string; payload: Record<string, unknown> }>(
+        `SELECT event_type, payload FROM workflow_events
+         WHERE content_package_id = $1 AND event_type = 'fetcher_lease_expired.v1'`,
+        [fixture.packageId],
+      );
+      expect(events).toEqual([
+        {
+          event_type: 'fetcher_lease_expired.v1',
+          payload: {
+            taskId: fixture.taskId,
+            claimAttemptNumber: 1,
+            previousDeliveryGeneration: 1,
+            nextDeliveryGeneration: 2,
+          },
+        },
+      ]);
+    } finally {
+      for (const jobId of [oldJobId, newJobId]) {
+        if (!jobId) continue;
         const job = await queue.getJob(jobId);
         if (job) await job.remove();
       }

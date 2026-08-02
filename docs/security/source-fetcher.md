@@ -4,7 +4,7 @@
 
 **Scope:** MVP public-URL validation, safe fetch, immutable capture, extraction, review Candidate, and failure boundaries
 
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-02
 
 This document defines how ContentOS safely converts a user-supplied public URL into an immutable Raw Snapshot and a Safe Source Candidate. It defines security and responsibility boundaries, not an HTTP library, DNS-pinning algorithm, concrete timeout, exact byte limit, parser, or implementation code.
 
@@ -58,6 +58,12 @@ The Fetcher:
 - receives only an assigned Fetch Task and minimum policy/configuration metadata;
 - writes only to scoped quarantine, Snapshot, extraction, and result paths;
 - produces output that still requires validation, user Review, Version creation, and Approval.
+
+The M2-WF-003C lease-expiry boundary is Worker-owned reconciliation only. It
+does not give the Fetcher PostgreSQL access, consume a Queue Job, make a
+network request, submit a result, create Source evidence, or write Object
+Storage. A recovered Task is merely eligible for the next private Claim after
+the existing API Gateway checks it again.
 
 A successful network response establishes only that bytes were fetched under policy. It does not establish factual truth, safety for display, or Source Approval.
 

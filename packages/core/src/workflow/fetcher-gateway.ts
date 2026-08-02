@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+import type { WorkflowEventId } from './workflow.js';
 import type { WorkflowTaskId } from './url-capture.js';
 
 export const FETCHER_GATEWAY_CONNECTION_POLICY_VERSION = 'public-url-connection/v1' as const;
@@ -11,6 +12,31 @@ export const FETCHER_GATEWAY_HEARTBEAT_CADENCE_MS = 20_000;
 export const FETCHER_GATEWAY_MAX_LEASE_MS = 120_000;
 export const FETCHER_GATEWAY_CLAIM_BYTES = 32;
 export const FETCHER_GATEWAY_CLAIM_LENGTH = 43;
+export const FETCHER_LEASE_EXPIRED_EVENT_TYPE = 'fetcher_lease_expired.v1' as const;
+
+export interface FetcherLeaseExpiredEventPayload {
+  readonly taskId: WorkflowTaskId;
+  readonly claimAttemptNumber: number;
+  readonly previousDeliveryGeneration: number;
+  readonly nextDeliveryGeneration: number;
+}
+
+export interface FetcherLeaseExpiredEventValue {
+  readonly eventType: typeof FETCHER_LEASE_EXPIRED_EVENT_TYPE;
+  readonly payload: FetcherLeaseExpiredEventPayload;
+}
+
+export interface FetcherLeaseRecoveryCandidate {
+  readonly taskId: WorkflowTaskId;
+  readonly claimAttemptNumber: number;
+  readonly deliveryGeneration: number;
+}
+
+export interface FetcherLeaseRecoveryRequest {
+  readonly candidate: FetcherLeaseRecoveryCandidate;
+  readonly eventId: WorkflowEventId;
+  readonly recoveredAt: Date;
+}
 
 export interface FetcherGatewayClaimRecord {
   readonly taskId: WorkflowTaskId;
@@ -76,7 +102,10 @@ export class FetcherGatewayApplicationError extends Error {
 }
 
 export type FetcherGatewayDomainErrorCode =
-  'INVALID_FETCHER_GATEWAY_CLAIM' | 'INVALID_FETCHER_GATEWAY_HEARTBEAT' | 'INVALID_FETCHER_GATEWAY_POLICY';
+  | 'INVALID_FETCHER_GATEWAY_CLAIM'
+  | 'INVALID_FETCHER_GATEWAY_HEARTBEAT'
+  | 'INVALID_FETCHER_GATEWAY_POLICY'
+  | 'INVALID_FETCHER_LEASE_EXPIRED_EVENT';
 
 export class FetcherGatewayDomainError extends Error {
   constructor(readonly code: FetcherGatewayDomainErrorCode) {
@@ -93,12 +122,43 @@ function validTaskId(value: unknown): value is WorkflowTaskId {
   return typeof value === 'string' && value.length > 0 && value.length <= 128 && value.trim() === value;
 }
 
+function validGeneration(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1;
+}
+
 function validOpaqueClaim(value: unknown): value is string {
   return typeof value === 'string' && /^[A-Za-z0-9_-]{43}$/.test(value);
 }
 
 function validAttemptNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1;
+}
+
+export function defineFetcherLeaseExpiredEventValue(input: {
+  readonly taskId: WorkflowTaskId;
+  readonly claimAttemptNumber: number;
+  readonly previousDeliveryGeneration: number;
+  readonly nextDeliveryGeneration: number;
+}): FetcherLeaseExpiredEventValue {
+  if (
+    !validTaskId(input.taskId) ||
+    !validAttemptNumber(input.claimAttemptNumber) ||
+    !validGeneration(input.previousDeliveryGeneration) ||
+    !validGeneration(input.nextDeliveryGeneration) ||
+    input.nextDeliveryGeneration !== input.previousDeliveryGeneration + 1
+  ) {
+    throw new FetcherGatewayDomainError('INVALID_FETCHER_LEASE_EXPIRED_EVENT');
+  }
+  const payload: FetcherLeaseExpiredEventPayload = Object.freeze({
+    taskId: input.taskId,
+    claimAttemptNumber: input.claimAttemptNumber,
+    previousDeliveryGeneration: input.previousDeliveryGeneration,
+    nextDeliveryGeneration: input.nextDeliveryGeneration,
+  });
+  return Object.freeze({
+    eventType: FETCHER_LEASE_EXPIRED_EVENT_TYPE,
+    payload,
+  });
 }
 
 function validClaimResponse(input: FetcherGatewayClaimResponse): boolean {
