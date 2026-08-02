@@ -141,41 +141,56 @@ const LEASE_EXPIRED_EVENT_KEYS: readonly string[] = [
   'nextDeliveryGeneration',
 ];
 
-type LeaseExpiredEventShape = {
+interface LeaseExpiredEventFields {
   readonly taskId: unknown;
   readonly claimAttemptNumber: unknown;
   readonly previousDeliveryGeneration: unknown;
   readonly nextDeliveryGeneration: unknown;
-};
+}
 
 /**
- * Confirms `value` is a plain data object owning exactly the four approved
- * keys as data (non-accessor) properties. Only the prototype, key set, and
- * property descriptors are inspected; a getter is never invoked, so a hostile
- * accessor cannot execute user code or observe validation.
+ * Validates that `value` is a plain data object owning exactly the four
+ * approved keys as data (non-accessor) properties, and returns the four values
+ * read from their property descriptors. The value is never read through the
+ * object's `get` trap, so a hostile getter or Proxy `get` trap cannot execute.
+ * All reflection is guarded: a revoked Proxy, or a Proxy whose
+ * `getPrototypeOf`/`ownKeys`/`getOwnPropertyDescriptor` traps throw, yields
+ * `undefined` (a stable rejection) rather than leaking a native error.
  */
-function isLeaseExpiredEventShape(value: unknown): value is LeaseExpiredEventShape {
-  if (typeof value !== 'object' || value === null) return false;
-  const proto = Object.getPrototypeOf(value);
-  if (proto !== null && proto !== Object.prototype) return false;
-  const ownKeys = Reflect.ownKeys(value);
-  if (ownKeys.length !== LEASE_EXPIRED_EVENT_KEYS.length) return false;
-  for (const key of ownKeys) {
-    if (typeof key !== 'string' || !LEASE_EXPIRED_EVENT_KEYS.includes(key)) return false;
-    const descriptor = Object.getOwnPropertyDescriptor(value, key);
-    if (descriptor === undefined || !('value' in descriptor)) return false;
+function extractLeaseExpiredEventFields(value: unknown): LeaseExpiredEventFields | undefined {
+  try {
+    if (typeof value !== 'object' || value === null) return undefined;
+    const proto = Object.getPrototypeOf(value);
+    if (proto !== null && proto !== Object.prototype) return undefined;
+    const ownKeys = Reflect.ownKeys(value);
+    if (ownKeys.length !== LEASE_EXPIRED_EVENT_KEYS.length) return undefined;
+    const fields: Record<string, unknown> = {};
+    for (const key of ownKeys) {
+      if (typeof key !== 'string' || !LEASE_EXPIRED_EVENT_KEYS.includes(key)) return undefined;
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (descriptor === undefined || !('value' in descriptor)) return undefined;
+      fields[key] = descriptor.value;
+    }
+    return {
+      taskId: fields.taskId,
+      claimAttemptNumber: fields.claimAttemptNumber,
+      previousDeliveryGeneration: fields.previousDeliveryGeneration,
+      nextDeliveryGeneration: fields.nextDeliveryGeneration,
+    };
+  } catch {
+    return undefined;
   }
-  return true;
 }
 
 export function defineFetcherLeaseExpiredEventValue(input: unknown): FetcherLeaseExpiredEventValue {
-  if (!isLeaseExpiredEventShape(input)) {
+  const fields = extractLeaseExpiredEventFields(input);
+  if (fields === undefined) {
     throw new FetcherGatewayDomainError('INVALID_FETCHER_LEASE_EXPIRED_EVENT');
   }
-  const taskId = input.taskId;
-  const claimAttemptNumber = input.claimAttemptNumber;
-  const previousDeliveryGeneration = input.previousDeliveryGeneration;
-  const nextDeliveryGeneration = input.nextDeliveryGeneration;
+  const taskId = fields.taskId;
+  const claimAttemptNumber = fields.claimAttemptNumber;
+  const previousDeliveryGeneration = fields.previousDeliveryGeneration;
+  const nextDeliveryGeneration = fields.nextDeliveryGeneration;
   if (
     !validTaskId(taskId) ||
     !validAttemptNumber(claimAttemptNumber) ||

@@ -217,4 +217,43 @@ describe('defineFetcherLeaseExpiredEventValue exact shape', () => {
     );
     expect(getterCalled).toBe(false);
   });
+
+  it('reads legal descriptor values without triggering a Proxy get trap', () => {
+    let getTrapCalled = false;
+    const proxied = new Proxy(
+      { ...validBase },
+      {
+        get: () => {
+          getTrapCalled = true;
+          throw new Error('TRAP_BOOM');
+        },
+      },
+    );
+    const value = defineFetcherLeaseExpiredEventValue(proxied);
+    expect(getTrapCalled).toBe(false);
+    expect(value.eventType).toBe('fetcher_lease_expired.v1');
+    expect(value.payload).toEqual({
+      taskId,
+      claimAttemptNumber: 2,
+      previousDeliveryGeneration: 4,
+      nextDeliveryGeneration: 5,
+    });
+  });
+
+  it('returns the stable Domain Error for a revoked Proxy without leaking TypeError', () => {
+    const revocable = Proxy.revocable({ ...validBase }, {});
+    revocable.revoke();
+    expect(() => defineFetcherLeaseExpiredEventValue(revocable.proxy)).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_LEASE_EXPIRED_EVENT'),
+    );
+  });
+
+  it('returns the stable Domain Error when a reflection trap throws', () => {
+    const boom = (): never => {
+      throw new Error('REFLECT_BOOM');
+    };
+    expectInvalid(new Proxy({ ...validBase }, { getPrototypeOf: boom }));
+    expectInvalid(new Proxy({ ...validBase }, { ownKeys: boom }));
+    expectInvalid(new Proxy({ ...validBase }, { getOwnPropertyDescriptor: boom }));
+  });
 });

@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 
 import { Queue } from 'bullmq';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   hashFetcherGatewayClaim,
@@ -15,6 +15,7 @@ import {
 import { createUrlCaptureRepositoryTestBoundary, type UrlCaptureRepositoryTestBoundary } from '@contentos/database';
 
 import { readComposeCredentials, requireState } from './env.js';
+import { cleanupOwnedFetcherQueue } from './harness.js';
 
 const INVALID_JOB_CONTRACTS = [
   {
@@ -190,6 +191,14 @@ async function stopWorker(child: ChildProcess): Promise<void> {
   if (child.exitCode === null && child.signalCode === null) await closed;
   expect(child.exitCode).toBe(0);
 }
+
+// Each test stops its Worker and obliterates the queue, but a BullMQ
+// `obliterate` can leave the `meta` marker behind under load. Verify no owned
+// `contentos-fetcher` key survives any test here (redis.test.ts asserts the
+// database holds zero keys).
+afterEach(async () => {
+  await cleanupOwnedFetcherQueue(requireState());
+});
 
 describe('M2-WF-003A Worker integration', () => {
   it('dispatches the exact envelope, keeps Task queued, and repairs a missing current Job', async () => {
