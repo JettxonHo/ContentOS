@@ -141,7 +141,7 @@ The `worker` process owns general asynchronous application work, including:
 - Outbox Dispatch or Maintenance when those roles have not been split into separate processes;
 - Task lease, heartbeat, idempotency, cancellation, and recovery checks.
 
-The M2-WF-003C lease/delivery reconciliation slice is **In Review**. It runs
+The M2-WF-003C lease/delivery reconciliation slice is completed (PR #77, `ed428b1c12eb6e2ce01d964d56c05a09a3ba87d1`). It runs
 inside the existing Worker pass, inspects at most ten expired eligible
 Fetcher leases, and atomically requeues one Task, advances its existing Outbox
 delivery generation, and records one redacted recovery Event before normal
@@ -272,7 +272,7 @@ Worker, Fetcher, and Renderer may later scale independently according to Queue c
 
 The current Fetcher Gateway uses a 60-second initial lease, a 20-second
 heartbeat cadence, and a 120-second total lease cap. These values apply only
-to the M2-WF-003B API-owned lease boundary. M2-WF-003C is **In Review** for
+to the M2-WF-003B API-owned lease boundary. M2-WF-003C is completed (PR #77) for
 Worker-owned expiry recovery and requeue; it does not change Fetcher
 capabilities or add URL execution. Other process health dependencies and
 shutdown timeouts remain implementation-specific.
