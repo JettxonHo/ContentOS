@@ -114,7 +114,7 @@ Gateway returns the submitted URL and fixed policy versions only to the
 authenticated Fetcher service route; it performs no public retrieval, Queue
 consumption, Source evidence creation, or lease recovery/requeue.
 
-`M2-WF-003C` is **In Review**. The Worker extends the same bounded
+`M2-WF-003C` is completed (PR #77, `ed428b1c12eb6e2ce01d964d56c05a09a3ba87d1`). The Worker extends the same bounded
 reconciliation pass with at most ten expired, still-eligible `leased`
 `url_capture` Tasks. One PostgreSQL transaction fences the Task and its exact
 Workflow/Source-capture bindings, returns the Task to `queued` while clearing
@@ -122,7 +122,7 @@ its claim fields, returns the matching dispatched Outbox record to `pending`
 with delivery generation `N + 1`, and appends one safe immutable
 `fetcher_lease_expired.v1` Event. The existing Dispatcher may then publish only
 the deterministic current-generation Job with the unchanged three-field
-envelope. This review boundary adds no Fetcher consumer, URL request, result,
+envelope. This reconciliation boundary adds no Fetcher consumer, URL request, result,
 Source evidence, Object Storage write, or public-network capability.
 
 ## 4. Workflow Instance
