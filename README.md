@@ -12,9 +12,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001`, `M2-SRC-002`, `M2-WF-001`, `M2-WF-002`, and `M2-WF-003A` (Transactional Outbox Dispatcher) are completed. `M2-WF-003A` was squash-merged through PR #69 as `3211c29ef8e6a934e6473a4f92caf36d8593abc3`. `M2-WF-003B` is implemented on this branch and awaiting independent review.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001`, `M2-SRC-002`, `M2-WF-001`, and `M2-WF-002` are completed. `M2-WF-003A` (Transactional Outbox Dispatcher) was squash-merged through PR #69 as `3211c29ef8e6a934e6473a4f92caf36d8593abc3`; `M2-WF-003B` (Fetcher Gateway Claim and Bounded Lease) was merged through PR #73 as merge commit `c9c92b70a0ccd99be944107120f03dd3a1776da3` (`feat: add fetcher gateway claim lease (#73)`). `M2-WF-003C`, `M2-SRC-003`, and `M2-FETCH-001` remain unstarted.
 
-This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package and URL-capture API boundaries, the M1 Web thin slice, the Worker Outbox-to-BullMQ delivery boundary, and the private API-owned Fetcher Gateway Claim/Heartbeat lease. It does not provide Source UI, URL fetch execution, a Fetcher Queue consumer, Fetcher result behavior, Agent, Render, publishing behavior, deployment, or a development server.
+This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package and URL-capture API boundaries, the M1 Web thin slice, the Worker Outbox-to-BullMQ delivery boundary, and the private API-owned Fetcher Gateway Claim/Heartbeat lease. The Worker still delivers only the fixed minimal BullMQ envelope from PostgreSQL Outbox and requires `CONTENTOS_ENV`, `DATABASE_URL`, and `REDIS_URL`. The M2-WF-003B slice does not add URL fetch execution, a Fetcher Queue consumer, Fetcher result or Source-evidence writes, Object Storage writes for fetched results, or lease recovery. The repository does not provide Source UI, Agent, Render, publishing behavior, deployment, or a development server.
 
 ## MVP boundary
 
@@ -130,7 +130,7 @@ The workflow references no repository Secrets, persists no credentials, uploads 
 
 ## Next implementation steps
 
-1. M2 — Source and Workflow Foundation — is in progress. `M2-WF-003B` is awaiting independent review; `M2-WF-003C` remains unstarted. Fetcher execution and later Workflow transitions require their own Ready Work Items.
+1. M2 — Source and Workflow Foundation — is in progress. `M2-WF-003B` is completed through PR #73, merged as `c9c92b70a0ccd99be944107120f03dd3a1776da3`; `M2-WF-003C`, `M2-SRC-003`, and `M2-FETCH-001` remain unstarted. Fetcher execution and later Workflow transitions require their own Ready Work Items.
 2. Do not infer M2 scope or begin an Agent, Research, or publishing path from the current stage.
 
 No completion date is committed by this repository.

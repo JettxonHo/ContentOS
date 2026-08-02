@@ -12,9 +12,9 @@ Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Rend
 
 ## 当前状态
 
-仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001`、`M2-WF-002` 和 `M2-WF-003A`（Transactional Outbox Dispatcher）已完成。`M2-WF-003A` 已通过 PR #69 squash merge，合并提交为 `3211c29ef8e6a934e6473a4f92caf36d8593abc3`。`M2-WF-003B` 已在当前分支实现，等待独立复审。
+仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001` 和 `M2-WF-002` 已完成。`M2-WF-003A`（Transactional Outbox Dispatcher）已通过 PR #69 squash merge，合并提交为 `3211c29ef8e6a934e6473a4f92caf36d8593abc3`；`M2-WF-003B`（Fetcher Gateway Claim and Bounded Lease）已通过 PR #73 合并，合并提交为 `c9c92b70a0ccd99be944107120f03dd3a1776da3`（`feat: add fetcher gateway claim lease (#73)`）。`M2-WF-003C`、`M2-SRC-003` 和 `M2-FETCH-001` 仍未启动。
 
-当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 到 BullMQ 投递边界，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat lease。Worker 只将 PostgreSQL Outbox 投递为固定的最小 BullMQ envelope，需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`；当前不提供 Source UI、Fetcher URL execution、Fetcher Queue consumer、Fetcher result 行为、Agent、Render、发布行为、部署或开发服务器。
+当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 到 BullMQ 投递边界，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat lease。Worker 仍只将 PostgreSQL Outbox 投递为固定的最小 BullMQ envelope，需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`。M2-WF-003B 仅提供该 Claim/Heartbeat lease 边界，不新增 Fetcher URL execution、Fetcher Queue consumer、Fetcher result 或 Source evidence 写入、用于 Fetcher 结果的 Object Storage 写入或 lease recovery。当前仓库不提供 Source UI、Agent、Render、发布行为、部署或开发服务器。
 
 ## MVP 边界
 
@@ -130,7 +130,7 @@ corepack pnpm test:integration
 
 ## 下一步实施工作
 
-1. M2 — 来源与工作流基础 — 正在进行。`M2-WF-003B` 等待独立复审；`M2-WF-003C` 仍未开始。Fetcher execution 和后续 Workflow transitions 需要各自的 Ready Work Items。
+1. M2 — 来源与工作流基础 — 正在进行。`M2-WF-003B` 已通过 PR #73 合并，合并提交为 `c9c92b70a0ccd99be944107120f03dd3a1776da3`；`M2-WF-003C`、`M2-SRC-003` 和 `M2-FETCH-001` 仍未启动。Fetcher execution 和后续 Workflow transitions 需要各自的 Ready Work Items。
 2. 不要从当前阶段推断 M2 范围，也不要开始 Agent、Research 或发布路径。
 
 本仓库不承诺完成日期。
