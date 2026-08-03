@@ -18,6 +18,7 @@ import {
   type StoredObject,
   type UrlCaptureIdGenerator,
   type UrlCaptureResultRecordCommand,
+  type UrlCaptureResultRepository,
 } from '@contentos/core';
 import {
   createFetcherGatewayRepositoryTestBoundary,
@@ -1762,6 +1763,714 @@ describe('M2-SRC-003 final Lease authority over the Object Storage read window',
       expect(
         (await commandBoundary.query('SELECT id FROM url_capture_results WHERE task_id = $1', [fixture.taskId])).length,
       ).toBe(0);
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await faultBoundary.close();
+    }
+  });
+});
+
+describe('M2-SRC-003 recordResult connection-acquisition failure (NOT_COMMITTED)', () => {
+  function blockingObjectStore(): ObjectStore & {
+    reads: string[];
+    deletes: string[];
+    readStarted: Promise<void>;
+    releaseRead: (integrity: boolean) => void;
+  } {
+    const reads: string[] = [];
+    const deletes: string[] = [];
+    let resolveRead: ((integrity: boolean) => void) | undefined;
+    let notifyStarted: (() => void) | undefined;
+    const readGate = new Promise<boolean>((resolve) => {
+      resolveRead = resolve;
+    });
+    const readStarted = new Promise<void>((resolve) => {
+      notifyStarted = resolve;
+    });
+    return {
+      reads,
+      deletes,
+      readStarted,
+      releaseRead: (integrity) => resolveRead?.(integrity),
+      putImmutable: async (): Promise<StoredObject> => {
+        throw new Error('M2-SRC-003 does not write fetcher objects');
+      },
+      readForIntegrity: async (expected: StoredObject) => {
+        reads.push(expected.storageKey);
+        notifyStarted?.();
+        return readGate;
+      },
+      deleteForCompensation: async (storageKey: string) => {
+        deletes.push(storageKey);
+      },
+    };
+  }
+
+  function serviceFor(objectStore: ObjectStore, repository: never): FetcherResultService {
+    return new FetcherResultService(
+      repository,
+      objectStore,
+      {
+        generateResultId: () => randomUUID(),
+        generateWorkingCopyId: () => randomUUID(),
+        generateSourceReviewNodeId: () => randomUUID() as never,
+        generateResultEventId: () => randomUUID() as never,
+      },
+      { now: () => new Date() },
+    );
+  }
+
+  function successBodyFor(taskId: string, attemptNumber: number): Record<string, unknown> {
+    const snapshotId = randomUUID();
+    return {
+      resultVersion: 'fetcher-result/v1',
+      attemptNumber,
+      outcome: 'succeeded',
+      snapshot: {
+        snapshotId,
+        storageKey: buildUrlCaptureStorageKey({ taskId, attemptNumber, snapshotId }),
+        sha256: 'a'.repeat(64),
+        byteSize: 1234,
+        contentType: 'text/html',
+        contentEncoding: 'identity',
+      },
+      capture: {
+        finalUrl: 'https://example.com/final',
+        redirects: [],
+        responseStatus: 200,
+        encodedByteSize: 1234,
+        decodedByteSize: 5678,
+      },
+      candidate: { schemaVersion: 'source/normalized/v1', text: 'reviewable normalized text' },
+    };
+  }
+
+  it('compensates the object exactly once and returns a stable NOT_COMMITTED when the Result connection is unavailable', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    let poolEnded = false;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const store = blockingObjectStore();
+      const service = serviceFor(store, resultBoundary.repository as never);
+
+      // 1. Preflight is eligible and the integrity read begins (blocked).
+      const submission = service.submitResult(
+        fixture.taskId as never,
+        fixture.claim,
+        successBodyFor(fixture.taskId, fixture.attemptNumber),
+      );
+      await store.readStarted;
+      expect(store.reads).toHaveLength(1);
+
+      // 2. Make the Result Repository connection unavailable before recordResult
+      //    acquires a client, then release the read (integrity succeeds).
+      await resultBoundary.pool.end();
+      poolEnded = true;
+      store.releaseRead(true);
+
+      // 3. recordResult cannot connect: it must surface NOT_COMMITTED and the
+      //    service must compensate the task-scoped object exactly once.
+      await expect(submission).rejects.toEqual(new FetcherResultInternalError('NOT_COMMITTED'));
+      expect(store.reads).toHaveLength(1);
+      expect(store.deletes).toHaveLength(1);
+
+      // 4. Zero durable effects.
+      expect(
+        (await commandBoundary.query('SELECT id FROM url_capture_results WHERE task_id = $1', [fixture.taskId])).length,
+      ).toBe(0);
+      expect(
+        (await commandBoundary.query('SELECT id FROM sources WHERE content_package_id = $1', [fixture.packageId]))
+          .length,
+      ).toBe(0);
+      expect(
+        (
+          await commandBoundary.query('SELECT id FROM source_raw_snapshots WHERE owner_user_id = $1', [
+            fixture.ownerUserId,
+          ])
+        ).length,
+      ).toBe(0);
+      expect(
+        (
+          await commandBoundary.query('SELECT id FROM source_working_copies WHERE owner_user_id = $1', [
+            fixture.ownerUserId,
+          ])
+        ).length,
+      ).toBe(0);
+      expect(
+        (
+          await commandBoundary.query('SELECT source_id FROM source_heads WHERE owner_user_id = $1', [
+            fixture.ownerUserId,
+          ])
+        ).length,
+      ).toBe(0);
+      expect(
+        (
+          await commandBoundary.query(
+            `SELECT id FROM workflow_events
+             WHERE content_package_id = $1 AND event_type IN ('url_capture_succeeded.v1', 'url_capture_failed.v1')`,
+            [fixture.packageId],
+          )
+        ).length,
+      ).toBe(0);
+      const [task] = await commandBoundary.query<{ state: string }>('SELECT state FROM workflow_tasks WHERE id = $1', [
+        fixture.taskId,
+      ]);
+      expect(task?.state).toBe('leased');
+      const [node] = await commandBoundary.query<{ state: string }>(
+        `SELECT state FROM workflow_nodes WHERE id = (SELECT workflow_node_id FROM workflow_tasks WHERE id = $1)`,
+        [fixture.taskId],
+      );
+      expect(node?.state).toBe('ready');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      if (!poolEnded) await resultBoundary.close();
+    }
+  });
+});
+
+describe('M2-SRC-003 full identity reconciliation (COMMIT_UNKNOWN)', () => {
+  function reconcileInput(
+    fixture: LeasedTask,
+    payloadSha: string,
+  ): {
+    taskId: never;
+    claimHash: string;
+    attemptNumber: number;
+    submittedPayloadSha256: string;
+  } {
+    return {
+      taskId: fixture.taskId as never,
+      claimHash: fixture.claimHash,
+      attemptNumber: fixture.attemptNumber,
+      submittedPayloadSha256: payloadSha,
+    };
+  }
+
+  async function commitSuccess(
+    resultBoundary: { repository: UrlCaptureResultRepository },
+    fixture: LeasedTask,
+  ): Promise<{ payloadSha: string; snapshotId: string }> {
+    const cmd = successCommand(fixture);
+    const outcome = await resultBoundary.repository.recordResult(cmd);
+    expect(outcome.kind).toBe('recorded');
+    return { payloadSha: cmd.submittedPayloadSha256, snapshotId: cmd.success?.snapshot.snapshotId ?? '' };
+  }
+
+  async function commitFailure(
+    resultBoundary: { repository: UrlCaptureResultRepository },
+    fixture: LeasedTask,
+  ): Promise<{ payloadSha: string }> {
+    const cmd = failureCommand(fixture, 'fetch_failed');
+    const outcome = await resultBoundary.repository.recordResult(cmd);
+    expect(outcome.kind).toBe('recorded');
+    return { payloadSha: cmd.submittedPayloadSha256 };
+  }
+
+  async function withEventsUnlocked(
+    boundary: UrlCaptureRepositoryTestBoundary,
+    fn: () => Promise<void>,
+  ): Promise<void> {
+    await boundary.query('ALTER TABLE workflow_events DISABLE TRIGGER workflow_events_immutable_trigger');
+    try {
+      await fn();
+    } finally {
+      await boundary.query('ALTER TABLE workflow_events ENABLE TRIGGER workflow_events_immutable_trigger');
+    }
+  }
+
+  async function taskInstanceId(boundary: UrlCaptureRepositoryTestBoundary, taskId: string): Promise<string> {
+    const [row] = await boundary.query<{ workflow_instance_id: string }>(
+      'SELECT workflow_instance_id FROM workflow_tasks WHERE id = $1',
+      [taskId],
+    );
+    return row?.workflow_instance_id ?? '';
+  }
+
+  it('returns COMMITTED for a complete success graph', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitSuccess(resultBoundary, fixture);
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('COMMITTED');
+      if (reconciliation.outcome === 'COMMITTED') {
+        expect(reconciliation.result.recordedOutcome).toBe('succeeded');
+        expect(reconciliation.result.sourceId).toBe(fixture.sourceReferenceId);
+      }
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns COMMITTED for a complete failure graph', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitFailure(resultBoundary, fixture);
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('COMMITTED');
+      if (reconciliation.outcome === 'COMMITTED') {
+        expect(reconciliation.result.recordedOutcome).toBe('failed');
+        expect(reconciliation.result.recordedCategory).toBe('fetch_failed');
+      }
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns ABSENT when nothing has been committed and there are no effects', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, 'a'.repeat(64)));
+      expect(reconciliation.outcome).toBe('ABSENT');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN for a Result-only row with an un-terminalized Task', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const [requestRow] = await commandBoundary.query<{ url_capture_request_id: string }>(
+        'SELECT url_capture_request_id FROM workflow_tasks WHERE id = $1',
+        [fixture.taskId],
+      );
+      const snapshotId = randomUUID();
+      const payloadSha = 'c'.repeat(64);
+      await commandBoundary.query(
+        `INSERT INTO url_capture_results (${RESULT_INSERT_COLUMNS})
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::jsonb, now())`,
+        [
+          randomUUID(),
+          fixture.taskId,
+          requestRow?.url_capture_request_id,
+          fixture.sourceReferenceId,
+          fixture.packageId,
+          fixture.ownerUserId,
+          fixture.attemptNumber,
+          fixture.claimHash,
+          'fetcher-result/v1',
+          payloadSha,
+          'succeeded',
+          null,
+          'succeeded',
+          null,
+          null,
+          fixture.sourceReferenceId,
+          snapshotId,
+          validEvidenceJson(fixture.taskId, fixture.attemptNumber, snapshotId),
+        ],
+      );
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when a success graph is missing its Head', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitSuccess(resultBoundary, fixture);
+      await commandBoundary.query('DELETE FROM source_heads WHERE source_id = $1', [fixture.sourceReferenceId]);
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when a success graph is missing its Event', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitSuccess(resultBoundary, fixture);
+      const instanceId = await taskInstanceId(commandBoundary, fixture.taskId);
+      await withEventsUnlocked(commandBoundary, async () => {
+        await commandBoundary.query(
+          `DELETE FROM workflow_events WHERE workflow_instance_id = $1 AND event_type = 'url_capture_succeeded.v1'`,
+          [instanceId],
+        );
+      });
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when the success Event payload does not match the Result graph', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitSuccess(resultBoundary, fixture);
+      const instanceId = await taskInstanceId(commandBoundary, fixture.taskId);
+      await withEventsUnlocked(commandBoundary, async () => {
+        await commandBoundary.query(
+          `UPDATE workflow_events SET payload = jsonb_set(payload, '{snapshotId}', to_jsonb($2::text))
+           WHERE workflow_instance_id = $1 AND event_type = 'url_capture_succeeded.v1'`,
+          [instanceId, randomUUID()],
+        );
+      });
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when the success Task is not terminal-succeeded', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitSuccess(resultBoundary, fixture);
+      await commandBoundary.query(`UPDATE workflow_tasks SET state = 'failed', updated_at = now() WHERE id = $1`, [
+        fixture.taskId,
+      ]);
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when the success Task still holds Lease fields', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitSuccess(resultBoundary, fixture);
+      await commandBoundary.query(
+        `UPDATE workflow_tasks SET state = 'leased', claim_hash = $2, claimed_by = 'fetcher',
+           lease_started_at = now(), lease_heartbeat_at = now(), lease_expires_at = now() + interval '1 hour',
+           updated_at = now()
+         WHERE id = $1`,
+        [fixture.taskId, fixture.claimHash],
+      );
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when the source_capture Node is not completed', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitSuccess(resultBoundary, fixture);
+      await commandBoundary.query(
+        `UPDATE workflow_nodes SET state = 'ready', updated_at = now()
+         WHERE id = (SELECT workflow_node_id FROM workflow_tasks WHERE id = $1)`,
+        [fixture.taskId],
+      );
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when the source_review Node is missing', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitSuccess(resultBoundary, fixture);
+      const instanceId = await taskInstanceId(commandBoundary, fixture.taskId);
+      await commandBoundary.query(
+        `DELETE FROM workflow_nodes WHERE workflow_instance_id = $1 AND template_node_key = 'source_review'`,
+        [instanceId],
+      );
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when there is more than one success Result Event', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitSuccess(resultBoundary, fixture);
+      const instanceId = await taskInstanceId(commandBoundary, fixture.taskId);
+      const [event] = await commandBoundary.query<{
+        content_package_id: string;
+        owner_user_id: string;
+        sequence: number;
+        payload: Record<string, unknown>;
+        workflow_node_id: string;
+      }>(
+        `SELECT content_package_id, owner_user_id, sequence, payload, workflow_node_id
+         FROM workflow_events WHERE workflow_instance_id = $1 AND event_type = 'url_capture_succeeded.v1'`,
+        [instanceId],
+      );
+      await withEventsUnlocked(commandBoundary, async () => {
+        await commandBoundary.query(
+          `INSERT INTO workflow_events
+             (id, workflow_instance_id, content_package_id, owner_user_id, sequence, event_type, payload, occurred_at, workflow_node_id)
+           VALUES ($1, $2, $3, $4, $5, 'url_capture_succeeded.v1', $6::jsonb, now(), $7)`,
+          [
+            randomUUID(),
+            instanceId,
+            event?.content_package_id,
+            event?.owner_user_id,
+            (event?.sequence ?? 1) + 1,
+            JSON.stringify(event?.payload ?? {}),
+            event?.workflow_node_id,
+          ],
+        );
+      });
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when a success graph has a Source Version', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha, snapshotId } = await commitSuccess(resultBoundary, fixture);
+      await commandBoundary.query(
+        `INSERT INTO source_versions
+           (id, source_id, owner_user_id, version_number, parent_version_id, body, content_hash, schema_version, raw_snapshot_id, created_by_id, created_at)
+         VALUES ($1, $2, $3, 1, NULL, $4::jsonb, $5, 'source/normalized/v1', $6, $3, now())`,
+        [
+          randomUUID(),
+          fixture.sourceReferenceId,
+          fixture.ownerUserId,
+          JSON.stringify({ text: 'versioned text' }),
+          'b'.repeat(64),
+          snapshotId,
+        ],
+      );
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) {
+        await commandBoundary.query('DELETE FROM source_approvals WHERE source_id = $1', [fixture.sourceReferenceId]);
+        await commandBoundary.query('DELETE FROM source_versions WHERE source_id = $1', [fixture.sourceReferenceId]);
+        await cleanup(commandBoundary, fixture.packageId);
+      }
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when a success graph has a Source Approval', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha, snapshotId } = await commitSuccess(resultBoundary, fixture);
+      const versionId = randomUUID();
+      await commandBoundary.query(
+        `INSERT INTO source_versions
+           (id, source_id, owner_user_id, version_number, parent_version_id, body, content_hash, schema_version, raw_snapshot_id, created_by_id, created_at)
+         VALUES ($1, $2, $3, 1, NULL, $4::jsonb, $5, 'source/normalized/v1', $6, $3, now())`,
+        [
+          versionId,
+          fixture.sourceReferenceId,
+          fixture.ownerUserId,
+          JSON.stringify({ text: 'versioned text' }),
+          'b'.repeat(64),
+          snapshotId,
+        ],
+      );
+      await commandBoundary.query(
+        `INSERT INTO source_approvals
+           (id, source_id, owner_user_id, approved_version_id, approved_by_id, approved_at, validation_summary)
+         VALUES ($1, $2, $3, $4, $3, now(), 'gate passed')`,
+        [randomUUID(), fixture.sourceReferenceId, fixture.ownerUserId, versionId],
+      );
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) {
+        await commandBoundary.query('DELETE FROM source_approvals WHERE source_id = $1', [fixture.sourceReferenceId]);
+        await commandBoundary.query('DELETE FROM source_versions WHERE source_id = $1', [fixture.sourceReferenceId]);
+        await cleanup(commandBoundary, fixture.packageId);
+      }
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when a failure graph has residual Source evidence', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitFailure(resultBoundary, fixture);
+      await commandBoundary.query(
+        `INSERT INTO sources (id, content_package_id, owner_user_id, source_type, role, label, capture_type, created_at)
+         VALUES ($1, $2, $3, 'public_url', 'primary', NULL, 'public_url', now())`,
+        [fixture.sourceReferenceId, fixture.packageId, fixture.ownerUserId],
+      );
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when a failure graph is missing its Event', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitFailure(resultBoundary, fixture);
+      const instanceId = await taskInstanceId(commandBoundary, fixture.taskId);
+      await withEventsUnlocked(commandBoundary, async () => {
+        await commandBoundary.query(
+          `DELETE FROM workflow_events WHERE workflow_instance_id = $1 AND event_type = 'url_capture_failed.v1'`,
+          [instanceId],
+        );
+      });
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when the failure Task state is wrong', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitFailure(resultBoundary, fixture);
+      await commandBoundary.query(`UPDATE workflow_tasks SET state = 'succeeded', updated_at = now() WHERE id = $1`, [
+        fixture.taskId,
+      ]);
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when the Result identity does not match', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitSuccess(resultBoundary, fixture);
+      const reconciliation = await resultBoundary.repository.reconcileResult({
+        ...reconcileInput(fixture, payloadSha),
+        attemptNumber: fixture.attemptNumber + 1,
+      });
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when the Result is absent but a partial Source effect exists', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      await commandBoundary.query(
+        `INSERT INTO sources (id, content_package_id, owner_user_id, source_type, role, label, capture_type, created_at)
+         VALUES ($1, $2, $3, 'public_url', 'primary', NULL, 'public_url', now())`,
+        [fixture.sourceReferenceId, fixture.packageId, fixture.ownerUserId],
+      );
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, 'd'.repeat(64)));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN on a reconciliation query fault and leaves the pool usable', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const faultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl(), {
+      reconcileAt: (point) => {
+        if (point === 'resultQuery') throw new Error('injected-reconcile-fault');
+      },
+    });
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const reconciliation = await faultBoundary.repository.reconcileResult(reconcileInput(fixture, 'a'.repeat(64)));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+      const rows = await faultBoundary.query<{ one: number }>('SELECT 1 AS one');
+      expect(rows[0]?.one).toBe(1);
     } finally {
       if (fixture) await cleanup(commandBoundary, fixture.packageId);
       await commandBoundary.close();

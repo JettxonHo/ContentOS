@@ -3,6 +3,7 @@ import type { PoolClient } from 'pg';
 import {
   FETCHER_RESULT_VERSION,
   FETCHER_FAILURE_CATEGORY_TO_CODE,
+  SERVER_DERIVED_FAILURE_CATEGORY_TO_CODE,
   URL_CAPTURE_FAILED_EVENT_TYPE,
   URL_CAPTURE_SUCCEEDED_EVENT_TYPE,
   UrlCaptureResultPersistenceError,
@@ -120,6 +121,88 @@ function bindingEligible(binding: BindingRow | undefined): binding is BindingRow
     binding.capture_state === 'ready' &&
     binding.instance_lifecycle === 'active'
   );
+}
+
+/** Full Task projection needed by the identity reconciliation. */
+interface ReconcileTaskRow {
+  id: string;
+  state: string;
+  claim_attempt_number: number;
+  claim_hash: string | null;
+  claimed_by: string | null;
+  lease_started_at: Date | string | null;
+  lease_expires_at: Date | string | null;
+  lease_heartbeat_at: Date | string | null;
+  workflow_instance_id: string;
+  workflow_node_id: string;
+  url_capture_request_id: string;
+  content_package_id: string;
+  owner_user_id: string;
+}
+
+interface ReconcileEvidenceSnapshot {
+  readonly snapshotId?: string;
+  readonly storageKey?: string;
+  readonly sha256?: string;
+  readonly byteSize?: number;
+  readonly contentType?: string;
+}
+
+interface ReconcileEvidenceCandidate {
+  readonly text?: string;
+}
+
+interface ReconcileEvidence {
+  readonly snapshot?: ReconcileEvidenceSnapshot;
+  readonly capture?: unknown;
+  readonly candidate?: ReconcileEvidenceCandidate;
+}
+
+/** Full Result projection needed by the identity reconciliation. */
+interface ReconcileResultRow {
+  attempt_number: number;
+  claim_hash: string;
+  submitted_payload_sha256: string;
+  recorded_outcome: 'succeeded' | 'failed';
+  recorded_category: FetcherResultRecordedCategory | null;
+  safe_code: FetcherResultSafeCode | null;
+  source_id: string | null;
+  snapshot_id: string | null;
+  source_reference_id: string;
+  success_evidence: ReconcileEvidence | null;
+}
+
+const RECONCILE_TASK_QUERY = `SELECT id, state, claim_attempt_number, claim_hash, claimed_by,
+       lease_started_at, lease_expires_at, lease_heartbeat_at,
+       workflow_instance_id, workflow_node_id, url_capture_request_id,
+       content_package_id, owner_user_id
+FROM workflow_tasks
+WHERE id = $1
+FOR UPDATE`;
+
+const RECONCILE_RESULT_QUERY = `SELECT attempt_number, claim_hash, submitted_payload_sha256, recorded_outcome,
+       recorded_category, safe_code, source_id, snapshot_id, source_reference_id, success_evidence
+FROM url_capture_results
+WHERE task_id = $1`;
+
+/** True only when `category` maps exactly to `safeCode` in either mapping. */
+function safeCodeMatchesCategory(
+  category: FetcherResultRecordedCategory | null,
+  safeCode: FetcherResultSafeCode | null,
+): boolean {
+  if (category === null || safeCode === null) return false;
+  if (category in FETCHER_FAILURE_CATEGORY_TO_CODE) {
+    return FETCHER_FAILURE_CATEGORY_TO_CODE[category as FetcherFailureCategory] === safeCode;
+  }
+  return (
+    SERVER_DERIVED_FAILURE_CATEGORY_TO_CODE[category as keyof typeof SERVER_DERIVED_FAILURE_CATEGORY_TO_CODE] ===
+    safeCode
+  );
+}
+
+async function singleCount(client: PoolClient, text: string, values: readonly unknown[]): Promise<number> {
+  const result = await client.query<{ count: number }>(text, [...values]);
+  return Number(result.rows[0]?.count ?? 0);
 }
 
 export interface UrlCaptureResultRepositoryOptions {
@@ -244,8 +327,20 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
   }
 
   async recordResult(command: UrlCaptureResultRecordCommand): Promise<UrlCaptureResultRecordOutcome> {
-    this.connection.assertAvailable();
-    const client = await this.connection.pool.connect();
+    // Connection acquisition happens before any transaction. A failure here
+    // (unavailable connection, refused connect, or any pre-BEGIN boundary
+    // fault) means nothing was committed, so it must surface as a stable
+    // NOT_COMMITTED persistence error: the service then performs the bounded
+    // object compensation and returns a stable internal error. It is never
+    // COMMIT_UNKNOWN because no Commit was attempted.
+    let client: PoolClient;
+    try {
+      this.connection.assertAvailable();
+      client = await this.connection.pool.connect();
+    } catch (error) {
+      throw new UrlCaptureResultPersistenceError('NOT_COMMITTED', error);
+    }
+
     let cleanRelease = false;
     let commitAttempted = false;
     try {
@@ -571,44 +666,370 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
     }
   }
 
+  /**
+   * Post-COMMIT_UNKNOWN identity reconciliation.
+   *
+   * Reconciliation opens a fresh read-only PostgreSQL transaction, takes a
+   * commit-barrier lock on the Task row, reads the Result, and then verifies
+   * the complete persisted identity graph for the Result's recorded outcome.
+   * It returns `COMMITTED` only when the entire graph is exactly right,
+   * `ABSENT` only when there is no Result and no partial effect at all, and
+   * `UNKNOWN` for every mismatch, partial effect, or query/cleanup fault. An
+   * `UNKNOWN` outcome retains the immutable object and never claims success.
+   */
   async reconcileResult(input: {
     readonly taskId: WorkflowTaskId;
     readonly claimHash: string;
     readonly attemptNumber: number;
     readonly submittedPayloadSha256: string;
   }): Promise<UrlCaptureResultReconciliation> {
-    this.connection.assertAvailable();
-    const client = await this.connection.pool.connect();
+    let client: PoolClient;
+    try {
+      this.connection.assertAvailable();
+      client = await this.connection.pool.connect();
+    } catch {
+      // An acquisition fault means reconciliation cannot prove commitment.
+      return { outcome: 'UNKNOWN' };
+    }
     let cleanRelease = false;
     try {
       await client.query('BEGIN');
       this.options.reconcileAt?.('afterBegin');
-      // Cross a fresh lock barrier so any in-flight original transaction has
-      // committed or rolled back before absence authorizes compensation.
-      const taskResult = await client.query<{ id: string }>(`SELECT id FROM workflow_tasks WHERE id = $1 FOR UPDATE`, [
-        input.taskId,
-      ]);
+
+      // 1. Commit-barrier lock on the Task row: any in-flight original
+      //    transaction has committed or rolled back before we read the graph.
+      const taskResult = await client.query<ReconcileTaskRow>(RECONCILE_TASK_QUERY, [input.taskId]);
       this.options.reconcileAt?.('taskBarrier');
-      if (taskResult.rows.length === 0) {
+      const task = taskResult.rows[0];
+      if (!task) {
         await client.query('ROLLBACK');
         cleanRelease = true;
         return { outcome: 'UNKNOWN' };
       }
-      const resultRows = await client.query<ResultRow>(EXISTING_RESULT_QUERY, [input.taskId]);
+
+      const sourceReferenceId = await this.lookupSourceReferenceId(client, task);
+
+      // 2. Read the Result.
+      const resultQueryResult = await client.query<ReconcileResultRow>(RECONCILE_RESULT_QUERY, [input.taskId]);
       this.options.reconcileAt?.('resultQuery');
+      const result = resultQueryResult.rows[0];
+
+      // 3. No Result: ABSENT only when there is no partial effect whatsoever.
+      if (!result) {
+        const absent = sourceReferenceId !== null && (await this.verifyAbsent(client, task, sourceReferenceId));
+        await client.query('ROLLBACK');
+        cleanRelease = true;
+        return absent ? { outcome: 'ABSENT' } : { outcome: 'UNKNOWN' };
+      }
+
+      // 4. Result identity must match exactly.
+      if (!resultMatches(result, input)) {
+        await client.query('ROLLBACK');
+        cleanRelease = true;
+        return { outcome: 'UNKNOWN' };
+      }
+      if (sourceReferenceId === null || result.source_reference_id !== sourceReferenceId) {
+        await client.query('ROLLBACK');
+        cleanRelease = true;
+        return { outcome: 'UNKNOWN' };
+      }
+
+      // 5. Verify the complete persisted graph for the recorded outcome.
+      const committed =
+        result.recorded_outcome === 'succeeded'
+          ? await this.verifySuccessGraph(client, task, result, sourceReferenceId)
+          : await this.verifyFailureGraph(client, task, result, sourceReferenceId);
+
       await client.query('ROLLBACK');
       cleanRelease = true;
-      const row = resultRows.rows[0];
-      if (!row) return { outcome: 'ABSENT' };
-      if (resultMatches(row, input)) {
-        return { outcome: 'COMMITTED', result: toRecord(input.taskId, row) };
-      }
-      return { outcome: 'UNKNOWN' };
+      return committed ? { outcome: 'COMMITTED', result: toRecord(input.taskId, result) } : { outcome: 'UNKNOWN' };
     } catch {
       cleanRelease = await this.bestEffortRollback(client, 'reconcileResult');
       return { outcome: 'UNKNOWN' };
     } finally {
       this.releaseResultClient(client, cleanRelease);
     }
+  }
+
+  private async lookupSourceReferenceId(client: PoolClient, task: ReconcileTaskRow): Promise<string | null> {
+    const rows = await client.query<{ source_reference_id: string }>(
+      `SELECT source_reference_id FROM url_capture_requests
+       WHERE id = $1 AND content_package_id = $2 AND owner_user_id = $3`,
+      [task.url_capture_request_id, task.content_package_id, task.owner_user_id],
+    );
+    return rows.rows[0]?.source_reference_id ?? null;
+  }
+
+  /**
+   * ABSENT is only valid when the Task remains in a legitimate non-terminal
+   * state and there is no Result Event, no Source evidence from the URL Source
+   * Reference, and the source_capture Node has not been terminalized. Any
+   * partial effect turns the outcome into UNKNOWN.
+   */
+  private async verifyAbsent(client: PoolClient, task: ReconcileTaskRow, sourceReferenceId: string): Promise<boolean> {
+    if (task.state !== 'leased' && task.state !== 'queued') return false;
+    const eventCount = await singleCount(
+      client,
+      `SELECT count(*)::int AS count FROM workflow_events
+       WHERE workflow_instance_id = $1 AND event_type IN ($2, $3)`,
+      [task.workflow_instance_id, URL_CAPTURE_SUCCEEDED_EVENT_TYPE, URL_CAPTURE_FAILED_EVENT_TYPE],
+    );
+    if (eventCount !== 0) return false;
+    const sourceCount = await singleCount(client, `SELECT count(*)::int AS count FROM sources WHERE id = $1`, [
+      sourceReferenceId,
+    ]);
+    if (sourceCount !== 0) return false;
+    const captureState = await this.queryNodeState(client, task.workflow_node_id);
+    return captureState === 'ready';
+  }
+
+  private async queryNodeState(client: PoolClient, nodeId: string): Promise<string | null> {
+    const rows = await client.query<{ state: string }>(`SELECT state FROM workflow_nodes WHERE id = $1`, [nodeId]);
+    return rows.rows[0]?.state ?? null;
+  }
+
+  /** Verify the full persisted graph of a COMMITTED success Result. */
+  private async verifySuccessGraph(
+    client: PoolClient,
+    task: ReconcileTaskRow,
+    result: ReconcileResultRow,
+    sourceReferenceId: string,
+  ): Promise<boolean> {
+    // Result invariants for a success.
+    if (result.recorded_category !== null || result.safe_code !== null) return false;
+    if (result.source_id !== sourceReferenceId) return false;
+    if (result.snapshot_id === null) return false;
+    const evidence = result.success_evidence;
+    if (!evidence || !evidence.snapshot || !evidence.candidate) return false;
+
+    // Task terminalized and Lease fully cleared.
+    if (task.state !== 'succeeded') return false;
+    if (
+      task.claim_hash !== null ||
+      task.claimed_by !== null ||
+      task.lease_started_at !== null ||
+      task.lease_expires_at !== null ||
+      task.lease_heartbeat_at !== null
+    ) {
+      return false;
+    }
+
+    // source_capture completed.
+    if ((await this.queryNodeState(client, task.workflow_node_id)) !== 'completed') return false;
+
+    // Source: exactly one row, bound to the URL Source Reference.
+    const sourceRows = await client.query<{
+      content_package_id: string;
+      owner_user_id: string;
+      source_type: string;
+      capture_type: string;
+      role: string;
+    }>(`SELECT content_package_id, owner_user_id, source_type, capture_type, role FROM sources WHERE id = $1`, [
+      sourceReferenceId,
+    ]);
+    if (sourceRows.rows.length !== 1) return false;
+    const source = sourceRows.rows[0];
+    if (!source) return false;
+    if (source.content_package_id !== task.content_package_id || source.owner_user_id !== task.owner_user_id) {
+      return false;
+    }
+    if (source.source_type !== 'public_url' || source.capture_type !== 'public_url') return false;
+
+    // URL Source Reference role/owner/package must agree with the Source.
+    const referenceRows = await client.query<{ role: string; owner_user_id: string; content_package_id: string }>(
+      `SELECT role, owner_user_id, content_package_id FROM url_source_references WHERE id = $1`,
+      [sourceReferenceId],
+    );
+    if (referenceRows.rows.length !== 1) return false;
+    const reference = referenceRows.rows[0];
+    if (!reference) return false;
+    if (
+      reference.role !== source.role ||
+      reference.owner_user_id !== source.owner_user_id ||
+      reference.content_package_id !== source.content_package_id
+    ) {
+      return false;
+    }
+
+    // Raw Snapshot: exactly one row, id = Result.snapshot_id, fields match evidence.
+    const snapshotRows = await client.query<{
+      source_id: string;
+      owner_user_id: string;
+      storage_key: string;
+      sha256: string;
+      byte_size: number;
+      content_type: string;
+    }>(
+      `SELECT source_id, owner_user_id, storage_key, sha256, byte_size, content_type FROM source_raw_snapshots WHERE id = $1`,
+      [result.snapshot_id],
+    );
+    if (snapshotRows.rows.length !== 1) return false;
+    const snapshot = snapshotRows.rows[0];
+    if (!snapshot) return false;
+    const evidenceSnapshot = evidence.snapshot;
+    if (snapshot.source_id !== result.source_id || snapshot.owner_user_id !== task.owner_user_id) return false;
+    if (
+      snapshot.storage_key !== evidenceSnapshot.storageKey ||
+      snapshot.sha256 !== evidenceSnapshot.sha256 ||
+      Number(snapshot.byte_size) !== evidenceSnapshot.byteSize ||
+      snapshot.content_type !== evidenceSnapshot.contentType
+    ) {
+      return false;
+    }
+
+    // Working Copy: exactly one row, revision 1, normalized schema, text matches.
+    const workingCopyRows = await client.query<{
+      id: string;
+      revision: number;
+      schema_version: string;
+      body: { text?: string };
+    }>(`SELECT id, revision, schema_version, body FROM source_working_copies WHERE source_id = $1`, [
+      sourceReferenceId,
+    ]);
+    if (workingCopyRows.rows.length !== 1) return false;
+    const workingCopy = workingCopyRows.rows[0];
+    if (!workingCopy) return false;
+    if (workingCopy.revision !== 1 || workingCopy.schema_version !== 'source/normalized/v1') return false;
+    if (workingCopy.body?.text !== evidence.candidate.text) return false;
+
+    // Head: exactly one row, pointing at the Working Copy with no Versions.
+    const headRows = await client.query<{
+      working_copy_id: string;
+      latest_version_id: string | null;
+      review_candidate_version_id: string | null;
+      approved_version_id: string | null;
+    }>(
+      `SELECT working_copy_id, latest_version_id, review_candidate_version_id, approved_version_id
+       FROM source_heads WHERE source_id = $1`,
+      [sourceReferenceId],
+    );
+    if (headRows.rows.length !== 1) return false;
+    const head = headRows.rows[0];
+    if (!head) return false;
+    if (head.working_copy_id !== workingCopy.id) return false;
+    if (
+      head.latest_version_id !== null ||
+      head.review_candidate_version_id !== null ||
+      head.approved_version_id !== null
+    ) {
+      return false;
+    }
+
+    // source_review: exactly one row, awaiting_human.
+    const reviewRows = await client.query<{ state: string }>(
+      `SELECT state FROM workflow_nodes
+       WHERE workflow_instance_id = $1 AND template_node_key = 'source_review'
+         AND content_package_id = $2 AND owner_user_id = $3`,
+      [task.workflow_instance_id, task.content_package_id, task.owner_user_id],
+    );
+    if (reviewRows.rows.length !== 1) return false;
+    const reviewNode = reviewRows.rows[0];
+    if (!reviewNode || reviewNode.state !== 'awaiting_human') return false;
+
+    // Event: exactly one url_capture_succeeded.v1 with a matching payload.
+    const eventRows = await client.query<{ payload: Record<string, unknown> }>(
+      `SELECT payload FROM workflow_events WHERE workflow_instance_id = $1 AND event_type = $2`,
+      [task.workflow_instance_id, URL_CAPTURE_SUCCEEDED_EVENT_TYPE],
+    );
+    const payload = eventRows.rows[0]?.payload;
+    if (!payload || eventRows.rows.length !== 1) return false;
+    if (
+      payload.taskId !== task.id ||
+      payload.sourceReferenceId !== sourceReferenceId ||
+      payload.sourceId !== sourceReferenceId ||
+      payload.snapshotId !== result.snapshot_id ||
+      payload.attemptNumber !== result.attempt_number
+    ) {
+      return false;
+    }
+
+    // No Version and no Approval may exist for this Source.
+    const versionCount = await singleCount(
+      client,
+      `SELECT count(*)::int AS count FROM source_versions WHERE source_id = $1`,
+      [sourceReferenceId],
+    );
+    if (versionCount !== 0) return false;
+    const approvalCount = await singleCount(
+      client,
+      `SELECT count(*)::int AS count FROM source_approvals WHERE source_id = $1`,
+      [sourceReferenceId],
+    );
+    return approvalCount === 0;
+  }
+
+  /** Verify the full persisted graph of a COMMITTED failure Result. */
+  private async verifyFailureGraph(
+    client: PoolClient,
+    task: ReconcileTaskRow,
+    result: ReconcileResultRow,
+    sourceReferenceId: string,
+  ): Promise<boolean> {
+    // Result invariants for a failure.
+    if (result.recorded_category === null) return false;
+    if (!safeCodeMatchesCategory(result.recorded_category, result.safe_code)) return false;
+    if (result.source_id !== null || result.snapshot_id !== null) return false;
+
+    // Task terminalized to failed and Lease fully cleared.
+    if (task.state !== 'failed') return false;
+    if (
+      task.claim_hash !== null ||
+      task.claimed_by !== null ||
+      task.lease_started_at !== null ||
+      task.lease_expires_at !== null ||
+      task.lease_heartbeat_at !== null
+    ) {
+      return false;
+    }
+
+    // source_capture failed.
+    if ((await this.queryNodeState(client, task.workflow_node_id)) !== 'failed') return false;
+
+    // No Source evidence may exist for the URL Source Reference.
+    const sourceCount = await singleCount(client, `SELECT count(*)::int AS count FROM sources WHERE id = $1`, [
+      sourceReferenceId,
+    ]);
+    if (sourceCount !== 0) return false;
+    const snapshotCount = await singleCount(
+      client,
+      `SELECT count(*)::int AS count FROM source_raw_snapshots WHERE source_id = $1`,
+      [sourceReferenceId],
+    );
+    if (snapshotCount !== 0) return false;
+    const workingCopyCount = await singleCount(
+      client,
+      `SELECT count(*)::int AS count FROM source_working_copies WHERE source_id = $1`,
+      [sourceReferenceId],
+    );
+    if (workingCopyCount !== 0) return false;
+    const headCount = await singleCount(
+      client,
+      `SELECT count(*)::int AS count FROM source_heads WHERE source_id = $1`,
+      [sourceReferenceId],
+    );
+    if (headCount !== 0) return false;
+    const reviewCount = await singleCount(
+      client,
+      `SELECT count(*)::int AS count FROM workflow_nodes
+       WHERE workflow_instance_id = $1 AND template_node_key = 'source_review'
+         AND content_package_id = $2 AND owner_user_id = $3`,
+      [task.workflow_instance_id, task.content_package_id, task.owner_user_id],
+    );
+    if (reviewCount !== 0) return false;
+
+    // Event: exactly one url_capture_failed.v1 with a matching payload.
+    const eventRows = await client.query<{ payload: Record<string, unknown> }>(
+      `SELECT payload FROM workflow_events WHERE workflow_instance_id = $1 AND event_type = $2`,
+      [task.workflow_instance_id, URL_CAPTURE_FAILED_EVENT_TYPE],
+    );
+    const payload = eventRows.rows[0]?.payload;
+    if (!payload || eventRows.rows.length !== 1) return false;
+    return (
+      payload.taskId === task.id &&
+      payload.sourceReferenceId === sourceReferenceId &&
+      payload.attemptNumber === result.attempt_number &&
+      payload.category === result.recorded_category &&
+      payload.code === result.safe_code
+    );
   }
 }
