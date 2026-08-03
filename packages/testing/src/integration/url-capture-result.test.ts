@@ -5,7 +5,9 @@ import { describe, expect, it } from 'vitest';
 import {
   FetcherGatewayApplicationError,
   FetcherGatewayService,
+  FetcherResultInternalError,
   FetcherResultService,
+  UrlCaptureResultPersistenceError,
   UrlCaptureService,
   buildUrlCaptureStorageKey,
   hashFetcherGatewayClaim,
@@ -150,7 +152,6 @@ function successCommand(
     workingCopyId: randomUUID(),
     sourceReviewNodeId: randomUUID() as never,
     eventId: randomUUID() as never,
-    acceptedAt: new Date(),
     ...overrides,
   };
 }
@@ -173,7 +174,6 @@ function failureCommand(
     workingCopyId: randomUUID(),
     sourceReviewNodeId: randomUUID() as never,
     eventId: randomUUID() as never,
-    acceptedAt: new Date(),
     ...overrides,
   };
 }
@@ -1013,7 +1013,7 @@ describe('M2-SRC-003 url_capture_results database constraints (direct SQL)', () 
         safeCode: 'TIMEOUT',
       });
       expect(result.ok).toBe(false);
-      expect(result.constraint).toBe('url_capture_results_submitted_failure_check');
+      expect(result.constraint).toBe('url_capture_results_submission_classification_check');
     } finally {
       await cleanup(commandBoundary, fixture.packageId);
       await commandBoundary.close();
@@ -1033,7 +1033,7 @@ describe('M2-SRC-003 url_capture_results database constraints (direct SQL)', () 
         evidenceJson: null,
       });
       expect(result.ok).toBe(false);
-      expect(result.constraint).toBe('url_capture_results_submitted_success_check');
+      expect(result.constraint).toBe('url_capture_results_submission_classification_check');
     } finally {
       await cleanup(commandBoundary, fixture.packageId);
       await commandBoundary.close();
@@ -1156,6 +1156,166 @@ describe('M2-SRC-003 url_capture_results database constraints (direct SQL)', () 
       await commandBoundary.close();
     }
   });
+
+  async function insertMutatedEvidence(
+    commandBoundary: UrlCaptureRepositoryTestBoundary,
+    baseSuccess: Record<string, unknown>,
+    fixture: LeasedTask,
+    mutate: (evidence: Record<string, unknown>) => void,
+  ): Promise<{ ok: boolean; constraint?: string }> {
+    const evidenceJson = mutateEvidence(fixture.taskId, fixture.attemptNumber, mutate);
+    const parsed = JSON.parse(evidenceJson) as { snapshot: { snapshotId: string } };
+    return tryInsertResult(commandBoundary, {
+      ...baseSuccess,
+      id: randomUUID(),
+      snapshotId: parsed.snapshot.snapshotId,
+      evidenceJson,
+    });
+  }
+
+  it('rejects a submitted failure whose submitted_category is NULL through the closed classification check', async () => {
+    const { commandBoundary, fixture, baseFailure } = await setup();
+    try {
+      const result = await tryInsertResult(commandBoundary, {
+        ...baseFailure,
+        submittedCategory: null,
+        recordedCategory: 'fetch_failed',
+        safeCode: 'FETCH_FAILED',
+      });
+      expect(result.ok).toBe(false);
+      expect(result.constraint).toBe('url_capture_results_submission_classification_check');
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects a success submission carrying a Fetcher category', async () => {
+    const { commandBoundary, fixture, baseSuccess } = await setup();
+    try {
+      const result = await tryInsertResult(commandBoundary, {
+        ...baseSuccess,
+        submittedCategory: 'fetch_failed',
+      });
+      expect(result.ok).toBe(false);
+      expect(result.constraint).toBe('url_capture_results_submission_classification_check');
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects a failure with a null recorded_category', async () => {
+    const { commandBoundary, fixture, baseFailure } = await setup();
+    try {
+      const result = await tryInsertResult(commandBoundary, {
+        ...baseFailure,
+        recordedCategory: null,
+      });
+      expect(result.ok).toBe(false);
+      expect(result.constraint).toBeDefined();
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects a failure with a null safe_code', async () => {
+    const { commandBoundary, fixture, baseFailure } = await setup();
+    try {
+      const result = await tryInsertResult(commandBoundary, {
+        ...baseFailure,
+        safeCode: null,
+      });
+      expect(result.ok).toBe(false);
+      expect(result.constraint).toBeDefined();
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects fractional snapshot byteSize / capture encodedByteSize through the integer check', async () => {
+    const { commandBoundary, fixture, baseSuccess } = await setup();
+    try {
+      const result = await insertMutatedEvidence(commandBoundary, baseSuccess, fixture, (e) => {
+        (e.snapshot as Record<string, unknown>).byteSize = 1.5;
+        (e.capture as Record<string, unknown>).encodedByteSize = 1.5;
+      });
+      expect(result.ok).toBe(false);
+      expect(result.constraint).toBe('url_capture_results_evidence_integer_check');
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects a fractional capture decodedByteSize through the integer check', async () => {
+    const { commandBoundary, fixture, baseSuccess } = await setup();
+    try {
+      const result = await insertMutatedEvidence(commandBoundary, baseSuccess, fixture, (e) => {
+        (e.capture as Record<string, unknown>).decodedByteSize = 2.5;
+      });
+      expect(result.ok).toBe(false);
+      expect(result.constraint).toBe('url_capture_results_evidence_integer_check');
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects a fractional capture responseStatus', async () => {
+    const { commandBoundary, fixture, baseSuccess } = await setup();
+    try {
+      const result = await insertMutatedEvidence(commandBoundary, baseSuccess, fixture, (e) => {
+        (e.capture as Record<string, unknown>).responseStatus = 200.5;
+      });
+      expect(result.ok).toBe(false);
+      expect(result.constraint).toBeDefined();
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects malformed redirect evidence through the exact redirect shape check', async () => {
+    const { commandBoundary, fixture, baseSuccess } = await setup();
+    try {
+      const cases: Array<(evidence: Record<string, unknown>) => void> = [
+        (e) => ((e.capture as Record<string, unknown>).redirects = [1]),
+        (e) => ((e.capture as Record<string, unknown>).redirects = [{ status: 200, url: 'https://a.example/' }]),
+        (e) => ((e.capture as Record<string, unknown>).redirects = [{ status: 301, url: 123 }]),
+        (e) => ((e.capture as Record<string, unknown>).redirects = [{ status: 301.5, url: 'https://a.example/' }]),
+        (e) =>
+          ((e.capture as Record<string, unknown>).redirects = [{ status: 301, url: 'https://a.example/', extra: 'x' }]),
+        (e) => ((e.capture as Record<string, unknown>).redirects = [{ url: 'https://a.example/' }]),
+      ];
+      for (const mutate of cases) {
+        const result = await insertMutatedEvidence(commandBoundary, baseSuccess, fixture, mutate);
+        expect(result.ok).toBe(false);
+        expect(result.constraint).toBe('url_capture_results_evidence_redirects_shape_check');
+      }
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('accepts a valid multi-redirect evidence', async () => {
+    const { commandBoundary, fixture, baseSuccess } = await setup();
+    try {
+      const result = await insertMutatedEvidence(commandBoundary, baseSuccess, fixture, (e) => {
+        (e.capture as Record<string, unknown>).redirects = [
+          { status: 301, url: 'https://a.example/one' },
+          { status: 302, url: 'https://b.example/two' },
+        ];
+      });
+      expect(result.ok).toBe(true);
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
 });
 
 describe('M2-SRC-003 reconciliation transaction cleanup', () => {
@@ -1273,6 +1433,339 @@ describe('M2-SRC-003 Source compatibility through the existing Source repository
       await commandBoundary.close();
       await resultBoundary.close();
       await sourceBoundary.close();
+    }
+  });
+});
+
+describe('M2-SRC-003 rollback-failure connection destruction', () => {
+  it('prepareResult: destroys the client when rollback fails and keeps the pool usable', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    let armed = true;
+    const faultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl(), {
+      prepareAt: () => {
+        if (armed) throw new Error('injected-prepare-query-fault');
+      },
+      rollbackFault: () => {
+        if (armed) throw new Error('injected-rollback-fault');
+      },
+    });
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const preflight = await faultBoundary.repository.prepareResult({
+        taskId: fixture.taskId as never,
+        claimHash: fixture.claimHash,
+        attemptNumber: fixture.attemptNumber,
+        submittedPayloadSha256: 'a'.repeat(64),
+        acceptedAt: new Date(),
+      });
+      expect(preflight.kind).toBe('prepare_failed');
+      // The poisoned client was destroyed, not returned to the idle pool.
+      expect(faultBoundary.pool.idleCount).toBe(0);
+      // The pool remains usable for a fresh query.
+      const rows = await faultBoundary.query<{ one: number }>('SELECT 1 AS one');
+      expect(rows[0]?.one).toBe(1);
+      // A subsequent legal preflight on the same boundary succeeds.
+      armed = false;
+      const retry = await faultBoundary.repository.prepareResult({
+        taskId: fixture.taskId as never,
+        claimHash: fixture.claimHash,
+        attemptNumber: fixture.attemptNumber,
+        submittedPayloadSha256: 'a'.repeat(64),
+        acceptedAt: new Date(),
+      });
+      expect(retry.kind).toBe('eligible');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await faultBoundary.close();
+    }
+  });
+
+  it('reconcileResult: destroys the client when rollback fails and keeps the pool usable', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    let armed = true;
+    const faultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl(), {
+      reconcileAt: (point) => {
+        if (armed && point === 'resultQuery') throw new Error('injected-reconcile-query-fault');
+      },
+      rollbackFault: () => {
+        if (armed) throw new Error('injected-rollback-fault');
+      },
+    });
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const reconciliation = await faultBoundary.repository.reconcileResult({
+        taskId: fixture.taskId as never,
+        claimHash: fixture.claimHash,
+        attemptNumber: fixture.attemptNumber,
+        submittedPayloadSha256: 'a'.repeat(64),
+      });
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+      expect(faultBoundary.pool.idleCount).toBe(0);
+      const rows = await faultBoundary.query<{ one: number }>('SELECT 1 AS one');
+      expect(rows[0]?.one).toBe(1);
+      // A subsequent legal Result operation on the same boundary succeeds.
+      armed = false;
+      const outcome = await faultBoundary.repository.recordResult(successCommand(fixture));
+      expect(outcome.kind).toBe('recorded');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await faultBoundary.close();
+    }
+  });
+
+  it('recordResult: destroys the client when rollback fails and leaves no residue', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    let armed = true;
+    const faultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl(), {
+      beforeTransitions: () => {
+        if (armed) throw new Error('injected-transition-fault');
+      },
+      rollbackFault: () => {
+        if (armed) throw new Error('injected-rollback-fault');
+      },
+    });
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      await expect(faultBoundary.repository.recordResult(successCommand(fixture))).rejects.toBeInstanceOf(
+        UrlCaptureResultPersistenceError,
+      );
+      expect(faultBoundary.pool.idleCount).toBe(0);
+      const rows = await faultBoundary.query<{ one: number }>('SELECT 1 AS one');
+      expect(rows[0]?.one).toBe(1);
+      // No Result or Source residue from the aborted transaction.
+      expect(
+        (await commandBoundary.query('SELECT id FROM url_capture_results WHERE task_id = $1', [fixture.taskId])).length,
+      ).toBe(0);
+      expect(
+        (await commandBoundary.query('SELECT id FROM sources WHERE content_package_id = $1', [fixture.packageId]))
+          .length,
+      ).toBe(0);
+      // A subsequent legal Result operation on the same boundary succeeds.
+      armed = false;
+      const outcome = await faultBoundary.repository.recordResult(successCommand(fixture));
+      expect(outcome.kind).toBe('recorded');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await faultBoundary.close();
+    }
+  });
+});
+
+describe('M2-SRC-003 final Lease authority over the Object Storage read window', () => {
+  function blockingObjectStore(): ObjectStore & {
+    reads: string[];
+    readStarted: Promise<void>;
+    releaseRead: (integrity: boolean) => void;
+  } {
+    const reads: string[] = [];
+    let resolveRead: ((integrity: boolean) => void) | undefined;
+    let notifyStarted: (() => void) | undefined;
+    const readGate = new Promise<boolean>((resolve) => {
+      resolveRead = resolve;
+    });
+    const readStarted = new Promise<void>((resolve) => {
+      notifyStarted = resolve;
+    });
+    return {
+      reads,
+      readStarted,
+      releaseRead: (integrity) => resolveRead?.(integrity),
+      putImmutable: async (): Promise<StoredObject> => {
+        throw new Error('M2-SRC-003 does not write fetcher objects');
+      },
+      readForIntegrity: async (expected: StoredObject) => {
+        reads.push(expected.storageKey);
+        notifyStarted?.();
+        return readGate;
+      },
+      deleteForCompensation: async () => {},
+    };
+  }
+
+  function serviceFor(objectStore: ObjectStore, repository: never): FetcherResultService {
+    return new FetcherResultService(
+      repository,
+      objectStore,
+      {
+        generateResultId: () => randomUUID(),
+        generateWorkingCopyId: () => randomUUID(),
+        generateSourceReviewNodeId: () => randomUUID() as never,
+        generateResultEventId: () => randomUUID() as never,
+      },
+      { now: () => new Date() },
+    );
+  }
+
+  function successBodyFor(taskId: string, attemptNumber: number): Record<string, unknown> {
+    const snapshotId = randomUUID();
+    return {
+      resultVersion: 'fetcher-result/v1',
+      attemptNumber,
+      outcome: 'succeeded',
+      snapshot: {
+        snapshotId,
+        storageKey: buildUrlCaptureStorageKey({ taskId, attemptNumber, snapshotId }),
+        sha256: 'a'.repeat(64),
+        byteSize: 1234,
+        contentType: 'text/html',
+        contentEncoding: 'identity',
+      },
+      capture: {
+        finalUrl: 'https://example.com/final',
+        redirects: [],
+        responseStatus: 200,
+        encodedByteSize: 1234,
+        decodedByteSize: 5678,
+      },
+      candidate: { schemaVersion: 'source/normalized/v1', text: 'reviewable normalized text' },
+    };
+  }
+
+  it('rejects a result whose Lease expires during the Object Storage read', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const store = blockingObjectStore();
+      const service = serviceFor(store, resultBoundary.repository as never);
+
+      // 1. Preflight sees a valid Lease and begins the integrity read (blocked).
+      const submission = service.submitResult(
+        fixture.taskId as never,
+        fixture.claim,
+        successBodyFor(fixture.taskId, fixture.attemptNumber),
+      );
+      await store.readStarted;
+      expect(store.reads).toHaveLength(1);
+
+      // 2. Expire the Lease while the read is still blocked.
+      await commandBoundary.query(
+        `UPDATE workflow_tasks SET lease_started_at = $2, lease_heartbeat_at = $2, lease_expires_at = $3, updated_at = now() WHERE id = $1`,
+        [fixture.taskId, new Date('2020-01-01T00:00:00.000Z'), new Date('2020-01-01T00:00:01.000Z')],
+      );
+
+      // 3. Release the read; the final transaction re-checks with the authoritative
+      //    database time and rejects without falsely claiming success.
+      store.releaseRead(true);
+      await expect(submission).rejects.toEqual(new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE'));
+
+      // 4. The object was read exactly once (it was still eligible at preflight).
+      expect(store.reads).toHaveLength(1);
+
+      // 5. No Result, Source evidence, or Event was created; the Task is not
+      //    terminal and the Node remains ready. No Owner Retry is created.
+      expect(
+        (await commandBoundary.query('SELECT id FROM url_capture_results WHERE task_id = $1', [fixture.taskId])).length,
+      ).toBe(0);
+      expect(
+        (await commandBoundary.query('SELECT id FROM sources WHERE content_package_id = $1', [fixture.packageId]))
+          .length,
+      ).toBe(0);
+      expect(
+        (
+          await commandBoundary.query(
+            `SELECT id FROM workflow_events
+             WHERE content_package_id = $1 AND event_type IN ('url_capture_succeeded.v1', 'url_capture_failed.v1')`,
+            [fixture.packageId],
+          )
+        ).length,
+      ).toBe(0);
+      const [task] = await commandBoundary.query<{ state: string }>('SELECT state FROM workflow_tasks WHERE id = $1', [
+        fixture.taskId,
+      ]);
+      expect(task?.state).toBe('leased');
+      const [node] = await commandBoundary.query<{ state: string }>(
+        `SELECT state FROM workflow_nodes WHERE id = (SELECT workflow_node_id FROM workflow_tasks WHERE id = $1)`,
+        [fixture.taskId],
+      );
+      expect(node?.state).toBe('ready');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('an exact replay still bypasses the Lease check and returns duplicate=true', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const reads: string[] = [];
+      const store: ObjectStore = {
+        putImmutable: async (): Promise<StoredObject> => {
+          throw new Error('M2-SRC-003 does not write fetcher objects');
+        },
+        readForIntegrity: async (expected: StoredObject) => {
+          reads.push(expected.storageKey);
+          return true;
+        },
+        deleteForCompensation: async () => {},
+      };
+      const service = serviceFor(store, resultBoundary.repository as never);
+      const body = successBodyFor(fixture.taskId, fixture.attemptNumber);
+
+      const first = await service.submitResult(fixture.taskId as never, fixture.claim, body);
+      expect(first.taskState).toBe('succeeded');
+      expect(first.duplicate).toBe(false);
+      expect(reads).toHaveLength(1);
+
+      // The recorded Result terminalized the Task and cleared the Lease, so the
+      // Lease is no longer valid. An exact replay must still be answered as a
+      // duplicate from the durable Result, bypassing every lease rule.
+      const [terminalTask] = await commandBoundary.query<{ state: string; lease_expires_at: Date | null }>(
+        `SELECT state, lease_expires_at FROM workflow_tasks WHERE id = $1`,
+        [fixture.taskId],
+      );
+      expect(terminalTask?.state).toBe('succeeded');
+      expect(terminalTask?.lease_expires_at).toBeNull();
+
+      const replay = await service.submitResult(fixture.taskId as never, fixture.claim, body);
+      expect(replay.duplicate).toBe(true);
+      // The replay is answered from the durable Result; it does not re-read the object.
+      expect(reads).toHaveLength(1);
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('maps a prepareResult infrastructure fault to a stable internal error, never a 409, and reads nothing', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const faultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl(), {
+      prepareAt: () => {
+        throw new Error('injected-prepare-fault');
+      },
+    });
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const store = blockingObjectStore();
+      const service = serviceFor(store, faultBoundary.repository as never);
+      await expect(
+        service.submitResult(
+          fixture.taskId as never,
+          fixture.claim,
+          successBodyFor(fixture.taskId, fixture.attemptNumber),
+        ),
+      ).rejects.toEqual(new FetcherResultInternalError('PREPARE_FAILED'));
+      expect(store.reads).toHaveLength(0);
+      expect(
+        (await commandBoundary.query('SELECT id FROM url_capture_results WHERE task_id = $1', [fixture.taskId])).length,
+      ).toBe(0);
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await faultBoundary.close();
     }
   });
 });

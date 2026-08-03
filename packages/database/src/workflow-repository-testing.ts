@@ -1,5 +1,6 @@
 import type { UrlCaptureCommandRepository, UrlCaptureResultRepository, WorkflowRepository } from '@contentos/core';
 import type { FetcherGatewayClaimRepository } from '@contentos/core';
+import type { Pool } from 'pg';
 
 import { createDatabaseConnection } from './client.js';
 import { DrizzleWorkflowRepository } from './workflow-repository.js';
@@ -120,6 +121,8 @@ export function createFetcherGatewayRepositoryTestBoundary(databaseUrl: string):
 /** Disposable PostgreSQL boundary for the URL-capture Result repository tests. */
 export interface UrlCaptureResultRepositoryTestBoundary {
   readonly repository: UrlCaptureResultRepository;
+  /** Exposed so tests can assert poisoned-connection destruction via Pool counts. */
+  readonly pool: Pool;
   query<TRow extends Record<string, unknown>>(text: string, values?: readonly unknown[]): Promise<readonly TRow[]>;
   close(): Promise<void>;
 }
@@ -136,6 +139,8 @@ export interface UrlCaptureResultRepositoryTestOptions {
     taskId: string,
   ) => Promise<void> | void;
   readonly reconcileAt?: (point: 'afterBegin' | 'taskBarrier' | 'resultQuery') => void;
+  readonly prepareAt?: (point: 'taskQuery') => void;
+  readonly rollbackFault?: (method: 'prepareResult' | 'recordResult' | 'reconcileResult') => void;
 }
 
 export function createUrlCaptureResultRepositoryTestBoundary(
@@ -145,6 +150,7 @@ export function createUrlCaptureResultRepositoryTestBoundary(
   const connection = createDatabaseConnection(databaseUrl);
   return {
     repository: new DrizzleUrlCaptureResultRepository(connection, options),
+    pool: connection.pool,
     async query<TRow extends Record<string, unknown>>(
       text: string,
       values: readonly unknown[] = [],

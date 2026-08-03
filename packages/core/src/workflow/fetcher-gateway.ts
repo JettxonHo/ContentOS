@@ -851,7 +851,6 @@ export interface UrlCaptureResultRecordCommand {
   readonly workingCopyId: string;
   readonly sourceReviewNodeId: WorkflowNodeId;
   readonly eventId: WorkflowEventId;
-  readonly acceptedAt: Date;
 }
 
 /**
@@ -892,11 +891,18 @@ export type UrlCaptureResultReconciliation =
  * Read-only preflight decision taken before any Object Storage access. The
  * preflight is never an authorization cache: `recordResult` re-locks and
  * re-checks every condition inside its own transaction.
+ *
+ * `unavailable` is returned only for a real business rejection (unknown Task,
+ * wrong Claim/Attempt, expired Lease, non-ready Node, mismatched Result). An
+ * infrastructure fault (connection, query, transaction, or rollback failure)
+ * is reported as `prepare_failed` so the gateway maps it to a stable internal
+ * 500 rather than masquerading as a 409 `FETCHER_RESULT_UNAVAILABLE`.
  */
 export type UrlCaptureResultPreflight =
   | { readonly kind: 'duplicate'; readonly result: UrlCaptureResultRecord }
   | { readonly kind: 'unavailable' }
-  | { readonly kind: 'eligible' };
+  | { readonly kind: 'eligible' }
+  | { readonly kind: 'prepare_failed' };
 
 export interface UrlCaptureResultRepository {
   prepareResult(input: {
@@ -924,7 +930,7 @@ export interface FetcherResultIds {
 
 /** Internal, non-DTO failure used for stable 500 responses after write faults. */
 export class FetcherResultInternalError extends Error {
-  constructor(readonly reason: 'NOT_COMMITTED' | 'COMMIT_UNKNOWN' | 'RECONCILIATION_REQUIRED') {
+  constructor(readonly reason: 'NOT_COMMITTED' | 'COMMIT_UNKNOWN' | 'RECONCILIATION_REQUIRED' | 'PREPARE_FAILED') {
     super('FETCHER_RESULT_INTERNAL_ERROR');
     this.name = 'FetcherResultInternalError';
   }
@@ -970,6 +976,11 @@ export class FetcherResultService {
     });
     if (preflight.kind === 'duplicate') {
       return this.toGatewayOutcome(preflight.result, true);
+    }
+    if (preflight.kind === 'prepare_failed') {
+      // A preflight infrastructure fault must never be reported as a business
+      // 409; surface a stable private internal error instead.
+      throw new FetcherResultInternalError('PREPARE_FAILED');
     }
     if (preflight.kind === 'unavailable') {
       throw new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE');
@@ -1022,7 +1033,6 @@ export class FetcherResultService {
       workingCopyId: this.ids.generateWorkingCopyId(),
       sourceReviewNodeId: this.ids.generateSourceReviewNodeId(),
       eventId: this.ids.generateResultEventId(),
-      acceptedAt: new Date(acceptedAt.getTime()),
     };
 
     let outcome: UrlCaptureResultRecordOutcome;

@@ -1,3 +1,5 @@
+import type { PoolClient } from 'pg';
+
 import {
   FETCHER_RESULT_VERSION,
   FETCHER_FAILURE_CATEGORY_TO_CODE,
@@ -128,6 +130,14 @@ export interface UrlCaptureResultRepositoryOptions {
   ) => Promise<void> | void;
   /** Invoked inside reconcileResult at named points; throwing simulates a failure. */
   readonly reconcileAt?: (point: 'afterBegin' | 'taskBarrier' | 'resultQuery') => void;
+  /** Invoked inside prepareResult at named points; throwing simulates a query fault. */
+  readonly prepareAt?: (point: 'taskQuery') => void;
+  /**
+   * Controllable fault injection: invoked immediately before a best-effort
+   * ROLLBACK in any of the three methods; throwing simulates a rollback
+   * failure so the poisoned-connection discard path can be verified.
+   */
+  readonly rollbackFault?: (method: 'prepareResult' | 'recordResult' | 'reconcileResult') => void;
 }
 
 export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultRepository {
@@ -135,6 +145,39 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
     private readonly connection: DatabaseConnection,
     private readonly options: UrlCaptureResultRepositoryOptions = {},
   ) {}
+
+  /**
+   * Best-effort ROLLBACK. Returns `true` only when the transaction ended via a
+   * successful ROLLBACK; `false` means the connection is poisoned and must be
+   * destroyed rather than returned to the Pool. Never leaks database detail.
+   */
+  private async bestEffortRollback(
+    client: PoolClient,
+    method: 'prepareResult' | 'recordResult' | 'reconcileResult',
+  ): Promise<boolean> {
+    try {
+      this.options.rollbackFault?.(method);
+      await client.query('ROLLBACK');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Releases a Pool client. When the transaction did not end cleanly (a
+   * committed or rolled-back transaction), the client is destroyed via
+   * `release(error)` instead of being returned to the Pool, so a poisoned
+   * connection can never serve a later query. The rollback error itself is
+   * never written to a log or an HTTP response.
+   */
+  private releaseResultClient(client: PoolClient, clean: boolean): void {
+    if (clean) {
+      client.release();
+      return;
+    }
+    client.release(new Error('url_capture_result_connection_poisoned'));
+  }
 
   async prepareResult(input: {
     readonly taskId: WorkflowTaskId;
@@ -145,23 +188,22 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
   }): Promise<UrlCaptureResultPreflight> {
     this.connection.assertAvailable();
     const client = await this.connection.pool.connect();
-    let began = false;
-    let finished = false;
+    let cleanRelease = false;
     try {
       await client.query('BEGIN');
-      began = true;
+      this.options.prepareAt?.('taskQuery');
       const taskResult = await client.query<TaskBindingRow>(TASK_BINDING_QUERY, [input.taskId]);
       const task = taskResult.rows[0];
       if (!task) {
         await client.query('ROLLBACK');
-        finished = true;
+        cleanRelease = true;
         return { kind: 'unavailable' };
       }
       const existingResult = await client.query<ResultRow>(EXISTING_RESULT_QUERY, [input.taskId]);
       const existing = existingResult.rows[0];
       if (existing) {
         await client.query('ROLLBACK');
-        finished = true;
+        cleanRelease = true;
         return resultMatches(existing, input)
           ? { kind: 'duplicate', result: toRecord(input.taskId, existing) }
           : { kind: 'unavailable' };
@@ -174,7 +216,7 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
         input.acceptedAt.getTime() >= leaseExpiresAt.getTime()
       ) {
         await client.query('ROLLBACK');
-        finished = true;
+        cleanRelease = true;
         return { kind: 'unavailable' };
       }
       const bindingResult = await client.query<BindingRow>(FULL_BINDING_QUERY, [
@@ -184,29 +226,27 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
       ]);
       if (!bindingEligible(bindingResult.rows[0])) {
         await client.query('ROLLBACK');
-        finished = true;
+        cleanRelease = true;
         return { kind: 'unavailable' };
       }
       await client.query('ROLLBACK');
-      finished = true;
+      cleanRelease = true;
       return { kind: 'eligible' };
     } catch {
-      if (began && !finished) {
-        try {
-          await client.query('ROLLBACK');
-        } catch {
-          // Best-effort rollback; never leak database error detail.
-        }
-      }
-      return { kind: 'unavailable' };
+      // A thrown query/timestamp/transaction fault is an infrastructure
+      // failure, not a business rejection: report prepare_failed so the
+      // gateway maps it to a stable internal 500 rather than a 409.
+      cleanRelease = await this.bestEffortRollback(client, 'prepareResult');
+      return { kind: 'prepare_failed' };
     } finally {
-      client.release();
+      this.releaseResultClient(client, cleanRelease);
     }
   }
 
   async recordResult(command: UrlCaptureResultRecordCommand): Promise<UrlCaptureResultRecordOutcome> {
     this.connection.assertAvailable();
     const client = await this.connection.pool.connect();
+    let cleanRelease = false;
     let commitAttempted = false;
     try {
       await client.query('BEGIN');
@@ -216,35 +256,47 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
       const task = taskResult.rows[0];
       if (!task) {
         await client.query('ROLLBACK');
+        cleanRelease = true;
         return { kind: 'unavailable' };
       }
 
       // 2. Replay branch: an existing Result is evaluated before every
-      //    first-submission eligibility rule.
+      //    first-submission eligibility rule. An exact replay bypasses the
+      //    Lease check and returns duplicate.
       const existingResult = await client.query<ResultRow>(EXISTING_RESULT_QUERY, [command.taskId]);
       const existing = existingResult.rows[0];
       if (existing) {
         if (resultMatches(existing, command)) {
           await client.query('ROLLBACK');
+          cleanRelease = true;
           return { kind: 'duplicate', result: toRecord(command.taskId, existing) };
         }
         await client.query('ROLLBACK');
+        cleanRelease = true;
         return { kind: 'unavailable' };
       }
 
-      // 3. First-submission eligibility.
+      // 3. Authoritative final time. Read from PostgreSQL AFTER the Task lock
+      //    is held so a Lease that expired during the Object Storage read is
+      //    observed here, not at request start. `clock_timestamp()` advances
+      //    within the transaction, unlike `now()`.
+      const nowResult = await client.query<{ database_now: Date | string }>(`SELECT clock_timestamp() AS database_now`);
+      const finalizedAt = toTimestamp(nowResult.rows[0]?.database_now as Date | string);
+
+      // 4. First-submission eligibility, judged with the authoritative time.
       const leaseExpiresAt = toTimestamp(task.lease_expires_at);
       if (
         task.state !== 'leased' ||
         task.claim_hash !== command.claimHash ||
         task.claim_attempt_number !== command.attemptNumber ||
-        command.acceptedAt.getTime() >= leaseExpiresAt.getTime()
+        finalizedAt.getTime() >= leaseExpiresAt.getTime()
       ) {
         await client.query('ROLLBACK');
+        cleanRelease = true;
         return { kind: 'unavailable' };
       }
 
-      // 4. Complete Task/Request/Reference/Node/Instance binding.
+      // 5. Complete Task/Request/Reference/Node/Instance binding.
       const bindingResult = await client.query<BindingRow>(FULL_BINDING_QUERY, [
         task.url_capture_request_id,
         task.content_package_id,
@@ -253,10 +305,11 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
       const binding = bindingResult.rows[0];
       if (!bindingEligible(binding)) {
         await client.query('ROLLBACK');
+        cleanRelease = true;
         return { kind: 'unavailable' };
       }
 
-      // 5. Lock the Package row for the lifecycle/capacity recheck.
+      // 6. Lock the Package row for the lifecycle/capacity recheck.
       const packageResult = await client.query<{ lifecycle: string }>(
         `SELECT lifecycle FROM content_packages WHERE id = $1 AND owner_user_id = $2 FOR UPDATE`,
         [task.content_package_id, task.owner_user_id],
@@ -264,10 +317,11 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
       const pkg = packageResult.rows[0];
       if (!pkg) {
         await client.query('ROLLBACK');
+        cleanRelease = true;
         return { kind: 'unavailable' };
       }
 
-      // 6. Classification.
+      // 7. Classification.
       let recordedOutcome: 'succeeded' | 'failed';
       let recordedCategory: FetcherResultRecordedCategory | null;
       let safeCode: FetcherResultSafeCode | null;
@@ -307,6 +361,7 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
       const success = command.success;
       if (recordedOutcome === 'succeeded' && success === null) {
         await client.query('ROLLBACK');
+        cleanRelease = true;
         return { kind: 'unavailable' };
       }
 
@@ -317,7 +372,7 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
           ? JSON.stringify({ snapshot: success.snapshot, capture: success.capture, candidate: success.candidate })
           : null;
 
-      // 7. Insert the unique terminal Result.
+      // 8. Insert the unique terminal Result, stamped with the authoritative time.
       await client.query(
         `INSERT INTO url_capture_results
            (id, task_id, url_capture_request_id, source_reference_id, content_package_id, owner_user_id,
@@ -344,7 +399,7 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
           sourceId,
           snapshotId,
           successEvidence,
-          command.acceptedAt,
+          finalizedAt,
         ],
       );
 
@@ -353,38 +408,38 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
         await this.options.beforeTransitions((text, values) => client.query(text, values as never), command.taskId);
       }
 
-      // 8. Terminalize the Task and clear the active Lease (guarded).
+      // 9. Terminalize the Task and clear the active Lease (guarded).
       const taskUpdate = await client.query(
         `UPDATE workflow_tasks
          SET state = $2, claim_hash = NULL, claimed_by = NULL,
              lease_started_at = NULL, lease_expires_at = NULL, lease_heartbeat_at = NULL,
              updated_at = $3
          WHERE id = $1 AND state = 'leased'`,
-        [command.taskId, recordedOutcome, command.acceptedAt],
+        [command.taskId, recordedOutcome, finalizedAt],
       );
       if (taskUpdate.rowCount !== 1) {
         throw new Error('result_task_transition_unapplied');
       }
 
-      // 9. Transition the source_capture Node (guarded).
+      // 10. Transition the source_capture Node (guarded).
       const nodeUpdate = await client.query(
         `UPDATE workflow_nodes
          SET state = $2, updated_at = $3
          WHERE id = $1 AND template_node_key = 'source_capture' AND state = 'ready'`,
-        [task.workflow_node_id, recordedOutcome === 'succeeded' ? 'completed' : 'failed', command.acceptedAt],
+        [task.workflow_node_id, recordedOutcome === 'succeeded' ? 'completed' : 'failed', finalizedAt],
       );
       if (nodeUpdate.rowCount !== 1) {
         throw new Error('result_node_transition_unapplied');
       }
 
-      // 10. Success: atomically form the Source evidence graph and materialize
-      //     source_review once. No Version and no Approval are created.
+      // 11. Success: atomically form the Source evidence graph and materialize
+      //     source_review once. No Version and no Approval are created. Every
+      //     timestamp uses the same authoritative finalizedAt.
       if (recordedOutcome === 'succeeded' && success) {
-        const acceptedAt = command.acceptedAt;
         await client.query(
           `INSERT INTO sources (id, content_package_id, owner_user_id, source_type, role, label, capture_type, created_at)
            VALUES ($1, $2, $3, 'public_url', $4, NULL, 'public_url', $5)`,
-          [binding.source_reference_id, task.content_package_id, task.owner_user_id, binding.role, acceptedAt],
+          [binding.source_reference_id, task.content_package_id, task.owner_user_id, binding.role, finalizedAt],
         );
         await client.query(
           `INSERT INTO source_raw_snapshots (id, source_id, owner_user_id, storage_key, sha256, byte_size, content_type, captured_at)
@@ -397,7 +452,7 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
             success.snapshot.sha256,
             success.snapshot.byteSize,
             success.snapshot.contentType,
-            acceptedAt,
+            finalizedAt,
           ],
         );
         await client.query(
@@ -410,14 +465,14 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
             task.owner_user_id,
             JSON.stringify({ text: success.candidate.text }),
             success.candidate.schemaVersion,
-            acceptedAt,
+            finalizedAt,
           ],
         );
         await client.query(
           `INSERT INTO source_heads
              (source_id, owner_user_id, working_copy_id, latest_version_id, review_candidate_version_id, approved_version_id, updated_at)
            VALUES ($1, $2, $3, NULL, NULL, NULL, $4)`,
-          [binding.source_reference_id, task.owner_user_id, command.workingCopyId, acceptedAt],
+          [binding.source_reference_id, task.owner_user_id, command.workingCopyId, finalizedAt],
         );
         const reviewNode = await client.query<{ id: string }>(
           `SELECT id FROM workflow_nodes
@@ -439,13 +494,13 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
               task.owner_user_id,
               binding.template_id,
               binding.template_version,
-              acceptedAt,
+              finalizedAt,
             ],
           );
         }
       }
 
-      // 11. Append exactly one safe Event.
+      // 12. Append exactly one safe Event, stamped with the authoritative time.
       const sequenceResult = await client.query<{ next_sequence: number }>(
         `SELECT coalesce(max(sequence), 0) + 1 AS next_sequence
          FROM workflow_events
@@ -489,13 +544,14 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
           sequence,
           eventType,
           eventPayloadJson,
-          command.acceptedAt,
+          finalizedAt,
           task.workflow_node_id,
         ],
       );
 
       commitAttempted = true;
       await client.query('COMMIT');
+      cleanRelease = true;
       return {
         kind: 'recorded',
         result: {
@@ -508,14 +564,10 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
         },
       };
     } catch (error) {
-      try {
-        await client.query('ROLLBACK');
-      } catch {
-        // Preserve the stable outer error boundary; never emit database details.
-      }
+      cleanRelease = await this.bestEffortRollback(client, 'recordResult');
       throw new UrlCaptureResultPersistenceError(commitAttempted ? 'COMMIT_UNKNOWN' : 'NOT_COMMITTED', error);
     } finally {
-      client.release();
+      this.releaseResultClient(client, cleanRelease);
     }
   }
 
@@ -527,11 +579,9 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
   }): Promise<UrlCaptureResultReconciliation> {
     this.connection.assertAvailable();
     const client = await this.connection.pool.connect();
-    let began = false;
-    let finished = false;
+    let cleanRelease = false;
     try {
       await client.query('BEGIN');
-      began = true;
       this.options.reconcileAt?.('afterBegin');
       // Cross a fresh lock barrier so any in-flight original transaction has
       // committed or rolled back before absence authorizes compensation.
@@ -541,13 +591,13 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
       this.options.reconcileAt?.('taskBarrier');
       if (taskResult.rows.length === 0) {
         await client.query('ROLLBACK');
-        finished = true;
+        cleanRelease = true;
         return { outcome: 'UNKNOWN' };
       }
       const resultRows = await client.query<ResultRow>(EXISTING_RESULT_QUERY, [input.taskId]);
       this.options.reconcileAt?.('resultQuery');
       await client.query('ROLLBACK');
-      finished = true;
+      cleanRelease = true;
       const row = resultRows.rows[0];
       if (!row) return { outcome: 'ABSENT' };
       if (resultMatches(row, input)) {
@@ -555,16 +605,10 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
       }
       return { outcome: 'UNKNOWN' };
     } catch {
-      if (began && !finished) {
-        try {
-          await client.query('ROLLBACK');
-        } catch {
-          // Best-effort rollback; never leak database error detail.
-        }
-      }
+      cleanRelease = await this.bestEffortRollback(client, 'reconcileResult');
       return { outcome: 'UNKNOWN' };
     } finally {
-      client.release();
+      this.releaseResultClient(client, cleanRelease);
     }
   }
 }
