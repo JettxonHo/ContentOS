@@ -8,13 +8,14 @@ import {
   isFetcherGatewayBodyAbsent,
   type FetcherGatewayClaimResponse,
   type FetcherGatewayHeartbeatResponse,
+  type FetcherGatewayResultResponse,
 } from '@contentos/contracts';
 import type { ApiErrorCode } from '@contentos/contracts';
-import type { FetcherGatewayService, WorkflowTaskId } from '@contentos/core';
+import type { FetcherGatewayService, FetcherResultService, WorkflowTaskId } from '@contentos/core';
 
 import { ApiHttpError } from '../http/api-http-error.js';
 import { FetcherGatewayServiceTransport } from '../http/trusted-origin.guard.js';
-import { FETCHER_GATEWAY_SERVICE } from '../runtime.tokens.js';
+import { FETCHER_GATEWAY_SERVICE, FETCHER_RESULT_SERVICE } from '../runtime.tokens.js';
 import { FetcherGatewaySecretGuard, requestHeaderValues } from './fetcher-gateway.guard.js';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -45,12 +46,25 @@ function requireSingleClaimHeader(request: FastifyRequest): string {
   return values[0] as string;
 }
 
+/**
+ * The Result body transport requires exactly one Content-Type header whose
+ * OWS-stripped value is exactly `application/json`. Parameters, compound
+ * values, and any other media type are rejected with the safe Gateway error.
+ */
+function requireExactJsonContentType(request: FastifyRequest): void {
+  const values = requestHeaderValues(request, 'content-type');
+  if (values.length !== 1 || (values[0] ?? '').trim() !== 'application/json') invalidGatewayRequest();
+}
+
 @ApiExcludeController()
 @FetcherGatewayServiceTransport()
 @UseGuards(FetcherGatewaySecretGuard)
 @Controller('internal/fetcher/tasks')
 export class FetcherGatewayController {
-  constructor(@Inject(FETCHER_GATEWAY_SERVICE) private readonly gateway: FetcherGatewayService) {}
+  constructor(
+    @Inject(FETCHER_GATEWAY_SERVICE) private readonly gateway: FetcherGatewayService,
+    @Inject(FETCHER_RESULT_SERVICE) private readonly results: FetcherResultService,
+  ) {}
 
   @Post(':taskId/claim')
   @HttpCode(200)
@@ -91,6 +105,28 @@ export class FetcherGatewayController {
         attemptNumber: result.attemptNumber,
         leaseExpiresAt: result.leaseExpiresAt.toISOString(),
         renewed: result.renewed,
+      },
+    };
+  }
+
+  @Post(':taskId/result')
+  @HttpCode(200)
+  async submitResult(
+    @Req() request: FastifyRequest,
+    @Param('taskId') rawTaskId: string,
+    @Body() body: unknown,
+  ): Promise<FetcherGatewayResultResponse> {
+    requireExactJsonContentType(request);
+    const claim = requireSingleClaimHeader(request);
+    const outcome = await this.results.submitResult(taskId(rawTaskId), claim, body);
+    return {
+      data: {
+        taskId: outcome.taskId,
+        attemptNumber: outcome.attemptNumber,
+        taskState: outcome.taskState,
+        resultCategory: outcome.resultCategory,
+        sourceId: outcome.sourceId,
+        duplicate: outcome.duplicate,
       },
     };
   }

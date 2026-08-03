@@ -1,14 +1,34 @@
 import { describe, expect, it } from 'vitest';
 
+import type { ObjectStore, StoredObject } from '../source/object-store.js';
+
 import {
   FETCHER_GATEWAY_CONNECTION_POLICY_VERSION,
   FETCHER_GATEWAY_RESOURCE_POLICY_VERSION,
+  FETCHER_RESULT_VERSION,
+  FETCHER_FAILURE_CATEGORY_TO_CODE,
+  SERVER_DERIVED_FAILURE_CATEGORY_TO_CODE,
+  URL_CAPTURE_FAILED_EVENT_TYPE,
+  URL_CAPTURE_SUCCEEDED_EVENT_TYPE,
   FetcherGatewayApplicationError,
   FetcherGatewayDomainError,
   FetcherGatewayService,
+  FetcherResultInternalError,
+  FetcherResultService,
+  UrlCaptureResultPersistenceError,
+  buildUrlCaptureStorageKey,
+  canonicalFetcherResultSerialization,
   defineFetcherLeaseExpiredEventValue,
   defineFetcherGatewayClaimResponse,
+  defineFetcherResultSubmission,
+  defineUrlCaptureFailedEventPayload,
+  defineUrlCaptureSucceededEventPayload,
+  fetcherResultPayloadFingerprint,
   hashFetcherGatewayClaim,
+  parseUrlCaptureStorageKey,
+  type UrlCaptureResultRecordCommand,
+  type UrlCaptureResultRecordOutcome,
+  type UrlCaptureResultReconciliation,
 } from './fetcher-gateway.js';
 
 const taskId = '00000000-0000-4000-8000-000000000001' as never;
@@ -255,5 +275,610 @@ describe('defineFetcherLeaseExpiredEventValue exact shape', () => {
     expectInvalid(new Proxy({ ...validBase }, { getPrototypeOf: boom }));
     expectInvalid(new Proxy({ ...validBase }, { ownKeys: boom }));
     expectInvalid(new Proxy({ ...validBase }, { getOwnPropertyDescriptor: boom }));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M2-SRC-003 — fetcher-result/v1 submission contract, service, key parser
+// ---------------------------------------------------------------------------
+
+const resultTaskId = '00000000-0000-4000-8000-000000000001';
+const resultSnapshotId = '00000000-0000-4000-8000-0000000000aa';
+const resultSourceReferenceId = '00000000-0000-4000-8000-0000000000bb' as never;
+const resultClaim = 'B'.repeat(43);
+
+function validSuccessSubmission(): Record<string, unknown> {
+  return {
+    resultVersion: FETCHER_RESULT_VERSION,
+    attemptNumber: 1,
+    outcome: 'succeeded',
+    snapshot: {
+      snapshotId: resultSnapshotId,
+      storageKey: buildUrlCaptureStorageKey({
+        taskId: resultTaskId,
+        attemptNumber: 1,
+        snapshotId: resultSnapshotId,
+      }),
+      sha256: 'a'.repeat(64),
+      byteSize: 1234,
+      contentType: 'text/html',
+      contentEncoding: 'identity',
+    },
+    capture: {
+      finalUrl: 'https://example.com/final',
+      redirects: [],
+      responseStatus: 200,
+      encodedByteSize: 1234,
+      decodedByteSize: 5678,
+    },
+    candidate: {
+      schemaVersion: 'source/normalized/v1',
+      text: 'reviewable normalized text',
+    },
+  };
+}
+
+function validFailureSubmission(
+  category: keyof typeof FETCHER_FAILURE_CATEGORY_TO_CODE = 'fetch_failed',
+): Record<string, unknown> {
+  return {
+    resultVersion: FETCHER_RESULT_VERSION,
+    attemptNumber: 1,
+    outcome: 'failed',
+    category,
+    code: FETCHER_FAILURE_CATEGORY_TO_CODE[category],
+  };
+}
+
+function expectResultInvalid(input: unknown): void {
+  expect(() => defineFetcherResultSubmission(input)).toThrow(new FetcherGatewayDomainError('INVALID_FETCHER_RESULT'));
+}
+
+describe('fetcher-result/v1 submission exact shape', () => {
+  it('accepts the exact success and failure shapes', () => {
+    const success = defineFetcherResultSubmission(validSuccessSubmission());
+    expect(success.outcome).toBe('succeeded');
+    expect(success.attemptNumber).toBe(1);
+    if (success.outcome === 'succeeded') {
+      expect(success.snapshot.contentType).toBe('text/html');
+      expect(success.capture.responseStatus).toBe(200);
+      expect(success.candidate.text).toBe('reviewable normalized text');
+    }
+    const failure = defineFetcherResultSubmission(validFailureSubmission());
+    expect(failure.outcome).toBe('failed');
+    if (failure.outcome === 'failed') {
+      expect(failure.category).toBe('fetch_failed');
+      expect(failure.code).toBe('FETCH_FAILED');
+    }
+  });
+
+  it('rejects null, arrays, primitives, and class instances', () => {
+    expectResultInvalid(null);
+    expectResultInvalid([validSuccessSubmission()]);
+    expectResultInvalid('not-an-object');
+    expectResultInvalid(42);
+    expectResultInvalid(true);
+    expectResultInvalid(undefined);
+    expectResultInvalid(new (class Instance {})());
+  });
+
+  it('rejects missing and extra fields', () => {
+    const missing = validSuccessSubmission();
+    delete (missing as Record<string, unknown>).candidate;
+    expectResultInvalid(missing);
+    expectResultInvalid({ ...validSuccessSubmission(), extra: 'x' });
+    const failure = validFailureSubmission();
+    delete (failure as Record<string, unknown>).code;
+    expectResultInvalid(failure);
+    expectResultInvalid({ ...validFailureSubmission(), snapshot: {} });
+  });
+
+  it('rejects symbol keys at the top level and in nested records', () => {
+    expectResultInvalid({ ...validSuccessSubmission(), [Symbol('leak')]: 'x' });
+    const withSymbolSnapshot = validSuccessSubmission();
+    (withSymbolSnapshot.snapshot as Record<string | symbol, unknown>)[Symbol('snap')] = 'x';
+    expectResultInvalid(withSymbolSnapshot);
+  });
+
+  it('rejects accessor properties and never executes a hostile getter', () => {
+    let getterCalled = false;
+    const hostile = validSuccessSubmission();
+    Object.defineProperty(hostile, 'attemptNumber', {
+      enumerable: true,
+      configurable: true,
+      get: () => {
+        getterCalled = true;
+        return 1;
+      },
+    });
+    expectResultInvalid(hostile);
+    expect(getterCalled).toBe(false);
+  });
+
+  it('returns a stable rejection for revoked Proxies and throwing reflection traps', () => {
+    const revocable = Proxy.revocable(validSuccessSubmission(), {});
+    revocable.revoke();
+    expectResultInvalid(revocable.proxy);
+    const boom = (): never => {
+      throw new Error('REFLECT_BOOM');
+    };
+    expectResultInvalid(new Proxy(validSuccessSubmission(), { getPrototypeOf: boom }));
+    expectResultInvalid(new Proxy(validSuccessSubmission(), { ownKeys: boom }));
+    expectResultInvalid(new Proxy(validSuccessSubmission(), { getOwnPropertyDescriptor: boom }));
+  });
+
+  it('reads legal values without triggering a Proxy get trap', () => {
+    let getTrapCalled = false;
+    const proxied = new Proxy(validSuccessSubmission(), {
+      get: () => {
+        getTrapCalled = true;
+        throw new Error('TRAP_BOOM');
+      },
+    });
+    const value = defineFetcherResultSubmission(proxied);
+    expect(getTrapCalled).toBe(false);
+    expect(value.outcome).toBe('succeeded');
+  });
+});
+
+describe('fetcher-result/v1 field bounds', () => {
+  it('enforces content type and encoding allowlists', () => {
+    for (const contentType of ['text/html; charset=utf-8', 'application/json', 'image/png']) {
+      const bad = validSuccessSubmission();
+      (bad.snapshot as Record<string, unknown>).contentType = contentType;
+      expectResultInvalid(bad);
+    }
+    const badEncoding = validSuccessSubmission();
+    (badEncoding.snapshot as Record<string, unknown>).contentEncoding = 'zstd';
+    expectResultInvalid(badEncoding);
+  });
+
+  it('enforces snapshot, decoded, and encoded byte bounds and their coupling', () => {
+    for (const byteSize of [0, -1, 2_097_153]) {
+      const bad = validSuccessSubmission();
+      (bad.snapshot as Record<string, unknown>).byteSize = byteSize;
+      expectResultInvalid(bad);
+    }
+    const mismatch = validSuccessSubmission();
+    (mismatch.capture as Record<string, unknown>).encodedByteSize = 9999;
+    expectResultInvalid(mismatch);
+    for (const decodedByteSize of [0, 8_388_609]) {
+      const bad = validSuccessSubmission();
+      (bad.capture as Record<string, unknown>).decodedByteSize = decodedByteSize;
+      expectResultInvalid(bad);
+    }
+  });
+
+  it('enforces responseStatus, URL, redirect, and candidate rules', () => {
+    const badStatus = validSuccessSubmission();
+    (badStatus.capture as Record<string, unknown>).responseStatus = 301;
+    expectResultInvalid(badStatus);
+    for (const finalUrl of ['ftp://example.com', 'not a url', 'https://user:pass@example.com']) {
+      const bad = validSuccessSubmission();
+      (bad.capture as Record<string, unknown>).finalUrl = finalUrl;
+      expectResultInvalid(bad);
+    }
+    const tooManyRedirects = validSuccessSubmission();
+    (tooManyRedirects.capture as Record<string, unknown>).redirects = Array.from({ length: 6 }, () => ({
+      status: 301,
+      url: 'https://example.com/r',
+    }));
+    expectResultInvalid(tooManyRedirects);
+    const badRedirectStatus = validSuccessSubmission();
+    (badRedirectStatus.capture as Record<string, unknown>).redirects = [{ status: 200, url: 'https://example.com/r' }];
+    expectResultInvalid(badRedirectStatus);
+    const badSchema = validSuccessSubmission();
+    (badSchema.candidate as Record<string, unknown>).schemaVersion = 'source/normalized/v2';
+    expectResultInvalid(badSchema);
+    const emptyText = validSuccessSubmission();
+    (emptyText.candidate as Record<string, unknown>).text = '   ';
+    expectResultInvalid(emptyText);
+    const oversizedText = validSuccessSubmission();
+    (oversizedText.candidate as Record<string, unknown>).text = 'x'.repeat(100_001);
+    expectResultInvalid(oversizedText);
+    const nulText = validSuccessSubmission();
+    (nulText.candidate as Record<string, unknown>).text = 'ok' + String.fromCharCode(0) + 'x';
+    expectResultInvalid(nulText);
+  });
+});
+
+describe('fetcher-result/v1 classification enumeration', () => {
+  it('accepts every Fetcher-supplied category with its exact code', () => {
+    for (const [category, code] of Object.entries(FETCHER_FAILURE_CATEGORY_TO_CODE)) {
+      const value = defineFetcherResultSubmission(validFailureSubmission(category as never));
+      if (value.outcome !== 'failed') throw new Error('expected failure');
+      expect(value.category).toBe(category);
+      expect(value.code).toBe(code);
+    }
+  });
+
+  it('rejects every category/code mismatch and arbitrary codes', () => {
+    const mismatch = validFailureSubmission('fetch_failed');
+    (mismatch as Record<string, unknown>).code = 'TIMEOUT';
+    expectResultInvalid(mismatch);
+    const arbitrary = validFailureSubmission('fetch_failed');
+    (arbitrary as Record<string, unknown>).code = 'SOME_ARBITRARY_CODE';
+    expectResultInvalid(arbitrary);
+    const serverDerived = validFailureSubmission();
+    (serverDerived as Record<string, unknown>).category = 'package_archived';
+    (serverDerived as Record<string, unknown>).code = 'PACKAGE_ARCHIVED';
+    expectResultInvalid(serverDerived);
+    const unknownCategory = validFailureSubmission();
+    (unknownCategory as Record<string, unknown>).category = 'not_a_category';
+    expectResultInvalid(unknownCategory);
+  });
+
+  it('fixes the server-derived category to code mapping', () => {
+    expect(SERVER_DERIVED_FAILURE_CATEGORY_TO_CODE).toEqual({
+      package_archived: 'PACKAGE_ARCHIVED',
+      source_role_limit: 'SOURCE_ROLE_LIMIT',
+      object_integrity_failed: 'OBJECT_INTEGRITY_FAILED',
+    });
+  });
+});
+
+describe('fetcher-result/v1 canonical fingerprint', () => {
+  it('is a stable lowercase SHA-256 over the canonical serialization', () => {
+    const submission = defineFetcherResultSubmission(validSuccessSubmission());
+    const fingerprint = fetcherResultPayloadFingerprint(submission);
+    expect(fingerprint).toMatch(/^[0-9a-f]{64}$/);
+    expect(fetcherResultPayloadFingerprint(defineFetcherResultSubmission(validSuccessSubmission()))).toBe(fingerprint);
+    const canonical = canonicalFetcherResultSerialization(submission);
+    expect(canonical).toContain('"resultVersion":"fetcher-result/v1"');
+    expect(canonical).not.toContain('undefined');
+  });
+
+  it('changes when any field changes', () => {
+    const base = fetcherResultPayloadFingerprint(defineFetcherResultSubmission(validSuccessSubmission()));
+    const changed = validSuccessSubmission();
+    (changed.candidate as Record<string, unknown>).text = 'a different reviewable text';
+    const changedFingerprint = fetcherResultPayloadFingerprint(defineFetcherResultSubmission(changed));
+    expect(changedFingerprint).not.toBe(base);
+  });
+});
+
+describe('parseUrlCaptureStorageKey exact parser', () => {
+  const key = buildUrlCaptureStorageKey({ taskId: resultTaskId, attemptNumber: 3, snapshotId: resultSnapshotId });
+
+  it('parses an exact valid task/attempt/snapshot key', () => {
+    expect(key).toBe(`fetcher/url-capture/${resultTaskId}/3/raw/${resultSnapshotId}`);
+    expect(parseUrlCaptureStorageKey(key)).toEqual({
+      taskId: resultTaskId,
+      attemptNumber: 3,
+      snapshotId: resultSnapshotId,
+    });
+  });
+
+  it('rejects wrong task, wrong attempt, and wrong snapshot bindings', () => {
+    const otherTask = buildUrlCaptureStorageKey({
+      taskId: '00000000-0000-4000-8000-000000000099',
+      attemptNumber: 3,
+      snapshotId: resultSnapshotId,
+    });
+    expect(parseUrlCaptureStorageKey(otherTask)).not.toEqual(expect.objectContaining({ taskId: resultTaskId }));
+    expect(parseUrlCaptureStorageKey(otherTask)?.taskId).toBe('00000000-0000-4000-8000-000000000099');
+  });
+
+  it('rejects extra segments, dot segments, repeated separators, and empty segments', () => {
+    expect(parseUrlCaptureStorageKey(`${key}/extra`)).toBeNull();
+    expect(parseUrlCaptureStorageKey(`fetcher/url-capture/./3/raw/${resultSnapshotId}`)).toBeNull();
+    expect(parseUrlCaptureStorageKey(`fetcher/url-capture/../3/raw/${resultSnapshotId}`)).toBeNull();
+    expect(parseUrlCaptureStorageKey(`fetcher//url-capture/${resultTaskId}/3/raw/${resultSnapshotId}`)).toBeNull();
+    expect(parseUrlCaptureStorageKey(`fetcher/url-capture/${resultTaskId}//raw/${resultSnapshotId}`)).toBeNull();
+    expect(parseUrlCaptureStorageKey(`${key}/`)).toBeNull();
+  });
+
+  it('rejects backslashes, control characters, and malformed UUIDs', () => {
+    expect(parseUrlCaptureStorageKey(key.replace('/', '\\'))).toBeNull();
+    expect(parseUrlCaptureStorageKey('fetcher/url-capture/x/3/raw/y')).toBeNull();
+    expect(parseUrlCaptureStorageKey(`fetcher/url-capture/${resultTaskId}/03/raw/${resultSnapshotId}`)).toBeNull();
+    expect(parseUrlCaptureStorageKey(`fetcher/url-capture/${resultTaskId}/0/raw/${resultSnapshotId}`)).toBeNull();
+    expect(parseUrlCaptureStorageKey(123)).toBeNull();
+    expect(parseUrlCaptureStorageKey(null)).toBeNull();
+    expect(parseUrlCaptureStorageKey('')).toBeNull();
+  });
+});
+
+describe('safe result event payloads', () => {
+  it('builds the exact success event payload with no sensitive fields', () => {
+    const payload = defineUrlCaptureSucceededEventPayload({
+      taskId: resultTaskId as never,
+      sourceReferenceId: resultSourceReferenceId,
+      sourceId: resultTaskId,
+      snapshotId: resultSnapshotId,
+      attemptNumber: 1,
+    });
+    expect(payload).toEqual({
+      taskId: resultTaskId,
+      sourceReferenceId: resultSourceReferenceId,
+      sourceId: resultTaskId,
+      snapshotId: resultSnapshotId,
+      attemptNumber: 1,
+    });
+    const serialized = JSON.stringify(payload);
+    for (const forbidden of ['storageKey', 'claim', 'secret', 'https://', 'candidate', 'sha256']) {
+      expect(serialized).not.toContain(forbidden);
+    }
+    expect(URL_CAPTURE_SUCCEEDED_EVENT_TYPE).toBe('url_capture_succeeded.v1');
+  });
+
+  it('builds the exact failure event payload from recorded category and safe code', () => {
+    const payload = defineUrlCaptureFailedEventPayload({
+      taskId: resultTaskId as never,
+      sourceReferenceId: resultSourceReferenceId,
+      attemptNumber: 1,
+      category: 'object_integrity_failed',
+      code: 'OBJECT_INTEGRITY_FAILED',
+    });
+    expect(payload).toEqual({
+      taskId: resultTaskId,
+      sourceReferenceId: resultSourceReferenceId,
+      attemptNumber: 1,
+      category: 'object_integrity_failed',
+      code: 'OBJECT_INTEGRITY_FAILED',
+    });
+    expect(URL_CAPTURE_FAILED_EVENT_TYPE).toBe('url_capture_failed.v1');
+  });
+
+  it('rejects a mismatched failure event category/code', () => {
+    expect(() =>
+      defineUrlCaptureFailedEventPayload({
+        taskId: resultTaskId as never,
+        sourceReferenceId: resultSourceReferenceId,
+        attemptNumber: 1,
+        category: 'object_integrity_failed',
+        code: 'FETCH_FAILED',
+      }),
+    ).toThrow(new FetcherGatewayDomainError('INVALID_URL_CAPTURE_RESULT_EVENT'));
+  });
+});
+
+interface FakeObjectStore extends ObjectStore {
+  readonly deleted: string[];
+  integrityChecks: number;
+}
+
+function makeObjectStore(integrityResult: boolean | (() => boolean) = true): FakeObjectStore {
+  const deleted: string[] = [];
+  const store: FakeObjectStore = {
+    deleted,
+    integrityChecks: 0,
+    async putImmutable(): Promise<StoredObject> {
+      throw new Error('M2-SRC-003 does not write fetcher objects');
+    },
+    async readForIntegrity(): Promise<boolean> {
+      store.integrityChecks += 1;
+      return typeof integrityResult === 'function' ? integrityResult() : integrityResult;
+    },
+    async deleteForCompensation(storageKey: string): Promise<void> {
+      deleted.push(storageKey);
+    },
+  };
+  return store;
+}
+
+const resultIds = {
+  generateResultId: () => '00000000-0000-4000-8000-000000000111',
+  generateWorkingCopyId: () => '00000000-0000-4000-8000-000000000444',
+  generateSourceReviewNodeId: () => '00000000-0000-4000-8000-000000000222' as never,
+  generateResultEventId: () => '00000000-0000-4000-8000-000000000333' as never,
+};
+const resultClock = { now: () => new Date('2026-08-03T00:00:00.000Z') };
+const successKey = buildUrlCaptureStorageKey({
+  taskId: resultTaskId,
+  attemptNumber: 1,
+  snapshotId: resultSnapshotId,
+});
+
+type RecordResultFn = (command: UrlCaptureResultRecordCommand) => Promise<UrlCaptureResultRecordOutcome>;
+
+function makeService(
+  store: FakeObjectStore,
+  recordResult: RecordResultFn,
+  reconcileResult?: () => Promise<UrlCaptureResultReconciliation>,
+): { service: FetcherResultService; commands: UrlCaptureResultRecordCommand[] } {
+  const commands: UrlCaptureResultRecordCommand[] = [];
+  const repository = {
+    recordResult: async (command: UrlCaptureResultRecordCommand) => {
+      commands.push(command);
+      return recordResult(command);
+    },
+    reconcileResult: reconcileResult ?? (async (): Promise<UrlCaptureResultReconciliation> => ({ outcome: 'UNKNOWN' })),
+  };
+  return { service: new FetcherResultService(repository, store, resultIds, resultClock), commands };
+}
+
+describe('FetcherResultService', () => {
+  it('records a first successful result and returns the safe gateway outcome', async () => {
+    const store = makeObjectStore(true);
+    const { service, commands } = makeService(store, async (command) => ({
+      kind: 'recorded',
+      result: {
+        taskId: command.taskId,
+        attemptNumber: command.attemptNumber,
+        recordedOutcome: 'succeeded',
+        recordedCategory: null,
+        safeCode: null,
+        sourceId: resultSourceReferenceId,
+      },
+    }));
+    const outcome = await service.submitResult(resultTaskId as never, resultClaim, validSuccessSubmission());
+    expect(outcome).toEqual({
+      taskId: resultTaskId,
+      attemptNumber: 1,
+      taskState: 'succeeded',
+      resultCategory: 'success',
+      sourceId: resultSourceReferenceId,
+      duplicate: false,
+    });
+    expect(commands).toHaveLength(1);
+    expect(commands[0]!.objectIntegrityVerified).toBe(true);
+    expect(commands[0]!.claimHash).toBe(hashFetcherGatewayClaim(resultClaim));
+    expect(commands[0]!.submittedPayloadSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(commands[0]!.submittedCategory).toBeNull();
+    expect(store.deleted).toEqual([]);
+  });
+
+  it('records a server-derived integrity failure and compensates the object', async () => {
+    const store = makeObjectStore(false);
+    const { service } = makeService(store, async (command) => ({
+      kind: 'recorded',
+      result: {
+        taskId: command.taskId,
+        attemptNumber: command.attemptNumber,
+        recordedOutcome: 'failed',
+        recordedCategory: 'object_integrity_failed',
+        safeCode: 'OBJECT_INTEGRITY_FAILED',
+        sourceId: null,
+      },
+    }));
+    const outcome = await service.submitResult(resultTaskId as never, resultClaim, validSuccessSubmission());
+    expect(outcome.taskState).toBe('failed');
+    expect(outcome.resultCategory).toBe('object_integrity_failed');
+    expect(outcome.sourceId).toBeNull();
+    expect(outcome.duplicate).toBe(false);
+    expect(store.deleted).toEqual([successKey]);
+  });
+
+  it('records a Fetcher-reported failure without integrity read or compensation', async () => {
+    const store = makeObjectStore(true);
+    const { service, commands } = makeService(store, async (command) => ({
+      kind: 'recorded',
+      result: {
+        taskId: command.taskId,
+        attemptNumber: command.attemptNumber,
+        recordedOutcome: 'failed',
+        recordedCategory: 'fetch_failed',
+        safeCode: 'FETCH_FAILED',
+        sourceId: null,
+      },
+    }));
+    const outcome = await service.submitResult(resultTaskId as never, resultClaim, validFailureSubmission());
+    expect(outcome).toEqual({
+      taskId: resultTaskId,
+      attemptNumber: 1,
+      taskState: 'failed',
+      resultCategory: 'fetch_failed',
+      sourceId: null,
+      duplicate: false,
+    });
+    expect(store.integrityChecks).toBe(0);
+    expect(store.deleted).toEqual([]);
+    expect(commands[0]!.success).toBeNull();
+    expect(commands[0]!.submittedCategory).toBe('fetch_failed');
+  });
+
+  it('returns the persisted result with duplicate=true for an exact replay', async () => {
+    const store = makeObjectStore(true);
+    const { service } = makeService(store, async (command) => ({
+      kind: 'duplicate',
+      result: {
+        taskId: command.taskId,
+        attemptNumber: command.attemptNumber,
+        recordedOutcome: 'succeeded',
+        recordedCategory: null,
+        safeCode: null,
+        sourceId: resultSourceReferenceId,
+      },
+    }));
+    const outcome = await service.submitResult(resultTaskId as never, resultClaim, validSuccessSubmission());
+    expect(outcome.duplicate).toBe(true);
+    expect(outcome.taskState).toBe('succeeded');
+    expect(outcome.sourceId).toBe(resultSourceReferenceId);
+    expect(store.deleted).toEqual([]);
+  });
+
+  it('throws FETCHER_RESULT_UNAVAILABLE when the repository reports unavailable', async () => {
+    const store = makeObjectStore(true);
+    const { service } = makeService(store, async () => ({ kind: 'unavailable' }));
+    await expect(service.submitResult(resultTaskId as never, resultClaim, validSuccessSubmission())).rejects.toEqual(
+      new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE'),
+    );
+  });
+
+  it('rejects a storage key not bound to the route task id', async () => {
+    const store = makeObjectStore(true);
+    const { service } = makeService(store, async () => ({ kind: 'unavailable' }));
+    const otherTask = '00000000-0000-4000-8000-000000000099';
+    await expect(service.submitResult(otherTask as never, resultClaim, validSuccessSubmission())).rejects.toThrow(
+      new FetcherGatewayDomainError('INVALID_URL_CAPTURE_STORAGE_KEY'),
+    );
+    expect(store.integrityChecks).toBe(0);
+    expect(store.deleted).toEqual([]);
+  });
+
+  it('rejects a malformed claim before any repository access', async () => {
+    const store = makeObjectStore(true);
+    const { service, commands } = makeService(store, async () => ({ kind: 'unavailable' }));
+    await expect(service.submitResult(resultTaskId as never, 'short-claim', validSuccessSubmission())).rejects.toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_GATEWAY_CLAIM'),
+    );
+    expect(commands).toEqual([]);
+  });
+
+  it('compensates and raises a stable internal error on NOT_COMMITTED', async () => {
+    const store = makeObjectStore(true);
+    const { service } = makeService(store, async () => {
+      throw new UrlCaptureResultPersistenceError('NOT_COMMITTED', new Error('db'));
+    });
+    await expect(service.submitResult(resultTaskId as never, resultClaim, validSuccessSubmission())).rejects.toEqual(
+      new FetcherResultInternalError('NOT_COMMITTED'),
+    );
+    expect(store.deleted).toEqual([successKey]);
+  });
+
+  it('returns the existing result as duplicate when COMMIT_UNKNOWN reconciles committed', async () => {
+    const store = makeObjectStore(true);
+    const { service } = makeService(
+      store,
+      async () => {
+        throw new UrlCaptureResultPersistenceError('COMMIT_UNKNOWN', new Error('db'));
+      },
+      async () => ({
+        outcome: 'COMMITTED',
+        result: {
+          taskId: resultTaskId as never,
+          attemptNumber: 1,
+          recordedOutcome: 'succeeded',
+          recordedCategory: null,
+          safeCode: null,
+          sourceId: resultSourceReferenceId,
+        },
+      }),
+    );
+    const outcome = await service.submitResult(resultTaskId as never, resultClaim, validSuccessSubmission());
+    expect(outcome.duplicate).toBe(true);
+    expect(outcome.sourceId).toBe(resultSourceReferenceId);
+    expect(store.deleted).toEqual([]);
+  });
+
+  it('compensates and raises a stable internal error when COMMIT_UNKNOWN reconciles absent', async () => {
+    const store = makeObjectStore(true);
+    const { service } = makeService(
+      store,
+      async () => {
+        throw new UrlCaptureResultPersistenceError('COMMIT_UNKNOWN', new Error('db'));
+      },
+      async () => ({ outcome: 'ABSENT' }),
+    );
+    await expect(service.submitResult(resultTaskId as never, resultClaim, validSuccessSubmission())).rejects.toEqual(
+      new FetcherResultInternalError('COMMIT_UNKNOWN'),
+    );
+    expect(store.deleted).toEqual([successKey]);
+  });
+
+  it('retains the object and never claims success when reconciliation is undetermined', async () => {
+    const store = makeObjectStore(true);
+    const { service } = makeService(
+      store,
+      async () => {
+        throw new UrlCaptureResultPersistenceError('COMMIT_UNKNOWN', new Error('db'));
+      },
+      async () => ({ outcome: 'UNKNOWN' }),
+    );
+    await expect(service.submitResult(resultTaskId as never, resultClaim, validSuccessSubmission())).rejects.toEqual(
+      new FetcherResultInternalError('RECONCILIATION_REQUIRED'),
+    );
+    expect(store.deleted).toEqual([]);
   });
 });

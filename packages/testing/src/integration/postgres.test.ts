@@ -110,6 +110,7 @@ describe('postgres smoke', () => {
       'source_working_copies',
       'sources',
       'url_capture_requests',
+      'url_capture_results',
       'url_source_references',
       'workflow_events',
       'workflow_instances',
@@ -342,7 +343,7 @@ describe('postgres smoke', () => {
       );
       await expectConstraint(
         client,
-        `UPDATE source_raw_snapshots SET byte_size=100001 WHERE id=$1`,
+        `UPDATE source_raw_snapshots SET byte_size=2097153 WHERE id=$1`,
         [snapshotA],
         'source_raw_snapshots_byte_size_check',
       );
@@ -549,7 +550,7 @@ describe('source upload migration 0003 constraints (M2-SRC-002)', () => {
         client,
         `INSERT INTO sources
           (id, content_package_id, owner_user_id, source_type, role, label, capture_type, created_at)
-         VALUES ($1, $2, $3, 'pasted_text', 'supporting', NULL, 'public_url', now())`,
+         VALUES ($1, $2, $3, 'pasted_text', 'supporting', NULL, 'url', now())`,
         [randomUUID(), packageId, ownerId],
         'sources_capture_type_check',
       );

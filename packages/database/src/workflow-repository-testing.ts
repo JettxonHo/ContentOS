@@ -1,4 +1,4 @@
-import type { UrlCaptureCommandRepository, WorkflowRepository } from '@contentos/core';
+import type { UrlCaptureCommandRepository, UrlCaptureResultRepository, WorkflowRepository } from '@contentos/core';
 import type { FetcherGatewayClaimRepository } from '@contentos/core';
 
 import { createDatabaseConnection } from './client.js';
@@ -6,6 +6,7 @@ import { DrizzleWorkflowRepository } from './workflow-repository.js';
 import { DrizzleWorkflowCommandRepository } from './workflow-command-repository.js';
 import { DrizzleWorkflowDispatchRepository } from './workflow-dispatch-repository.js';
 import { DrizzleWorkflowFetcherGatewayRepository } from './workflow-fetcher-gateway-repository.js';
+import { DrizzleUrlCaptureResultRepository } from './url-capture-result-repository.js';
 import type { WorkflowDispatchRepository } from './runtime.js';
 
 /** Disposable PostgreSQL boundary for Workflow persistence and migration tests. */
@@ -105,6 +106,30 @@ export function createFetcherGatewayRepositoryTestBoundary(databaseUrl: string):
   const connection = createDatabaseConnection(databaseUrl);
   return {
     repository: new DrizzleWorkflowFetcherGatewayRepository(connection),
+    async query<TRow extends Record<string, unknown>>(
+      text: string,
+      values: readonly unknown[] = [],
+    ): Promise<readonly TRow[]> {
+      const result = await connection.pool.query<TRow>(text, [...values]);
+      return result.rows;
+    },
+    close: () => connection.close(),
+  };
+}
+
+/** Disposable PostgreSQL boundary for the URL-capture Result repository tests. */
+export interface UrlCaptureResultRepositoryTestBoundary {
+  readonly repository: UrlCaptureResultRepository;
+  query<TRow extends Record<string, unknown>>(text: string, values?: readonly unknown[]): Promise<readonly TRow[]>;
+  close(): Promise<void>;
+}
+
+export function createUrlCaptureResultRepositoryTestBoundary(
+  databaseUrl: string,
+): UrlCaptureResultRepositoryTestBoundary {
+  const connection = createDatabaseConnection(databaseUrl);
+  return {
+    repository: new DrizzleUrlCaptureResultRepository(connection),
     async query<TRow extends Record<string, unknown>>(
       text: string,
       values: readonly unknown[] = [],

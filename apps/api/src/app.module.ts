@@ -24,6 +24,8 @@ import {
   type WorkflowEventId,
   FetcherGatewayService,
   type FetcherGatewayClaimGenerator,
+  FetcherResultService,
+  type FetcherResultIds,
 } from '@contentos/core';
 import type { UserId } from '@contentos/core';
 
@@ -49,6 +51,7 @@ import {
   SOURCE_SERVICE,
   URL_CAPTURE_SERVICE,
   FETCHER_GATEWAY_SERVICE,
+  FETCHER_RESULT_SERVICE,
 } from './runtime.tokens';
 
 @Module({})
@@ -154,6 +157,22 @@ export class AppModule {
               {
                 generate: (): string => randomBytes(32).toString('base64url'),
               } satisfies FetcherGatewayClaimGenerator,
+              { now: () => new Date() },
+            ),
+        },
+        {
+          provide: FETCHER_RESULT_SERVICE,
+          inject: [DatabaseService, OBJECT_STORE],
+          useFactory: (database: DatabaseService, objectStore: S3ObjectStore): FetcherResultService =>
+            new FetcherResultService(
+              database.urlCaptureResults,
+              objectStore,
+              {
+                generateResultId: () => randomUUID(),
+                generateWorkingCopyId: () => randomUUID(),
+                generateSourceReviewNodeId: () => randomUUID() as WorkflowNodeId,
+                generateResultEventId: () => randomUUID() as WorkflowEventId,
+              } satisfies FetcherResultIds,
               { now: () => new Date() },
             ),
         },

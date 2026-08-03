@@ -36,7 +36,7 @@ Head is not one "current" pointer. It distinguishes Working Copy, Latest Version
 - A Content Package may have at most one `primary` Source.
 - A Content Package may have at most five `supporting` Sources.
 - Role limits are enforced inside a database transaction using `SELECT ... FOR UPDATE` on the Content Package row.
-- The supported Source types are `pasted_text` and `uploaded_text`; the supported capture types are `pasted_text` and `uploaded_text`. Each MVP input path uses one value in both dimensions; the `.md` vs `.txt` distinction is carried by the Raw Snapshot content type. Role limits apply across capture types.
+- The supported Source types are `pasted_text`, `uploaded_text`, and `public_url`; the supported capture types are `pasted_text`, `uploaded_text`, and `public_url`. Each MVP input path uses one value in both dimensions; the `.md` vs `.txt` distinction is carried by the Raw Snapshot content type. Role limits apply across capture types. `M2-SRC-003` adds `public_url`: the Source row reuses the existing URL Source Reference id, is created only by a verified Fetcher Result (never by the owner capture routes), and carries no Source Version or Approval at capture time.
 
 ## 4. Byte and text bounds
 
@@ -87,7 +87,7 @@ The Source domain defines a framework-independent `ObjectStore` Port in `package
 
 The `packages/object-storage` package implements this Port using `@aws-sdk/client-s3@3.1096.0`:
 
-- Object keys follow the opaque pattern `sources/{ownerUserId}/{contentPackageId}/{sourceId}/raw/{snapshotId}`. No user-controlled path segment is accepted.
+- Object keys are opaque, no-overwrite, and database owner-bound, and are constructed only from server-generated IDs. Two key families exist. Pasted/upload Raw Snapshots use `sources/{ownerUserId}/{contentPackageId}/{sourceId}/raw/{snapshotId}`. `public_url` Raw Snapshots (M2-SRC-003) use `fetcher/url-capture/{taskId}/{attemptNumber}/raw/{snapshotId}`, composed only of the current Task id, the current Attempt, and a server-generated snapshot UUID. No user-controlled path segment, URL, host, or filename is accepted. A `public_url` key must be reconstructed by an exact parser and compared field-by-field before it is integrity-read or compensated; a prefix/substring check is never sufficient. M2-SRC-003 performs no object write (the scoped Fetcher writer arrives with M2-FETCH-001); it only integrity-reads and, on a proven failure, compensates the exact task/attempt-bound object.
 - Immutable-put semantics use one conditional `PutObject` request with `If-None-Match: *`; a collision is rejected and never overwrites existing bytes.
 - SHA-256 and byte size are stored as object metadata and verified with actual bytes and the allowlisted content type on read.
 - Compensation delete is used only when a database write fails after a successful object put. Compensation failure surfaces `SOURCE_COMPENSATION_FAILED` and is never reported as success.

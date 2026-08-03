@@ -94,9 +94,9 @@ export const sources = pgTable(
     }).onDelete('restrict'),
     index('sources_owner_package_created_idx').on(table.ownerUserId, table.contentPackageId, table.createdAt, table.id),
     index('sources_package_idx').on(table.contentPackageId),
-    check('sources_source_type_check', sql`${table.sourceType} IN ('pasted_text', 'uploaded_text')`),
+    check('sources_source_type_check', sql`${table.sourceType} IN ('pasted_text', 'uploaded_text', 'public_url')`),
     check('sources_role_check', sql`${table.role} IN ('primary', 'supporting')`),
-    check('sources_capture_type_check', sql`${table.captureType} IN ('pasted_text', 'uploaded_text')`),
+    check('sources_capture_type_check', sql`${table.captureType} IN ('pasted_text', 'uploaded_text', 'public_url')`),
     check('sources_label_length_check', sql`${table.label} IS NULL OR char_length(${table.label}) BETWEEN 1 AND 200`),
   ],
 );
@@ -125,12 +125,13 @@ export const sourceRawSnapshots = pgTable(
     index('source_raw_snapshots_source_idx').on(table.sourceId),
     index('source_raw_snapshots_owner_idx').on(table.ownerUserId),
     check('source_raw_snapshots_sha256_format_check', sql`${table.sha256} ~ '^[0-9a-f]{64}$'`),
-    check('source_raw_snapshots_byte_size_check', sql`${table.byteSize} BETWEEN 1 AND 100000`),
+    check('source_raw_snapshots_byte_size_check', sql`${table.byteSize} BETWEEN 1 AND 2097152`),
     // `chr(59)` avoids Drizzle's migration statement splitter treating the
-    // semicolon inside the MIME value as a SQL statement terminator.
+    // semicolon inside the MIME value as a SQL statement terminator. The three
+    // bare URL media types serve the `public_url` key family (M2-SRC-003).
     check(
       'source_raw_snapshots_content_type_check',
-      sql`${table.contentType} IN (concat('text/plain', chr(59), ' charset=utf-8'), concat('text/markdown', chr(59), ' charset=utf-8'))`,
+      sql`${table.contentType} IN ('text/html', 'text/plain', 'text/markdown', concat('text/plain', chr(59), ' charset=utf-8'), concat('text/markdown', chr(59), ' charset=utf-8'))`,
     ),
   ],
 );
@@ -699,7 +700,7 @@ export const workflowTasks = pgTable(
     }).onDelete('restrict'),
     index('workflow_tasks_owner_package_state_idx').on(table.ownerUserId, table.contentPackageId, table.state),
     check('workflow_tasks_kind_check', sql`${table.kind} = 'url_capture'`),
-    check('workflow_tasks_state_check', sql`${table.state} IN ('queued', 'leased')`),
+    check('workflow_tasks_state_check', sql`${table.state} IN ('queued', 'leased', 'succeeded', 'failed')`),
     check('workflow_tasks_claim_attempt_number_check', sql`${table.claimAttemptNumber} >= 0`),
     check(
       'workflow_tasks_claim_hash_format_check',
@@ -708,7 +709,7 @@ export const workflowTasks = pgTable(
     check('workflow_tasks_claimed_by_check', sql`${table.claimedBy} IS NULL OR ${table.claimedBy} = 'fetcher'`),
     check(
       'workflow_tasks_lease_state_check',
-      sql`(${table.state} = 'queued' AND ${table.claimHash} IS NULL AND ${table.claimedBy} IS NULL AND ${table.leaseStartedAt} IS NULL AND ${table.leaseExpiresAt} IS NULL AND ${table.leaseHeartbeatAt} IS NULL) OR (${table.state} = 'leased' AND ${table.claimAttemptNumber} >= 1 AND ${table.claimHash} IS NOT NULL AND ${table.claimedBy} = 'fetcher' AND ${table.leaseStartedAt} IS NOT NULL AND ${table.leaseExpiresAt} IS NOT NULL AND ${table.leaseHeartbeatAt} IS NOT NULL AND ${table.leaseStartedAt} <= ${table.leaseHeartbeatAt} AND ${table.leaseHeartbeatAt} < ${table.leaseExpiresAt})`,
+      sql`(${table.state} = 'queued' AND ${table.claimHash} IS NULL AND ${table.claimedBy} IS NULL AND ${table.leaseStartedAt} IS NULL AND ${table.leaseExpiresAt} IS NULL AND ${table.leaseHeartbeatAt} IS NULL) OR (${table.state} = 'leased' AND ${table.claimAttemptNumber} >= 1 AND ${table.claimHash} IS NOT NULL AND ${table.claimedBy} = 'fetcher' AND ${table.leaseStartedAt} IS NOT NULL AND ${table.leaseExpiresAt} IS NOT NULL AND ${table.leaseHeartbeatAt} IS NOT NULL AND ${table.leaseStartedAt} <= ${table.leaseHeartbeatAt} AND ${table.leaseHeartbeatAt} < ${table.leaseExpiresAt}) OR (${table.state} IN ('succeeded', 'failed') AND ${table.claimAttemptNumber} >= 1 AND ${table.claimHash} IS NULL AND ${table.claimedBy} IS NULL AND ${table.leaseStartedAt} IS NULL AND ${table.leaseExpiresAt} IS NULL AND ${table.leaseHeartbeatAt} IS NULL)`,
     ),
   ],
 );
@@ -768,6 +769,98 @@ export const workflowOutboxRecords = pgTable(
     check(
       'workflow_outbox_records_payload_shape_check',
       sql`${table.payload} ?& ARRAY['taskId', 'taskKind', 'envelopeVersion'] AND (${table.payload} - 'taskId' - 'taskKind' - 'envelopeVersion') = '{}'::jsonb AND jsonb_typeof(${table.payload}->'taskId') = 'string' AND ${table.payload}->>'taskKind' = 'url_capture' AND ${table.payload}->>'envelopeVersion' = 'fetcher-task/v1'`,
+    ),
+  ],
+);
+
+export const urlCaptureResults = pgTable(
+  'url_capture_results',
+  {
+    id: uuid('id').primaryKey(),
+    taskId: uuid('task_id').notNull(),
+    urlCaptureRequestId: uuid('url_capture_request_id').notNull(),
+    sourceReferenceId: uuid('source_reference_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    attemptNumber: integer('attempt_number').notNull(),
+    claimHash: char('claim_hash', { length: 64 }).notNull(),
+    resultVersion: varchar('result_version', { length: 32 }).notNull(),
+    submittedPayloadSha256: char('submitted_payload_sha256', { length: 64 }).notNull(),
+    submittedOutcome: varchar('submitted_outcome', { length: 16 }).notNull(),
+    submittedCategory: varchar('submitted_category', { length: 32 }),
+    recordedOutcome: varchar('recorded_outcome', { length: 16 }).notNull(),
+    recordedCategory: varchar('recorded_category', { length: 32 }),
+    safeCode: varchar('safe_code', { length: 32 }),
+    sourceId: uuid('source_id'),
+    snapshotId: uuid('snapshot_id'),
+    successEvidence: jsonb('success_evidence').$type<Record<string, unknown>>(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('url_capture_results_task_unique').on(table.taskId),
+    unique('url_capture_results_id_task_owner_unique').on(table.id, table.taskId, table.ownerUserId),
+    foreignKey({
+      name: 'url_capture_results_task_binding_fk',
+      columns: [table.taskId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [workflowTasks.id, workflowTasks.contentPackageId, workflowTasks.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'url_capture_results_request_binding_fk',
+      columns: [table.urlCaptureRequestId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [urlCaptureRequests.id, urlCaptureRequests.contentPackageId, urlCaptureRequests.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'url_capture_results_reference_binding_fk',
+      columns: [table.sourceReferenceId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [urlSourceReferences.id, urlSourceReferences.contentPackageId, urlSourceReferences.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'url_capture_results_package_owner_fk',
+      columns: [table.contentPackageId, table.ownerUserId],
+      foreignColumns: [contentPackages.id, contentPackages.ownerUserId],
+    }).onDelete('restrict'),
+    index('url_capture_results_owner_package_idx').on(table.ownerUserId, table.contentPackageId),
+    check('url_capture_results_attempt_number_check', sql`${table.attemptNumber} >= 1`),
+    check('url_capture_results_claim_hash_format_check', sql`${table.claimHash} ~ '^[0-9a-f]{64}$'`),
+    check('url_capture_results_result_version_check', sql`${table.resultVersion} = 'fetcher-result/v1'`),
+    check('url_capture_results_payload_sha256_format_check', sql`${table.submittedPayloadSha256} ~ '^[0-9a-f]{64}$'`),
+    check('url_capture_results_submitted_outcome_check', sql`${table.submittedOutcome} IN ('succeeded', 'failed')`),
+    check('url_capture_results_recorded_outcome_check', sql`${table.recordedOutcome} IN ('succeeded', 'failed')`),
+    check(
+      'url_capture_results_submitted_category_check',
+      sql`${table.submittedCategory} IS NULL OR ${table.submittedCategory} IN ('fetch_failed', 'validation_blocked', 'unsupported_content', 'too_large', 'timeout', 'redirect_blocked', 'extraction_failed')`,
+    ),
+    check(
+      'url_capture_results_recorded_category_check',
+      sql`${table.recordedCategory} IS NULL OR ${table.recordedCategory} IN ('fetch_failed', 'validation_blocked', 'unsupported_content', 'too_large', 'timeout', 'redirect_blocked', 'extraction_failed', 'package_archived', 'source_role_limit', 'object_integrity_failed')`,
+    ),
+    check(
+      'url_capture_results_safe_code_check',
+      sql`${table.safeCode} IS NULL OR ${table.safeCode} IN ('FETCH_FAILED', 'VALIDATION_BLOCKED', 'UNSUPPORTED_CONTENT', 'TOO_LARGE', 'TIMEOUT', 'REDIRECT_BLOCKED', 'EXTRACTION_FAILED', 'PACKAGE_ARCHIVED', 'SOURCE_ROLE_LIMIT', 'OBJECT_INTEGRITY_FAILED')`,
+    ),
+    check(
+      'url_capture_results_submitted_classification_check',
+      sql`(${table.submittedOutcome} = 'succeeded' AND ${table.submittedCategory} IS NULL AND ${table.successEvidence} IS NOT NULL) OR (${table.submittedOutcome} = 'failed' AND ${table.submittedCategory} IS NOT NULL AND ${table.successEvidence} IS NULL)`,
+    ),
+    check(
+      'url_capture_results_recorded_classification_check',
+      sql`(${table.recordedOutcome} = 'succeeded' AND ${table.recordedCategory} IS NULL AND ${table.safeCode} IS NULL AND ${table.sourceId} IS NOT NULL AND ${table.snapshotId} IS NOT NULL) OR (${table.recordedOutcome} = 'failed' AND ${table.recordedCategory} IS NOT NULL AND ${table.safeCode} IS NOT NULL AND ${table.sourceId} IS NULL AND ${table.snapshotId} IS NULL)`,
+    ),
+    check(
+      'url_capture_results_success_requires_success_submission_check',
+      sql`${table.recordedOutcome} = 'failed' OR ${table.submittedOutcome} = 'succeeded'`,
+    ),
+    check(
+      'url_capture_results_source_binding_check',
+      sql`${table.sourceId} IS NULL OR ${table.sourceId} = ${table.sourceReferenceId}`,
+    ),
+    check(
+      'url_capture_results_evidence_object_check',
+      sql`${table.successEvidence} IS NULL OR jsonb_typeof(${table.successEvidence}) = 'object'`,
+    ),
+    check(
+      'url_capture_results_evidence_shape_check',
+      sql`${table.successEvidence} IS NULL OR (${table.successEvidence} ?& ARRAY['snapshot', 'capture', 'candidate'] AND (${table.successEvidence} - 'snapshot' - 'capture' - 'candidate') = '{}'::jsonb AND jsonb_typeof(${table.successEvidence}->'snapshot') = 'object' AND (${table.successEvidence}->'snapshot') ?& ARRAY['snapshotId', 'storageKey', 'sha256', 'byteSize', 'contentType', 'contentEncoding'] AND (((${table.successEvidence}->'snapshot') - 'snapshotId') - 'storageKey' - 'sha256' - 'byteSize' - 'contentType' - 'contentEncoding') = '{}'::jsonb AND jsonb_typeof(${table.successEvidence}->'capture') = 'object' AND (${table.successEvidence}->'capture') ?& ARRAY['finalUrl', 'redirects', 'responseStatus', 'encodedByteSize', 'decodedByteSize'] AND (((${table.successEvidence}->'capture') - 'finalUrl') - 'redirects' - 'responseStatus' - 'encodedByteSize' - 'decodedByteSize') = '{}'::jsonb AND jsonb_typeof(${table.successEvidence}->'candidate') = 'object' AND (${table.successEvidence}->'candidate') ?& ARRAY['schemaVersion', 'text'] AND (((${table.successEvidence}->'candidate') - 'schemaVersion') - 'text') = '{}'::jsonb)`,
     ),
   ],
 );

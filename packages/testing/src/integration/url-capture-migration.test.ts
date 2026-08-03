@@ -21,6 +21,7 @@ const MIGRATIONS = [
   '0006_special_triton.sql',
 ] as const;
 const LEASE_MIGRATION = '0007_silent_alex_power.sql';
+const RESULT_MIGRATION = '0008_mixed_warstar.sql';
 
 function postgresConfig(database: string): {
   host: string;
@@ -171,6 +172,7 @@ describe('M2-WF-002 additive migration', () => {
     await withIsolatedDatabase(async (client) => {
       for (const migration of MIGRATIONS) await applyMigration(client, migration);
       await applyMigration(client, LEASE_MIGRATION);
+      await applyMigration(client, RESULT_MIGRATION);
       const counts = await Promise.all(
         [
           'url_source_references',
@@ -180,12 +182,13 @@ describe('M2-WF-002 additive migration', () => {
           'workflow_instances',
           'workflow_nodes',
           'workflow_events',
+          'url_capture_results',
         ].map(
           async (table) =>
             (await client.query<{ count: number }>(`SELECT count(*)::int AS count FROM ${table}`)).rows[0]?.count,
         ),
       );
-      expect(counts).toEqual([0, 0, 0, 0, 0, 0, 0]);
+      expect(counts).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
       expect(
         (await client.query<{ count: number }>('SELECT count(*)::int AS count FROM workflow_templates')).rows[0]?.count,
       ).toBe(1);
@@ -529,6 +532,205 @@ describe('M2-WF-002 additive migration', () => {
         dispatched_at: null,
       });
       expect(after.rows[0]?.updated_at.getTime()).toBe(after.rows[0]?.created_at.getTime());
+    });
+  });
+
+  it('upgrades 0007 to 0008 keeping queued/leased tasks valid and adding the Result boundary', async () => {
+    await withIsolatedDatabase(async (client) => {
+      for (const migration of MIGRATIONS) await applyMigration(client, migration);
+      await applyMigration(client, LEASE_MIGRATION);
+
+      const makeTaskFixture = async (
+        state: 'queued' | 'leased',
+      ): Promise<{ packageId: string; ownerUserId: string; taskId: string }> => {
+        const packageId = randomUUID();
+        const ownerUserId = randomUUID();
+        await client.query(
+          `INSERT INTO content_packages
+            (id, owner_user_id, title, description, content_mode, requested_blog, requested_xiaohongshu,
+             lifecycle, revision, created_at, updated_at, archived_at)
+           VALUES ($1, $2, 'result migration package', NULL, 'creator_led', true, true, 'active', 1, now(), now(), NULL)`,
+          [packageId, ownerUserId],
+        );
+        const templateSha = CONTENT_PACKAGE_DUAL_OUTPUT_V1_TEMPLATE.definitionSha256;
+        const instanceId = randomUUID();
+        await client.query(
+          `INSERT INTO workflow_instances
+            (id, content_package_id, owner_user_id, template_id, template_version, definition_sha256,
+             lifecycle, revision, created_at, updated_at)
+           VALUES ($1, $2, $3, 'content-package-dual-output', 'v1', $4, 'active', 1, now(), now())`,
+          [instanceId, packageId, ownerUserId, templateSha],
+        );
+        const nodeId = randomUUID();
+        await client.query(
+          `INSERT INTO workflow_nodes
+            (id, workflow_instance_id, content_package_id, owner_user_id, template_id, template_version,
+             template_node_key, state, revision, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, 'content-package-dual-output', 'v1', 'source_capture', 'ready', 1, now(), now())`,
+          [nodeId, instanceId, packageId, ownerUserId],
+        );
+        const referenceId = randomUUID();
+        const requestId = randomUUID();
+        const taskId = randomUUID();
+        const outboxId = randomUUID();
+        await client.query(
+          `INSERT INTO url_source_references
+            (id, content_package_id, owner_user_id, role, submitted_url, created_at)
+           VALUES ($1, $2, $3, 'primary', 'https://example.com/result-migration', now())`,
+          [referenceId, packageId, ownerUserId],
+        );
+        await client.query(
+          `INSERT INTO url_capture_requests
+            (id, source_reference_id, workflow_instance_id, workflow_node_id, content_package_id, owner_user_id,
+             expected_package_revision, command_kind, idempotency_key, request_fingerprint, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, 1, 'url_capture_request', $7, $8, now())`,
+          [
+            requestId,
+            referenceId,
+            instanceId,
+            nodeId,
+            packageId,
+            ownerUserId,
+            randomUUID().replaceAll('-', '').slice(0, 16),
+            'a'.repeat(64),
+          ],
+        );
+        const taskParams: unknown[] =
+          state === 'leased'
+            ? [
+                taskId,
+                instanceId,
+                nodeId,
+                requestId,
+                packageId,
+                ownerUserId,
+                state,
+                1,
+                'b'.repeat(64),
+                'fetcher',
+                '2026-08-01T00:00:00Z',
+                '2026-08-01T00:01:00Z',
+                '2026-08-01T00:00:30Z',
+              ]
+            : [taskId, instanceId, nodeId, requestId, packageId, ownerUserId, state, 0, null, null, null, null, null];
+        await client.query(
+          `INSERT INTO workflow_tasks
+            (id, workflow_instance_id, workflow_node_id, url_capture_request_id, content_package_id, owner_user_id,
+             kind, state, claim_attempt_number, claim_hash, claimed_by, lease_started_at, lease_expires_at,
+             lease_heartbeat_at, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, 'url_capture', $7, $8, $9, $10, $11, $12, $13, now(), now())`,
+          taskParams,
+        );
+        await client.query(
+          `INSERT INTO workflow_outbox_records
+            (id, task_id, content_package_id, owner_user_id, category, envelope_version, payload, state,
+             delivery_generation, dispatch_attempt_count, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, 'fetcher', 'fetcher-task/v1', $5::jsonb, 'pending', 1, 0, now(), now())`,
+          [
+            outboxId,
+            taskId,
+            packageId,
+            ownerUserId,
+            JSON.stringify({ taskId, taskKind: 'url_capture', envelopeVersion: 'fetcher-task/v1' }),
+          ],
+        );
+        return { packageId, ownerUserId, taskId };
+      };
+      const leasedFixture = await makeTaskFixture('leased');
+      const queuedFixture = await makeTaskFixture('queued');
+      const packageId = leasedFixture.packageId;
+      const ownerUserId = leasedFixture.ownerUserId;
+      const queuedTaskId = queuedFixture.taskId;
+      const leasedTaskId = leasedFixture.taskId;
+
+      await applyMigration(client, RESULT_MIGRATION);
+
+      // Existing queued/leased tasks remain valid with unchanged state/lease facts.
+      const [queuedRow] = (
+        await client.query(
+          `SELECT id, state, claim_attempt_number, claim_hash, claimed_by FROM workflow_tasks WHERE id = $1`,
+          [queuedTaskId],
+        )
+      ).rows;
+      const [leasedRow] = (
+        await client.query(
+          `SELECT id, state, claim_attempt_number, claim_hash, claimed_by FROM workflow_tasks WHERE id = $1`,
+          [leasedTaskId],
+        )
+      ).rows;
+      expect(queuedRow).toMatchObject({ id: queuedTaskId, state: 'queued', claim_hash: null, claimed_by: null });
+      expect(leasedRow).toMatchObject({
+        id: leasedTaskId,
+        state: 'leased',
+        claim_attempt_number: 1,
+        claim_hash: 'b'.repeat(64),
+        claimed_by: 'fetcher',
+      });
+
+      // The Result table exists and is empty: no backfill, no fabricated results.
+      expect(
+        (await client.query<{ count: number }>('SELECT count(*)::int AS count FROM url_capture_results')).rows[0]
+          ?.count,
+      ).toBe(0);
+
+      // public_url source type is accepted by the widened check.
+      const urlSourceId = randomUUID();
+      await client.query(
+        `INSERT INTO sources (id, content_package_id, owner_user_id, source_type, role, label, capture_type, created_at)
+         VALUES ($1, $2, $3, 'public_url', 'primary', NULL, 'public_url', now())`,
+        [urlSourceId, packageId, ownerUserId],
+      );
+
+      // The Raw Snapshot bound accepts 2 MiB and the URL media types.
+      const snapshotId = randomUUID();
+      await client.query(
+        `INSERT INTO source_raw_snapshots
+          (id, source_id, owner_user_id, storage_key, sha256, byte_size, content_type, captured_at)
+         VALUES ($1, $2, $3, $4, $5, 2097152, 'text/html', now())`,
+        [
+          snapshotId,
+          urlSourceId,
+          ownerUserId,
+          `fetcher/url-capture/${queuedTaskId}/1/raw/${snapshotId}`,
+          'c'.repeat(64),
+        ],
+      );
+      const oversizedSnapshotId = randomUUID();
+      await expect(
+        client.query(
+          `INSERT INTO source_raw_snapshots
+            (id, source_id, owner_user_id, storage_key, sha256, byte_size, content_type, captured_at)
+           VALUES ($1, $2, $3, $4, $5, 2097153, 'text/html', now())`,
+          [
+            oversizedSnapshotId,
+            urlSourceId,
+            ownerUserId,
+            `fetcher/url-capture/${queuedTaskId}/2/raw/${oversizedSnapshotId}`,
+            'd'.repeat(64),
+          ],
+        ),
+      ).rejects.toThrow();
+
+      // A terminal transition clears the lease and satisfies the widened check.
+      await client.query(
+        `UPDATE workflow_tasks
+         SET state = 'succeeded', claim_hash = NULL, claimed_by = NULL, lease_started_at = NULL,
+             lease_expires_at = NULL, lease_heartbeat_at = NULL, updated_at = now()
+         WHERE id = $1`,
+        [leasedTaskId],
+      );
+      const terminal = await client.query('SELECT state, claim_hash FROM workflow_tasks WHERE id = $1', [leasedTaskId]);
+      expect(terminal.rows[0]).toEqual({ state: 'succeeded', claim_hash: null });
+
+      // A terminal task that retains lease fields is rejected by the check.
+      await expect(
+        client.query(
+          `UPDATE workflow_tasks
+           SET state = 'failed', claim_hash = $2, updated_at = now()
+           WHERE id = $1`,
+          [queuedTaskId, 'e'.repeat(64)],
+        ),
+      ).rejects.toThrow();
     });
   });
 });

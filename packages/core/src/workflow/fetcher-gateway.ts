@@ -1,7 +1,15 @@
 import { createHash } from 'node:crypto';
 
-import type { WorkflowEventId } from './workflow.js';
-import type { WorkflowTaskId } from './url-capture.js';
+import type { ObjectStore, StoredObject } from '../source/object-store.js';
+import { isWellFormedUnicode } from '../source/source.js';
+import {
+  PASTED_TEXT_MAX_BYTES,
+  URL_SNAPSHOT_CONTENT_TYPES,
+  type UrlSnapshotContentType,
+} from '../source/source-values.js';
+
+import { canonicalWorkflowSerialization, type WorkflowEventId, type WorkflowNodeId } from './workflow.js';
+import type { UrlSourceReferenceId, WorkflowTaskId } from './url-capture.js';
 
 export const FETCHER_GATEWAY_CONNECTION_POLICY_VERSION = 'public-url-connection/v1' as const;
 export const FETCHER_GATEWAY_RESOURCE_POLICY_VERSION = 'public-url-resource/v1' as const;
@@ -92,7 +100,8 @@ export interface FetcherGatewayHeartbeatResponse {
   readonly renewed: boolean;
 }
 
-export type FetcherGatewayApplicationErrorCode = 'FETCHER_TASK_UNAVAILABLE' | 'FETCHER_CLAIM_UNAVAILABLE';
+export type FetcherGatewayApplicationErrorCode =
+  'FETCHER_TASK_UNAVAILABLE' | 'FETCHER_CLAIM_UNAVAILABLE' | 'FETCHER_RESULT_UNAVAILABLE';
 
 export class FetcherGatewayApplicationError extends Error {
   constructor(readonly code: FetcherGatewayApplicationErrorCode) {
@@ -105,7 +114,10 @@ export type FetcherGatewayDomainErrorCode =
   | 'INVALID_FETCHER_GATEWAY_CLAIM'
   | 'INVALID_FETCHER_GATEWAY_HEARTBEAT'
   | 'INVALID_FETCHER_GATEWAY_POLICY'
-  | 'INVALID_FETCHER_LEASE_EXPIRED_EVENT';
+  | 'INVALID_FETCHER_LEASE_EXPIRED_EVENT'
+  | 'INVALID_FETCHER_RESULT'
+  | 'INVALID_URL_CAPTURE_STORAGE_KEY'
+  | 'INVALID_URL_CAPTURE_RESULT_EVENT';
 
 export class FetcherGatewayDomainError extends Error {
   constructor(readonly code: FetcherGatewayDomainErrorCode) {
@@ -301,5 +313,736 @@ export class FetcherGatewayService {
     });
     if (record === null) throw new FetcherGatewayApplicationError('FETCHER_CLAIM_UNAVAILABLE');
     return defineFetcherGatewayHeartbeatResponse(record);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// M2-SRC-003 — URL-capture Result Contract and Source Evidence Boundary
+// ---------------------------------------------------------------------------
+
+export const FETCHER_RESULT_VERSION = 'fetcher-result/v1' as const;
+
+export const URL_CAPTURE_SUCCEEDED_EVENT_TYPE = 'url_capture_succeeded.v1' as const;
+export const URL_CAPTURE_FAILED_EVENT_TYPE = 'url_capture_failed.v1' as const;
+
+/** Fixed encoded Raw Snapshot byte bound for a successful URL capture (2 MiB). */
+export const FETCHER_RESULT_SNAPSHOT_MAX_BYTES = 2_097_152;
+/** Fixed decoded body byte bound for a successful URL capture (8 MiB). */
+export const FETCHER_RESULT_DECODED_MAX_BYTES = 8_388_608;
+/** Candidate Domain limit — unchanged from the Normalized Source rule. */
+export const FETCHER_RESULT_CANDIDATE_MAX_BYTES = PASTED_TEXT_MAX_BYTES;
+export const FETCHER_RESULT_REDIRECT_MAX_COUNT = 5;
+export const FETCHER_RESULT_URL_MAX_BYTES = 2_048;
+export const FETCHER_RESULT_STORAGE_KEY_MAX_LENGTH = 512;
+
+/** Exact one-to-one Fetcher-supplied failure mapping. */
+export const FETCHER_FAILURE_CATEGORY_TO_CODE = {
+  fetch_failed: 'FETCH_FAILED',
+  validation_blocked: 'VALIDATION_BLOCKED',
+  unsupported_content: 'UNSUPPORTED_CONTENT',
+  too_large: 'TOO_LARGE',
+  timeout: 'TIMEOUT',
+  redirect_blocked: 'REDIRECT_BLOCKED',
+  extraction_failed: 'EXTRACTION_FAILED',
+} as const;
+
+/** Server-derived failure mapping — produced only by API/Core. */
+export const SERVER_DERIVED_FAILURE_CATEGORY_TO_CODE = {
+  package_archived: 'PACKAGE_ARCHIVED',
+  source_role_limit: 'SOURCE_ROLE_LIMIT',
+  object_integrity_failed: 'OBJECT_INTEGRITY_FAILED',
+} as const;
+
+export type FetcherFailureCategory = keyof typeof FETCHER_FAILURE_CATEGORY_TO_CODE;
+export type FetcherFailureSafeCode = (typeof FETCHER_FAILURE_CATEGORY_TO_CODE)[FetcherFailureCategory];
+export type ServerDerivedFailureCategory = keyof typeof SERVER_DERIVED_FAILURE_CATEGORY_TO_CODE;
+export type ServerDerivedFailureSafeCode =
+  (typeof SERVER_DERIVED_FAILURE_CATEGORY_TO_CODE)[ServerDerivedFailureCategory];
+export type FetcherResultRecordedCategory = FetcherFailureCategory | ServerDerivedFailureCategory;
+export type FetcherResultSafeCode = FetcherFailureSafeCode | ServerDerivedFailureSafeCode;
+
+const FETCHER_FAILURE_CATEGORY_SET = new Set<string>(Object.keys(FETCHER_FAILURE_CATEGORY_TO_CODE));
+const URL_SNAPSHOT_CONTENT_TYPE_SET = new Set<string>(URL_SNAPSHOT_CONTENT_TYPES);
+const RESULT_CONTENT_ENCODINGS = ['identity', 'gzip', 'deflate', 'br'] as const;
+export type FetcherResultContentEncoding = (typeof RESULT_CONTENT_ENCODINGS)[number];
+const RESULT_CONTENT_ENCODING_SET = new Set<string>(RESULT_CONTENT_ENCODINGS);
+const RESULT_REDIRECT_STATUSES = [301, 302, 303, 307, 308] as const;
+
+const RESULT_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export type FetcherResultRedirectStatus = (typeof RESULT_REDIRECT_STATUSES)[number];
+
+export interface FetcherResultRedirectSubmission {
+  readonly status: FetcherResultRedirectStatus;
+  readonly url: string;
+}
+
+export interface FetcherResultSnapshotSubmission {
+  readonly snapshotId: string;
+  readonly storageKey: string;
+  readonly sha256: string;
+  readonly byteSize: number;
+  readonly contentType: UrlSnapshotContentType;
+  readonly contentEncoding: FetcherResultContentEncoding;
+}
+
+export interface FetcherResultCaptureSubmission {
+  readonly finalUrl: string;
+  readonly redirects: readonly FetcherResultRedirectSubmission[];
+  readonly responseStatus: 200;
+  readonly encodedByteSize: number;
+  readonly decodedByteSize: number;
+}
+
+export interface FetcherResultCandidateSubmission {
+  readonly schemaVersion: 'source/normalized/v1';
+  readonly text: string;
+}
+
+export interface FetcherResultSuccessSubmission {
+  readonly resultVersion: typeof FETCHER_RESULT_VERSION;
+  readonly attemptNumber: number;
+  readonly outcome: 'succeeded';
+  readonly snapshot: FetcherResultSnapshotSubmission;
+  readonly capture: FetcherResultCaptureSubmission;
+  readonly candidate: FetcherResultCandidateSubmission;
+}
+
+export interface FetcherResultFailureSubmission {
+  readonly resultVersion: typeof FETCHER_RESULT_VERSION;
+  readonly attemptNumber: number;
+  readonly outcome: 'failed';
+  readonly category: FetcherFailureCategory;
+  readonly code: FetcherFailureSafeCode;
+}
+
+export type FetcherResultSubmission = FetcherResultSuccessSubmission | FetcherResultFailureSubmission;
+
+function resultInvalid(): never {
+  throw new FetcherGatewayDomainError('INVALID_FETCHER_RESULT');
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return false;
+  try {
+    const proto = Object.getPrototypeOf(value);
+    return proto === Object.prototype || proto === null;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reads the own properties of a plain record as data (non-accessor) values via
+ * their property descriptors, so a hostile getter or Proxy `get` trap cannot
+ * execute. Symbol keys, accessor properties, Class instances, and throwing
+ * Proxy reflection traps all yield `undefined` (a stable rejection).
+ */
+function extractResultRecord(value: unknown): Record<string, unknown> | undefined {
+  try {
+    if (!isPlainRecord(value)) return undefined;
+    if (Object.getOwnPropertySymbols(value).length > 0) return undefined;
+    const ownKeys = Reflect.ownKeys(value);
+    const record = Object.create(null) as Record<string, unknown>;
+    for (const key of ownKeys) {
+      if (typeof key !== 'string') return undefined;
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (descriptor === undefined || !('value' in descriptor)) return undefined;
+      record[key] = descriptor.value;
+    }
+    return record;
+  } catch {
+    return undefined;
+  }
+}
+
+function hasExactly(record: Record<string, unknown>, keys: readonly string[]): boolean {
+  const actual = Object.keys(record);
+  if (actual.length !== keys.length) return false;
+  for (const key of keys) {
+    if (!(key in record)) return false;
+  }
+  return true;
+}
+
+function validResultAttempt(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1;
+}
+
+function validResultUuid(value: unknown): value is string {
+  return typeof value === 'string' && RESULT_UUID_PATTERN.test(value);
+}
+
+function validResultSha256(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
+}
+
+function validResultByteSize(value: unknown, max: number): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1 && value <= max;
+}
+
+/** Validates an absolute http/https URL bounded to 2048 UTF-8 bytes. */
+function validResultUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length < 1 || !isWellFormedUnicode(value)) return false;
+  let byteLength: number;
+  try {
+    byteLength = new TextEncoder().encode(value).byteLength;
+  } catch {
+    return false;
+  }
+  if (byteLength < 1 || byteLength > FETCHER_RESULT_URL_MAX_BYTES) return false;
+  try {
+    const url = new URL(value);
+    return (
+      (url.protocol === 'http:' || url.protocol === 'https:') &&
+      url.hostname.length > 0 &&
+      url.username === '' &&
+      url.password === ''
+    );
+  } catch {
+    return false;
+  }
+}
+
+function validCandidateText(value: unknown): value is string {
+  if (typeof value !== 'string' || !isWellFormedUnicode(value)) return false;
+  if (value.trim().length === 0) return false;
+  const byteLength = Buffer.byteLength(value, 'utf8');
+  return byteLength >= 1 && byteLength <= FETCHER_RESULT_CANDIDATE_MAX_BYTES;
+}
+
+function extractRedirects(value: unknown): readonly FetcherResultRedirectSubmission[] | undefined {
+  if (!Array.isArray(value) || value.length > FETCHER_RESULT_REDIRECT_MAX_COUNT) return undefined;
+  try {
+    const ownKeys = Reflect.ownKeys(value);
+    if (ownKeys.length !== value.length + 1 || !ownKeys.includes('length')) return undefined;
+  } catch {
+    return undefined;
+  }
+  const redirects: FetcherResultRedirectSubmission[] = [];
+  for (let index = 0; index < value.length; index += 1) {
+    const item = extractResultRecord(value[index]);
+    if (item === undefined || !hasExactly(item, ['status', 'url'])) return undefined;
+    const status = item.status;
+    const url = item.url;
+    if (
+      typeof status !== 'number' ||
+      !(RESULT_REDIRECT_STATUSES as readonly number[]).includes(status) ||
+      !validResultUrl(url)
+    ) {
+      return undefined;
+    }
+    redirects.push({ status: status as FetcherResultRedirectStatus, url });
+  }
+  return Object.freeze(redirects);
+}
+
+function extractSuccessSubmission(top: Record<string, unknown>): FetcherResultSuccessSubmission {
+  if (!hasExactly(top, ['resultVersion', 'attemptNumber', 'outcome', 'snapshot', 'capture', 'candidate'])) {
+    resultInvalid();
+  }
+  const attemptNumber = top.attemptNumber;
+  if (top.resultVersion !== FETCHER_RESULT_VERSION || !validResultAttempt(attemptNumber)) resultInvalid();
+
+  const snapshot = extractResultRecord(top.snapshot);
+  if (
+    snapshot === undefined ||
+    !hasExactly(snapshot, ['snapshotId', 'storageKey', 'sha256', 'byteSize', 'contentType', 'contentEncoding'])
+  ) {
+    resultInvalid();
+  }
+  const snapshotId = snapshot.snapshotId;
+  const storageKey = snapshot.storageKey;
+  const sha256 = snapshot.sha256;
+  const byteSize = snapshot.byteSize;
+  const contentType = snapshot.contentType;
+  const contentEncoding = snapshot.contentEncoding;
+  if (
+    !validResultUuid(snapshotId) ||
+    typeof storageKey !== 'string' ||
+    storageKey.length < 1 ||
+    storageKey.length > FETCHER_RESULT_STORAGE_KEY_MAX_LENGTH ||
+    !validResultSha256(sha256) ||
+    !validResultByteSize(byteSize, FETCHER_RESULT_SNAPSHOT_MAX_BYTES) ||
+    typeof contentType !== 'string' ||
+    !URL_SNAPSHOT_CONTENT_TYPE_SET.has(contentType) ||
+    typeof contentEncoding !== 'string' ||
+    !RESULT_CONTENT_ENCODING_SET.has(contentEncoding)
+  ) {
+    resultInvalid();
+  }
+
+  const capture = extractResultRecord(top.capture);
+  if (
+    capture === undefined ||
+    !hasExactly(capture, ['finalUrl', 'redirects', 'responseStatus', 'encodedByteSize', 'decodedByteSize'])
+  ) {
+    resultInvalid();
+  }
+  const finalUrl = capture.finalUrl;
+  const redirects = extractRedirects(capture.redirects);
+  const responseStatus = capture.responseStatus;
+  const encodedByteSize = capture.encodedByteSize;
+  const decodedByteSize = capture.decodedByteSize;
+  if (
+    !validResultUrl(finalUrl) ||
+    redirects === undefined ||
+    responseStatus !== 200 ||
+    !validResultByteSize(encodedByteSize, FETCHER_RESULT_SNAPSHOT_MAX_BYTES) ||
+    encodedByteSize !== byteSize ||
+    !validResultByteSize(decodedByteSize, FETCHER_RESULT_DECODED_MAX_BYTES)
+  ) {
+    resultInvalid();
+  }
+
+  const candidate = extractResultRecord(top.candidate);
+  if (candidate === undefined || !hasExactly(candidate, ['schemaVersion', 'text'])) resultInvalid();
+  const candidateText = candidate.text;
+  if (candidate.schemaVersion !== 'source/normalized/v1' || !validCandidateText(candidateText)) resultInvalid();
+
+  return Object.freeze({
+    resultVersion: FETCHER_RESULT_VERSION,
+    attemptNumber,
+    outcome: 'succeeded',
+    snapshot: Object.freeze({
+      snapshotId,
+      storageKey,
+      sha256,
+      byteSize,
+      contentType: contentType as UrlSnapshotContentType,
+      contentEncoding: contentEncoding as FetcherResultContentEncoding,
+    }),
+    capture: Object.freeze({
+      finalUrl,
+      redirects,
+      responseStatus: 200,
+      encodedByteSize,
+      decodedByteSize,
+    }),
+    candidate: Object.freeze({
+      schemaVersion: 'source/normalized/v1',
+      text: candidateText,
+    }),
+  });
+}
+
+function extractFailureSubmission(top: Record<string, unknown>): FetcherResultFailureSubmission {
+  if (!hasExactly(top, ['resultVersion', 'attemptNumber', 'outcome', 'category', 'code'])) resultInvalid();
+  const attemptNumber = top.attemptNumber;
+  const category = top.category;
+  const code = top.code;
+  if (top.resultVersion !== FETCHER_RESULT_VERSION || !validResultAttempt(attemptNumber)) resultInvalid();
+  if (typeof category !== 'string' || !FETCHER_FAILURE_CATEGORY_SET.has(category)) resultInvalid();
+  const expectedCode = FETCHER_FAILURE_CATEGORY_TO_CODE[category as FetcherFailureCategory];
+  if (code !== expectedCode) resultInvalid();
+  return Object.freeze({
+    resultVersion: FETCHER_RESULT_VERSION,
+    attemptNumber,
+    outcome: 'failed',
+    category: category as FetcherFailureCategory,
+    code: expectedCode,
+  });
+}
+
+/**
+ * Validates that `value` is an exact-shape `fetcher-result/v1` submission.
+ * Extra/missing fields, non-objects, arrays, Class instances, Symbol keys,
+ * accessor properties, throwing Proxy traps, and getter execution are all
+ * rejected with a stable `INVALID_FETCHER_RESULT` domain error.
+ */
+export function defineFetcherResultSubmission(value: unknown): FetcherResultSubmission {
+  const top = extractResultRecord(value);
+  if (top === undefined) resultInvalid();
+  const outcome = top.outcome;
+  if (outcome === 'succeeded') return extractSuccessSubmission(top);
+  if (outcome === 'failed') return extractFailureSubmission(top);
+  resultInvalid();
+}
+
+/**
+ * Canonical, deterministic serialization of a validated submission. Because the
+ * submission has already been exact-shape extracted (no getters, Symbols, or
+ * Proxies), this serialization is total and stable.
+ */
+export function canonicalFetcherResultSerialization(submission: FetcherResultSubmission): string {
+  return canonicalWorkflowSerialization(submission);
+}
+
+/** Lowercase SHA-256 fingerprint of the canonical submitted Payload. */
+export function fetcherResultPayloadFingerprint(submission: FetcherResultSubmission): string {
+  return createHash('sha256').update(canonicalFetcherResultSerialization(submission), 'utf8').digest('hex');
+}
+
+// --- Task-scoped Object Storage key family ---------------------------------
+
+export interface UrlCaptureStorageKeyParts {
+  readonly taskId: string;
+  readonly attemptNumber: number;
+  readonly snapshotId: string;
+}
+
+export function buildUrlCaptureStorageKey(input: {
+  readonly taskId: string;
+  readonly attemptNumber: number;
+  readonly snapshotId: string;
+}): string {
+  return `fetcher/url-capture/${input.taskId}/${input.attemptNumber}/raw/${input.snapshotId}`;
+}
+
+/**
+ * Reconstructs the fixed `public_url` key field-by-field. A prefix/substring
+ * check is never sufficient: the key must split into exactly six segments and
+ * each bound field is validated independently. Returns `null` for any wrong
+ * task/attempt/snapshot shape, extra or empty segment, repeated separator,
+ * `.`, `..`, backslash, control character, or malformed UUID.
+ */
+export function parseUrlCaptureStorageKey(key: unknown): UrlCaptureStorageKeyParts | null {
+  if (typeof key !== 'string' || key.length < 1 || key.length > FETCHER_RESULT_STORAGE_KEY_MAX_LENGTH) {
+    return null;
+  }
+  for (let index = 0; index < key.length; index += 1) {
+    const code = key.charCodeAt(index);
+    // Reject control characters and backslash; the forward slash separator is
+    // handled by the segment split below.
+    if (code <= 0x1f || code === 0x7f || code === 0x5c) return null;
+  }
+  const segments = key.split('/');
+  if (segments.length !== 6) return null;
+  const [family, scope, taskId, attemptSegment, raw, snapshotId] = segments;
+  if (family !== 'fetcher' || scope !== 'url-capture' || raw !== 'raw') return null;
+  if (!validResultUuid(taskId) || !validResultUuid(snapshotId)) return null;
+  if (taskId === '.' || taskId === '..' || snapshotId === '.' || snapshotId === '..') return null;
+  if (typeof attemptSegment !== 'string' || !/^[1-9][0-9]{0,9}$/.test(attemptSegment)) return null;
+  const attemptNumber = Number(attemptSegment);
+  if (!Number.isSafeInteger(attemptNumber) || attemptNumber < 1) return null;
+  return { taskId, attemptNumber, snapshotId };
+}
+
+// --- Safe Result Events ----------------------------------------------------
+
+export interface UrlCaptureSucceededEventPayload {
+  readonly taskId: WorkflowTaskId;
+  readonly sourceReferenceId: UrlSourceReferenceId;
+  readonly sourceId: string;
+  readonly snapshotId: string;
+  readonly attemptNumber: number;
+}
+
+export interface UrlCaptureFailedEventPayload {
+  readonly taskId: WorkflowTaskId;
+  readonly sourceReferenceId: UrlSourceReferenceId;
+  readonly attemptNumber: number;
+  readonly category: FetcherResultRecordedCategory;
+  readonly code: FetcherResultSafeCode;
+}
+
+function validEventIdentity(value: unknown): value is string {
+  return typeof value === 'string' && value.length >= 1 && value.length <= 128 && value.trim() === value;
+}
+
+const SERVER_DERIVED_CATEGORY_SET = new Set<string>(Object.keys(SERVER_DERIVED_FAILURE_CATEGORY_TO_CODE));
+
+function validRecordedCategory(value: unknown): value is FetcherResultRecordedCategory {
+  return (
+    typeof value === 'string' && (FETCHER_FAILURE_CATEGORY_SET.has(value) || SERVER_DERIVED_CATEGORY_SET.has(value))
+  );
+}
+
+function safeCodeForCategory(category: FetcherResultRecordedCategory): FetcherResultSafeCode {
+  if (category in FETCHER_FAILURE_CATEGORY_TO_CODE) {
+    return FETCHER_FAILURE_CATEGORY_TO_CODE[category as FetcherFailureCategory];
+  }
+  return SERVER_DERIVED_FAILURE_CATEGORY_TO_CODE[category as ServerDerivedFailureCategory];
+}
+
+/** Exact success Event payload. No URL, object key, Claim, Secret, or body. */
+export function defineUrlCaptureSucceededEventPayload(input: {
+  readonly taskId: WorkflowTaskId;
+  readonly sourceReferenceId: UrlSourceReferenceId;
+  readonly sourceId: string;
+  readonly snapshotId: string;
+  readonly attemptNumber: number;
+}): UrlCaptureSucceededEventPayload {
+  if (
+    !validEventIdentity(input.taskId) ||
+    !validEventIdentity(input.sourceReferenceId) ||
+    !validEventIdentity(input.sourceId) ||
+    !validEventIdentity(input.snapshotId) ||
+    !validResultAttempt(input.attemptNumber)
+  ) {
+    throw new FetcherGatewayDomainError('INVALID_URL_CAPTURE_RESULT_EVENT');
+  }
+  return Object.freeze({
+    taskId: input.taskId,
+    sourceReferenceId: input.sourceReferenceId,
+    sourceId: input.sourceId,
+    snapshotId: input.snapshotId,
+    attemptNumber: input.attemptNumber,
+  });
+}
+
+/** Exact failure Event payload using the recorded category and safe code. */
+export function defineUrlCaptureFailedEventPayload(input: {
+  readonly taskId: WorkflowTaskId;
+  readonly sourceReferenceId: UrlSourceReferenceId;
+  readonly attemptNumber: number;
+  readonly category: FetcherResultRecordedCategory;
+  readonly code: FetcherResultSafeCode;
+}): UrlCaptureFailedEventPayload {
+  if (
+    !validEventIdentity(input.taskId) ||
+    !validEventIdentity(input.sourceReferenceId) ||
+    !validResultAttempt(input.attemptNumber) ||
+    !validRecordedCategory(input.category) ||
+    input.code !== safeCodeForCategory(input.category)
+  ) {
+    throw new FetcherGatewayDomainError('INVALID_URL_CAPTURE_RESULT_EVENT');
+  }
+  return Object.freeze({
+    taskId: input.taskId,
+    sourceReferenceId: input.sourceReferenceId,
+    attemptNumber: input.attemptNumber,
+    category: input.category,
+    code: input.code,
+  });
+}
+
+// --- Result persistence Port and use case ----------------------------------
+
+export interface FetcherResultSuccessEvidence {
+  readonly snapshot: FetcherResultSnapshotSubmission;
+  readonly capture: FetcherResultCaptureSubmission;
+  readonly candidate: FetcherResultCandidateSubmission;
+}
+
+export interface UrlCaptureResultRecordCommand {
+  readonly taskId: WorkflowTaskId;
+  readonly claimHash: string;
+  readonly attemptNumber: number;
+  readonly submittedPayloadSha256: string;
+  readonly submittedOutcome: 'succeeded' | 'failed';
+  readonly submittedCategory: FetcherFailureCategory | null;
+  readonly objectIntegrityVerified: boolean;
+  readonly success: FetcherResultSuccessEvidence | null;
+  readonly resultId: string;
+  readonly workingCopyId: string;
+  readonly sourceReviewNodeId: WorkflowNodeId;
+  readonly eventId: WorkflowEventId;
+  readonly acceptedAt: Date;
+}
+
+/**
+ * The durable, safe projection of a recorded Result. `safe_code` is persisted
+ * and available here for private reconciliation, but is never part of the
+ * Gateway HTTP DTO.
+ */
+export interface UrlCaptureResultRecord {
+  readonly taskId: WorkflowTaskId;
+  readonly attemptNumber: number;
+  readonly recordedOutcome: 'succeeded' | 'failed';
+  readonly recordedCategory: FetcherResultRecordedCategory | null;
+  readonly safeCode: FetcherResultSafeCode | null;
+  readonly sourceId: string | null;
+}
+
+export type UrlCaptureResultRecordOutcome =
+  | { readonly kind: 'recorded'; readonly result: UrlCaptureResultRecord }
+  | { readonly kind: 'duplicate'; readonly result: UrlCaptureResultRecord }
+  | { readonly kind: 'unavailable' };
+
+export class UrlCaptureResultPersistenceError extends Error {
+  constructor(
+    readonly outcome: 'NOT_COMMITTED' | 'COMMIT_UNKNOWN',
+    readonly originalCause: unknown,
+  ) {
+    super('URL_CAPTURE_RESULT_PERSISTENCE_ERROR');
+    this.name = 'UrlCaptureResultPersistenceError';
+  }
+}
+
+export type UrlCaptureResultReconciliation =
+  | { readonly outcome: 'COMMITTED'; readonly result: UrlCaptureResultRecord }
+  | { readonly outcome: 'ABSENT' }
+  | { readonly outcome: 'UNKNOWN' };
+
+export interface UrlCaptureResultRepository {
+  recordResult(command: UrlCaptureResultRecordCommand): Promise<UrlCaptureResultRecordOutcome>;
+  reconcileResult(input: {
+    readonly taskId: WorkflowTaskId;
+    readonly claimHash: string;
+    readonly attemptNumber: number;
+    readonly submittedPayloadSha256: string;
+  }): Promise<UrlCaptureResultReconciliation>;
+}
+
+export interface FetcherResultIds {
+  generateResultId(): string;
+  generateWorkingCopyId(): string;
+  generateSourceReviewNodeId(): WorkflowNodeId;
+  generateResultEventId(): WorkflowEventId;
+}
+
+/** Internal, non-DTO failure used for stable 500 responses after write faults. */
+export class FetcherResultInternalError extends Error {
+  constructor(readonly reason: 'NOT_COMMITTED' | 'COMMIT_UNKNOWN' | 'RECONCILIATION_REQUIRED') {
+    super('FETCHER_RESULT_INTERNAL_ERROR');
+    this.name = 'FetcherResultInternalError';
+  }
+}
+
+/** The safe Gateway outcome the service returns to the API layer. */
+export interface FetcherResultGatewayOutcome {
+  readonly taskId: WorkflowTaskId;
+  readonly attemptNumber: number;
+  readonly taskState: 'succeeded' | 'failed';
+  readonly resultCategory: 'success' | FetcherResultRecordedCategory;
+  readonly sourceId: string | null;
+  readonly duplicate: boolean;
+}
+
+export class FetcherResultService {
+  constructor(
+    private readonly repository: UrlCaptureResultRepository,
+    private readonly objectStore: ObjectStore,
+    private readonly ids: FetcherResultIds,
+    private readonly clock: FetcherGatewayClock,
+  ) {}
+
+  async submitResult(taskId: WorkflowTaskId, claim: string, body: unknown): Promise<FetcherResultGatewayOutcome> {
+    if (!validTaskId(taskId)) throw new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE');
+    // 1. Validate the exact-shape Result body (throws INVALID_FETCHER_RESULT).
+    const submission = defineFetcherResultSubmission(body);
+    // 2. Compute claimHash and the canonical submitted Payload fingerprint.
+    const claimHash = hashFetcherGatewayClaim(claim);
+    const submittedPayloadSha256 = fetcherResultPayloadFingerprint(submission);
+
+    // 3. For a success, bind and integrity-verify the task-scoped object.
+    let taskScopedKey: string | null = null;
+    let objectIntegrityVerified = false;
+    if (submission.outcome === 'succeeded') {
+      const parts = parseUrlCaptureStorageKey(submission.snapshot.storageKey);
+      if (
+        parts === null ||
+        parts.taskId !== taskId ||
+        parts.attemptNumber !== submission.attemptNumber ||
+        parts.snapshotId !== submission.snapshot.snapshotId
+      ) {
+        throw new FetcherGatewayDomainError('INVALID_URL_CAPTURE_STORAGE_KEY');
+      }
+      taskScopedKey = submission.snapshot.storageKey;
+      const expected: StoredObject = {
+        storageKey: submission.snapshot.storageKey,
+        sha256: submission.snapshot.sha256,
+        byteSize: submission.snapshot.byteSize,
+        contentType: submission.snapshot.contentType,
+      };
+      objectIntegrityVerified = await this.objectStore.readForIntegrity(expected).catch(() => false);
+    }
+
+    // 4. Persist the authoritative Result transaction.
+    const acceptedAt = this.clock.now();
+    if (!validDate(acceptedAt)) throw new FetcherResultInternalError('COMMIT_UNKNOWN');
+    const command: UrlCaptureResultRecordCommand = {
+      taskId,
+      claimHash,
+      attemptNumber: submission.attemptNumber,
+      submittedPayloadSha256,
+      submittedOutcome: submission.outcome,
+      submittedCategory: submission.outcome === 'failed' ? submission.category : null,
+      objectIntegrityVerified,
+      success:
+        submission.outcome === 'succeeded'
+          ? {
+              snapshot: submission.snapshot,
+              capture: submission.capture,
+              candidate: submission.candidate,
+            }
+          : null,
+      resultId: this.ids.generateResultId(),
+      workingCopyId: this.ids.generateWorkingCopyId(),
+      sourceReviewNodeId: this.ids.generateSourceReviewNodeId(),
+      eventId: this.ids.generateResultEventId(),
+      acceptedAt: new Date(acceptedAt.getTime()),
+    };
+
+    let outcome: UrlCaptureResultRecordOutcome;
+    try {
+      outcome = await this.repository.recordResult(command);
+    } catch (error) {
+      if (error instanceof UrlCaptureResultPersistenceError) {
+        return this.recoverFromPersistenceError(error, {
+          taskId,
+          claimHash,
+          attemptNumber: submission.attemptNumber,
+          submittedPayloadSha256,
+          taskScopedKey,
+        });
+      }
+      throw error;
+    }
+
+    if (outcome.kind === 'unavailable') {
+      throw new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE');
+    }
+
+    // 5. A recorded server-derived failure must compensate the task-scoped object.
+    if (submission.outcome === 'succeeded' && outcome.result.recordedOutcome === 'failed') {
+      await this.compensate(taskScopedKey);
+    }
+    return this.toGatewayOutcome(outcome.result, outcome.kind === 'duplicate');
+  }
+
+  private async recoverFromPersistenceError(
+    error: UrlCaptureResultPersistenceError,
+    context: {
+      readonly taskId: WorkflowTaskId;
+      readonly claimHash: string;
+      readonly attemptNumber: number;
+      readonly submittedPayloadSha256: string;
+      readonly taskScopedKey: string | null;
+    },
+  ): Promise<FetcherResultGatewayOutcome> {
+    if (error.outcome === 'COMMIT_UNKNOWN') {
+      const reconciliation = await this.repository
+        .reconcileResult({
+          taskId: context.taskId,
+          claimHash: context.claimHash,
+          attemptNumber: context.attemptNumber,
+          submittedPayloadSha256: context.submittedPayloadSha256,
+        })
+        .catch((): UrlCaptureResultReconciliation => ({ outcome: 'UNKNOWN' }));
+      if (reconciliation.outcome === 'COMMITTED') {
+        return this.toGatewayOutcome(reconciliation.result, true);
+      }
+      if (reconciliation.outcome === 'ABSENT') {
+        await this.compensate(context.taskScopedKey);
+        throw new FetcherResultInternalError('COMMIT_UNKNOWN');
+      }
+      // Undetermined: retain the immutable object and never claim success.
+      throw new FetcherResultInternalError('RECONCILIATION_REQUIRED');
+    }
+    await this.compensate(context.taskScopedKey);
+    throw new FetcherResultInternalError('NOT_COMMITTED');
+  }
+
+  private toGatewayOutcome(result: UrlCaptureResultRecord, duplicate: boolean): FetcherResultGatewayOutcome {
+    return Object.freeze({
+      taskId: result.taskId,
+      attemptNumber: result.attemptNumber,
+      taskState: result.recordedOutcome,
+      resultCategory: result.recordedOutcome === 'succeeded' ? 'success' : (result.recordedCategory as never),
+      sourceId: result.sourceId,
+      duplicate,
+    });
+  }
+
+  private async compensate(storageKey: string | null): Promise<void> {
+    if (storageKey === null) return;
+    try {
+      await this.objectStore.deleteForCompensation(storageKey);
+    } catch {
+      // Bounded compensation: the recorded Result is the durable truth. A failed
+      // compensating delete may orphan the task-scoped object but creates no Source.
+    }
   }
 }

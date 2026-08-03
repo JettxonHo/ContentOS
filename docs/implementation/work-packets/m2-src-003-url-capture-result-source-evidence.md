@@ -1,6 +1,6 @@
 # WORK PACKET — M2-SRC-003
 
-**Status:** Ready for implementation
+**Status:** In Review
 
 **Purpose:** Durable planning-to-implementation handoff for the API-owned,
 versioned, Claim-bound Fetcher Result boundary and the URL Source evidence
@@ -16,7 +16,9 @@ handoff that follows a verified successful capture.
 - **Issue:** [#80](https://github.com/JettxonHo/ContentOS/issues/80)
 - **Planning branch:** `codex/m2-src-003-url-result-source-evidence`
 - **Planning base:** `c8045a959ed034c779c3676d8e4a6ef468d7c0f1`
-- **Status:** Ready for implementation
+- **Implementation branch:** `codex/m2-src-003-result-source-evidence`
+- **Implementation base:** `b96c5200533d1c1b4b3c2e9955809a896279c214`
+- **Status:** In Review
 - **Executor profile:** `BACKEND_GENERAL_EXECUTOR`
 - **Owner:** one implementation agent as the only repository writer
 - **Reviewer:** independent review agent before Ready/Merge

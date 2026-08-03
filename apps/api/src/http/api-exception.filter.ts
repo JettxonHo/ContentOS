@@ -15,20 +15,25 @@ import {
   UploadQuarantineError,
   FetcherGatewayApplicationError,
   FetcherGatewayDomainError,
+  FetcherResultInternalError,
 } from '@contentos/core';
 
 import { ApiHttpError } from './api-http-error';
 
-const FETCHER_GATEWAY_TASK_ROUTE = /^\/internal\/fetcher\/tasks\/[^/]+\/(?:claim|heartbeat)$/;
-const FASTIFY_INVALID_JSON_BODY_MESSAGE = "Body is not valid JSON but content-type is set to 'application/json'";
+const FETCHER_GATEWAY_TASK_ROUTE = /^\/internal\/fetcher\/tasks\/[^/]+\/(?:claim|heartbeat|result)$/;
 
-function isFetcherGatewayMalformedJsonError(request: FastifyRequest, exception: unknown): boolean {
+/**
+ * Transport-level body faults on the private Fetcher Gateway routes (malformed
+ * JSON, an over-limit body, or an unsupported/missing Content-Type) are mapped
+ * to the single safe Gateway request error. The Claim, URL, object key, and
+ * body are never echoed.
+ */
+function isFetcherGatewayTransportError(request: FastifyRequest, exception: unknown): boolean {
   return (
     request.method === 'POST' &&
     FETCHER_GATEWAY_TASK_ROUTE.test(request.url.split('?', 1)[0] ?? '') &&
     exception instanceof HttpException &&
-    exception.getStatus() === 400 &&
-    exception.message === FASTIFY_INVALID_JSON_BODY_MESSAGE
+    [400, 413, 415].includes(exception.getStatus())
   );
 }
 
@@ -45,7 +50,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const reply = host.switchToHttp().getResponse<FastifyReply>();
     const correlationId = String(request.id);
 
-    if (isFetcherGatewayMalformedJsonError(request, exception)) {
+    if (isFetcherGatewayTransportError(request, exception)) {
       void reply
         .status(422)
         .send(apiError('INVALID_GATEWAY_REQUEST' as ApiErrorCode, 'Invalid Gateway request', correlationId));
@@ -194,6 +199,11 @@ export class ApiExceptionFilter implements ExceptionFilter {
       void reply
         .status(422)
         .send(apiError('INVALID_GATEWAY_REQUEST' as ApiErrorCode, 'Invalid Gateway request', correlationId));
+      return;
+    }
+
+    if (exception instanceof FetcherResultInternalError) {
+      void reply.status(500).send(apiError('INTERNAL_ERROR', 'Internal server error', correlationId));
       return;
     }
 

@@ -18,12 +18,35 @@ export type SourceCaptureType = (typeof SOURCE_CAPTURE_TYPES)[number];
 export const SOURCE_SCHEMA_VERSION = 'source/normalized/v1' as const;
 
 /**
- * Allowlisted Raw Snapshot content types. Pasted Text is stored as
- * `text/plain; charset=utf-8`; `.txt` uploads use the same value and `.md`
- * uploads use `text/markdown; charset=utf-8`. Documented as a reversible
+ * Raw Snapshot content types for the pasted/upload key family. Pasted Text is
+ * stored as `text/plain; charset=utf-8`; `.txt` uploads use the same value and
+ * `.md` uploads use `text/markdown; charset=utf-8`. Documented as a reversible
  * implementation detail in `docs/architecture/source-foundation.md`.
  */
-export const SOURCE_SNAPSHOT_CONTENT_TYPES = ['text/plain; charset=utf-8', 'text/markdown; charset=utf-8'] as const;
+export const PASTED_UPLOAD_SNAPSHOT_CONTENT_TYPES = [
+  'text/plain; charset=utf-8',
+  'text/markdown; charset=utf-8',
+] as const;
+
+/**
+ * Raw Snapshot content types for the `public_url` key family (M2-SRC-003).
+ * These are the three canonical URL media types declared by the
+ * `fetcher-result/v1` success contract.
+ */
+export const URL_SNAPSHOT_CONTENT_TYPES = ['text/html', 'text/plain', 'text/markdown'] as const;
+export type UrlSnapshotContentType = (typeof URL_SNAPSHOT_CONTENT_TYPES)[number];
+
+/**
+ * Allowlisted Raw Snapshot content types across both key families. The
+ * Object Storage adapter uses this set for both the no-overwrite write path
+ * (pasted/upload only, before M2-FETCH-001) and the integrity read path; the
+ * `public_url` entries are required so a verified URL Raw Snapshot can be
+ * integrity-read without modifying `packages/object-storage`.
+ */
+export const SOURCE_SNAPSHOT_CONTENT_TYPES = [
+  ...PASTED_UPLOAD_SNAPSHOT_CONTENT_TYPES,
+  ...URL_SNAPSHOT_CONTENT_TYPES,
+] as const;
 export type SourceSnapshotContentType = (typeof SOURCE_SNAPSHOT_CONTENT_TYPES)[number];
 
 /**

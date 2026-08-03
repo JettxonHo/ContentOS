@@ -333,7 +333,7 @@ describe('M2-WF-003A PostgreSQL Outbox Dispatcher repository', () => {
       if (taskStateCheckDropped) {
         await boundary.query("UPDATE workflow_tasks SET state = 'queued' WHERE id = $1", [fixture.taskId]);
         await boundary.query(
-          "ALTER TABLE workflow_tasks ADD CONSTRAINT workflow_tasks_state_check CHECK (state IN ('queued', 'leased'))",
+          "ALTER TABLE workflow_tasks ADD CONSTRAINT workflow_tasks_state_check CHECK (state IN ('queued', 'leased', 'succeeded', 'failed'))",
         );
       }
       if (taskLeaseStateCheckDropped) {
@@ -356,6 +356,14 @@ describe('M2-WF-003A PostgreSQL Outbox Dispatcher repository', () => {
                AND lease_heartbeat_at IS NOT NULL
                AND lease_started_at <= lease_heartbeat_at
                AND lease_heartbeat_at < lease_expires_at)
+             OR
+             (state IN ('succeeded', 'failed')
+               AND claim_attempt_number >= 1
+               AND claim_hash IS NULL
+               AND claimed_by IS NULL
+               AND lease_started_at IS NULL
+               AND lease_expires_at IS NULL
+               AND lease_heartbeat_at IS NULL)
            )`,
         );
       }

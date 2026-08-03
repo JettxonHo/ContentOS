@@ -213,6 +213,8 @@ Fetcher results distinguish at least these conceptual outcomes:
 
 These are semantic distinctions, not a selected persisted Enum.
 
+`M2-SRC-003` implements the API-owned recording of these outcomes. The Fetcher submits an exact-shape `fetcher-result/v1` payload to the private Result route using the gateway Secret and the current opaque claim; the API persists one terminal Result per Task and maps the seven Fetcher-supplied failure categories one-to-one to stable safe codes. Package-archive, role-capacity, and object-integrity outcomes are server-derived and cannot be submitted by the Fetcher. Result Events and the Gateway response carry only Task/Source identifiers, attempt, category, and code — never a URL, host, object key, claim, Secret, Candidate body, or raw error. A verified success must pass immutable-object integrity before any Source evidence is promoted; a failure never creates a Source, Working Copy, Version, or Approval.
+
 ## 14. Failure and Fallback
 
 - Failure and security denial are formal, observable outcomes with stable categories and user-safe explanations.
