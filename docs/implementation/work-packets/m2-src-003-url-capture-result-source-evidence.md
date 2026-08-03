@@ -89,7 +89,7 @@ Fixed request transport:
 - there must be exactly one Content-Type header;
 - after stripping OWS, the value must be exactly `application/json`;
 - parameters, compound values, and any other media type are rejected;
-- the request body is at most `131072` bytes;
+- the request body is at most `1048576` bytes;
 - the body limit must take effect before full JSON parsing and Core
   validation;
 - a missing, wrong, or duplicated Content-Type, an over-limit body, invalid
@@ -97,6 +97,22 @@ Fixed request transport:
 - the body, URL, Claim, and object key are never echoed;
 - the route is not exposed in OpenAPI;
 - there is no Session/Cookie fallback.
+
+Request body limit rationale:
+
+- the Candidate Domain limit remains 100,000 UTF-8 bytes;
+- quotes, backslashes, and some control characters inside a JSON string must
+  be escaped;
+- the transport limit must be able to carry every value that satisfies the
+  Candidate Domain rules;
+- 1 MiB remains a strict, fixed boundary enforced before full JSON parsing;
+- the individual field limits for Candidate, URL, Redirect, Snapshot, and the
+  other fields are unchanged;
+- this is not the Fetcher Raw Snapshot limit;
+- the Raw Snapshot remains 2 MiB encoded bytes;
+- the decoded body remains 8 MiB;
+- the 1 MiB API body limit must not be interpreted as widening the Candidate
+  text limit.
 
 ## 4. Exact versioned result contract
 
@@ -135,7 +151,10 @@ resultVersion: fetcher-result/v1
 
 Fixed rules:
 
-- `attemptNumber` must equal the current leased Task attempt;
+- for a first submission with no existing Result, `attemptNumber` must equal
+  the current leased Task attempt;
+- for an exact replay of an existing Result, `attemptNumber` must equal the
+  persisted Result `attemptNumber`;
 - `snapshotId` must be a UUID;
 - `storageKey` must bind exactly the current `taskId`, `attemptNumber`, and
   `snapshotId`;
@@ -267,6 +286,13 @@ JSONB, but must:
 - never enter ordinary Events, logs, or browser DTOs;
 - keep FK bindings to Task, Request, Source Reference, Owner, and Package.
 
+This is bounded implementation discretion, not permission to change the
+external Result Contract or persistence invariants. Whichever representation
+is selected must be stated in the implementation Completion Report and must
+provide named database checks, exact owner/package/Task/Request/Reference
+bindings, one unique Result per Task, and the required
+migration/concurrency/reconciliation tests.
+
 Persistence classification model:
 
 ```text
@@ -306,8 +332,8 @@ Fixed semantics:
 7. A duplicate submission adds no new Event, Source, Snapshot, Working Copy,
    Head, or Result.
 8. The same Claim but a different Payload must fail with no side effect.
-9. An old Claim, old Attempt, expired Lease, or pre-Recovery generation result
-   fails with no side effect.
+9. When no existing Result is present, an old Claim, old Attempt, expired
+   Lease, or pre-Recovery generation submission fails with no side effect.
 10. Two concurrent Result submissions produce at most one first effect.
 
 ### Fixed replay precedence
@@ -332,6 +358,16 @@ The decision order is fixed:
    - complete Task/Request/Reference/Node/Instance binding.
 6. The first valid submission produces the single terminal Result.
 ```
+
+The existing-Result replay branch is evaluated before every first-submission
+Task, Lease, Attempt, and Node eligibility rule.
+
+No later section may reapply leased, unexpired, or source_capture=ready
+requirements after an existing Result has matched attemptNumber, claimHash,
+and submittedPayloadSha256. An exact replay still requires the correct Gateway
+Secret and the original Claim; attemptNumber, claimHash, and
+submittedPayloadSha256 must all match, and any mismatch returns
+`FETCHER_RESULT_UNAVAILABLE`.
 
 Additional fixed replay rules:
 
@@ -395,8 +431,11 @@ Fixed Node-state rules:
 
 - the M2-WF-003B Claim does not modify Node state;
 - this Work Item adds no `ready → running` transition;
-- when the `source_capture` Node is not `ready`, Result submission has no
-  side effect and returns `FETCHER_RESULT_UNAVAILABLE`;
+- for a first submission when no existing Result is present, `source_capture`
+  must be `ready`; any other Node state returns `FETCHER_RESULT_UNAVAILABLE`
+  with no side effect;
+- an exact replay of an existing Result bypasses first-submission Node
+  eligibility and returns the persisted safe result with `duplicate=true`;
 - only Success materializes `source_review → awaiting_human`;
 - Failure does not create `source_review`.
 
@@ -629,8 +668,29 @@ Gateway DTO classification:
 
 - `resultCategory` is `success`, or one of the full ten failure categories
   (the seven Fetcher-supplied plus the three server-derived);
-- an exact replay returns the persisted `recorded_outcome`,
-  `recorded_category`, and `safe_code`, and sets `duplicate: true`.
+- an exact replay reconstructs the same safe Gateway DTO from the persisted
+  Result — `taskId`, `attemptNumber`, `taskState`, `resultCategory`,
+  `sourceId` — and sets `duplicate=true`;
+- `safe_code` is not part of the Gateway DTO.
+
+The first submission and an exact replay use the same exact-shape DTO; only
+`duplicate` differs.
+
+`safe_code`:
+
+- is persisted in `url_capture_results`;
+- is used by the `url_capture_failed.v1` Event;
+- is available only to private repository/Core reconciliation where required;
+- is not returned in the Gateway HTTP DTO.
+
+Fixed error statuses:
+
+- malformed transport/body/category-code mismatch: `422
+INVALID_GATEWAY_REQUEST`;
+- authenticated but unavailable Result transition: `409
+FETCHER_RESULT_UNAVAILABLE`;
+- wrong/missing Gateway service identity: retain the existing Fetcher Gateway
+  unauthenticated status and error contract.
 
 One new stable private error is allowed:
 
@@ -638,17 +698,25 @@ One new stable private error is allowed:
 FETCHER_RESULT_UNAVAILABLE
 ```
 
-The following all have no successful effect:
+The following always have no successful effect:
 
 - wrong service identity;
 - wrong/missing Claim;
+- mismatched payload replay;
+- unknown Task;
+- malformed body.
+
+For a first submission when no existing Result is present, the following also
+have no successful effect:
+
 - wrong attempt;
 - expired Lease;
 - non-leased or terminal Task;
-- mismatched payload replay;
-- unknown Task;
-- malformed body;
+- non-ready `source_capture` Node;
 - object-reference binding failure.
+
+An exact replay of an existing Result must not be rejected again by these
+first-submission conditions.
 
 Error responses must not reveal whether a Task exists, whether a Claim is close
 to correct, or any URL or object key.
@@ -808,11 +876,17 @@ Render/Export
 - source role conflict;
 - archived Package;
 - safe Event exact shape;
-- exact replay after terminal → `duplicate=true`;
+- exact success replay when Task=`succeeded` and Node=`completed` →
+  `duplicate=true`;
+- exact failure replay when Task=`failed` and Node=`failed` →
+  `duplicate=true`;
 - exact replay after original lease expiry → `duplicate=true`;
-- unseen first result after lease expiry → rejected;
-- same claim/attempt but different payload → rejected;
-- old recovered attempt without existing result → rejected;
+- first submission after lease expiry with no existing Result →
+  `FETCHER_RESULT_UNAVAILABLE`;
+- old recovered Attempt with no existing Result →
+  `FETCHER_RESULT_UNAVAILABLE`;
+- same Claim and Attempt but different Payload →
+  `FETCHER_RESULT_UNAVAILABLE`;
 - Fetcher-submitted `succeeded` that fails Package/capacity/integrity recheck
   records a server-derived failure result;
 - storage key exact-parser: exact valid task/attempt/snapshot key; wrong
@@ -850,14 +924,24 @@ Render/Export
 - duplicate Secret/Claim headers;
 - malformed path/body;
 - exact DTO;
-- duplicate submission DTO (`duplicate=true` with the persisted recorded
-  values);
+- success DTO rejects `safeCode`/`resultCode`;
+- failure DTO rejects `safeCode`/`resultCode`;
+- duplicate DTO rejects `safeCode`/`resultCode`;
+- exact replay returns the same persisted `taskState`/`resultCategory`/
+  `sourceId`;
+- duplicate changes only from `false` to `true`;
 - no sensitive values in errors/logs/OpenAPI;
 - claim/heartbeat existing behavior unchanged;
 - HTTP transport: missing Content-Type; duplicate Content-Type;
-  `application/json` with an unsupported parameter; wrong media type; body
-  exactly at the limit; body over the limit; malformed JSON; array/null/string
-  body.
+  `application/json` with an unsupported parameter; wrong media type; malformed
+  JSON; array/null/string body;
+- body exactly 1,048,576 bytes: transport boundary behavior is deterministic;
+- body over 1,048,576 bytes: rejected before full JSON parsing;
+- 100,000-byte valid Candidate containing many quotes: not rejected merely
+  because JSON escaping exceeds 131,072 bytes;
+- 100,000-byte valid Candidate containing many backslashes: not rejected merely
+  because JSON escaping exceeds 131,072 bytes;
+- Candidate over 100,000 UTF-8 bytes: still rejected by Domain validation.
 
 ### Regression tests
 
