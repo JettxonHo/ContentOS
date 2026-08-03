@@ -62,6 +62,7 @@ Fixed exclusions:
 
 ```text
 POST /internal/fetcher/tasks/:taskId/result
+Content-Type: application/json
 ```
 
 The route continues to use the existing private Gateway headers:
@@ -76,11 +77,26 @@ Requirements:
 - `ApiExcludeController`;
 - no Cookie/Session fallback;
 - not exposed in OpenAPI;
-- exact Content-Type;
 - exact-shape JSON body;
 - exactly one Secret header and one Claim header are allowed (duplicated or
   missing headers are rejected);
 - errors must not echo the Claim, URL, object key, or Payload.
+
+### HTTP transport
+
+Fixed request transport:
+
+- there must be exactly one Content-Type header;
+- after stripping OWS, the value must be exactly `application/json`;
+- parameters, compound values, and any other media type are rejected;
+- the request body is at most `131072` bytes;
+- the body limit must take effect before full JSON parsing and Core
+  validation;
+- a missing, wrong, or duplicated Content-Type, an over-limit body, invalid
+  JSON, or a non-object body all use the existing safe Gateway request error;
+- the body, URL, Claim, and object key are never echoed;
+- the route is not exposed in OpenAPI;
+- there is no Session/Cookie fallback.
 
 ## 4. Exact versioned result contract
 
@@ -152,7 +168,7 @@ Fixed rules:
   "attemptNumber": 1,
   "outcome": "failed",
   "category": "fetch_failed",
-  "code": "SAFE_STABLE_CODE"
+  "code": "FETCH_FAILED"
 }
 ```
 
@@ -168,12 +184,33 @@ redirect_blocked
 extraction_failed
 ```
 
-`code`:
+Fetcher-supplied failure mapping — an exact one-to-one mapping; no arbitrary
+`[A-Z0-9_]+` code is accepted:
 
-- 1–64 characters;
-- only `[A-Z0-9_]+`;
-- must not contain a URL, host, IP, header, path, object key, or raw error
-  text.
+```text
+fetch_failed        → FETCH_FAILED
+validation_blocked  → VALIDATION_BLOCKED
+unsupported_content → UNSUPPORTED_CONTENT
+too_large           → TOO_LARGE
+timeout              → TIMEOUT
+redirect_blocked     → REDIRECT_BLOCKED
+extraction_failed    → EXTRACTION_FAILED
+```
+
+If the submitted `category` and `code` do not match this mapping, the request
+fails with `INVALID_GATEWAY_REQUEST` and has no side effect.
+
+Server-derived failure mapping — produced only by API/Core; the Fetcher must
+not submit these:
+
+```text
+package_archived        → PACKAGE_ARCHIVED
+source_role_limit       → SOURCE_ROLE_LIMIT
+object_integrity_failed → OBJECT_INTEGRITY_FAILED
+```
+
+A `code` must not contain a URL, host, IP, header, path, object key, or raw
+error text.
 
 The Failure variant:
 
@@ -213,6 +250,8 @@ attempt_number
 claim_hash
 result_version
 submitted_payload_sha256
+submitted_outcome
+submitted_category
 recorded_outcome
 recorded_category
 safe_code
@@ -227,6 +266,30 @@ JSONB, but must:
 - carry database exact-shape/type constraints;
 - never enter ordinary Events, logs, or browser DTOs;
 - keep FK bindings to Task, Request, Source Reference, Owner, and Package.
+
+Persistence classification model:
+
+```text
+submitted_outcome:   succeeded | failed
+submitted_category:  one of the seven Fetcher categories, or null on success
+recorded_outcome:    succeeded | failed
+recorded_category:   null on success; on failed, one of the seven Fetcher
+                     categories or one of the three server-derived categories
+safe_code:           null on success; on failed, one of the exact allowlist
+                     codes above
+```
+
+If the Fetcher submits `succeeded` but the Package, capacity, or object
+integrity check fails:
+
+```text
+submitted_outcome = succeeded
+recorded_outcome  = failed
+recorded_category = the corresponding server-derived category
+safe_code         = the corresponding server-derived code
+```
+
+`submitted_payload_sha256` still binds the original canonical Payload.
 
 Fixed semantics:
 
@@ -246,6 +309,42 @@ Fixed semantics:
 9. An old Claim, old Attempt, expired Lease, or pre-Recovery generation result
    fails with no side effect.
 10. Two concurrent Result submissions produce at most one first effect.
+
+### Fixed replay precedence
+
+The decision order is fixed:
+
+```text
+1. Validate the Fetcher service identity, route, Header format, and Result
+   body.
+2. Compute claimHash and the canonical submittedPayloadSha256.
+3. Inside the PostgreSQL transaction, read the Task and any existing Result.
+4. If a Result already exists:
+   a. attemptNumber, claimHash, and submittedPayloadSha256 all match:
+      return the persisted safe result with duplicate=true.
+   b. any mismatch:
+      return FETCHER_RESULT_UNAVAILABLE with no side effect.
+5. Only when no Result exists, require:
+   - Task state = leased;
+   - the current claimHash matches;
+   - the current attemptNumber matches;
+   - now < leaseExpiresAt;
+   - complete Task/Request/Reference/Node/Instance binding.
+6. The first valid submission produces the single terminal Result.
+```
+
+Additional fixed replay rules:
+
+- an exact replay of an already-accepted Result returns the existing result
+  even after the Task is terminal;
+- an exact replay of an already-accepted Result returns the existing result
+  even after the original Lease time;
+- the correct Gateway Secret and the original Claim must still be presented;
+- a replay must not create a new Event, Result, Source, Snapshot, Working
+  Copy, or Head;
+- a first late submission with no existing Result must fail;
+- a pre-Recovery Attempt that was never accepted must fail;
+- a replay with a different Payload must fail.
 
 The canonical Payload fingerprint uses a Core-owned, deterministic, exact JSON
 serialization followed by lowercase SHA-256.
@@ -278,7 +377,7 @@ Success transaction:
 
 ```text
 Task:                 leased → succeeded
-source_capture Node:  running/ready → completed
+source_capture Node:  ready → completed
 source_review Node:   materialize once → awaiting_human
 Workflow Instance:    remain active
 ```
@@ -287,10 +386,19 @@ Failure transaction:
 
 ```text
 Task:                 leased → failed
-source_capture Node:  → failed
+source_capture Node:  ready → failed
 source_review Node:   not created
 Workflow Instance:    remain active
 ```
+
+Fixed Node-state rules:
+
+- the M2-WF-003B Claim does not modify Node state;
+- this Work Item adds no `ready → running` transition;
+- when the `source_capture` Node is not `ready`, Result submission has no
+  side effect and returns `FETCHER_RESULT_UNAVAILABLE`;
+- only Success materializes `source_review → awaiting_human`;
+- Failure does not create `source_review`.
 
 Must not:
 
@@ -356,6 +464,75 @@ On database write failure:
 
 Unknown or non-current-Task/Attempt-bound objects must never be deleted.
 
+### Storage key family boundary
+
+The fixed `public_url` key is retained:
+
+```text
+fetcher/url-capture/<taskId>/<attemptNumber>/raw/<snapshotId>
+```
+
+It is a new permanent key family for `public_url` Raw Snapshots, not a
+replacement for the existing pasted/upload key.
+
+1. The existing pasted/upload key remains:
+
+   ```text
+   sources/{ownerUserId}/{contentPackageId}/{sourceId}/raw/{snapshotId}
+   ```
+
+2. `public_url` uses:
+
+   ```text
+   fetcher/url-capture/<taskId>/<attemptNumber>/raw/<snapshotId>
+   ```
+
+3. The key:
+
+   - is composed only of the current Task ID, the current Attempt, and a
+     server-generated opaque UUID;
+   - contains no URL, host, owner input, filename, or arbitrary user string;
+   - must be reconstructed by an exact parser and compared field-by-field;
+   - must not be validated by a prefix/substring check alone;
+   - must not contain an extra segment, `.`, `..`, an empty segment, a
+     backslash, or a control character.
+
+4. M2-SRC-003:
+
+   - does not write the object;
+   - only performs an integrity read through the API ObjectStore adapter;
+   - only performs a compensating deletion after proving the exact
+     Task/Attempt binding;
+   - tests pre-place the task-scoped object through an isolated fixture;
+   - before M2-FETCH-001, the production Fetcher still has no write
+     capability.
+
+5. M2-FETCH-001 is later responsible for:
+
+   - the actual scoped Object Storage writer;
+   - a conditional immutable write;
+   - writing only the current Claimed Task/Attempt key;
+   - not changing the M2-SRC-003 Result contract.
+
+6. On implementation completion, `docs/architecture/source-foundation.md`
+   must be updated to:
+
+   - describe the two key families (pasted/upload and `public_url`);
+   - state that both key families are opaque, no-overwrite, and database
+     owner-bound;
+   - no longer generically claim that every Source has a single
+     `sources/...` key pattern.
+
+7. The current `S3ObjectStore.readForIntegrity` and `deleteForCompensation`
+   use the full key, so M2-SRC-003 does not require modifying
+   `packages/object-storage`. If the real implementation proves that package
+   must change, stop and re-review; do not self-expand the file range.
+
+8. No new DEC is required: this is a reversible key-layout refinement within
+   the accepted Object Storage/Fetcher boundary; it does not change
+   PostgreSQL authority, Fetcher least privilege, private storage, no public
+   ACL, no signed URL, or the no-overwrite invariant.
+
 ## 10. Safe Events
 
 Define at least:
@@ -385,9 +562,17 @@ Failure Event exact payload:
   "sourceReferenceId": "uuid",
   "attemptNumber": 1,
   "category": "fetch_failed",
-  "code": "SAFE_STABLE_CODE"
+  "code": "FETCH_FAILED"
 }
 ```
+
+Event classification rules:
+
+- the Success Event carries no category/code;
+- the Failure Event must use `recorded_category` and the corresponding
+  `safe_code`;
+- an Event must not use an undefined or arbitrary string for category or
+  code.
 
 Events must not contain:
 
@@ -439,6 +624,13 @@ When a failure result is recorded successfully:
   }
 }
 ```
+
+Gateway DTO classification:
+
+- `resultCategory` is `success`, or one of the full ten failure categories
+  (the seven Fetcher-supplied plus the three server-derived);
+- an exact replay returns the persisted `recorded_outcome`,
+  `recorded_category`, and `safe_code`, and sets `duplicate: true`.
 
 One new stable private error is allowed:
 
@@ -597,7 +789,10 @@ Render/Export
 - getter not executed;
 - Proxy reflection failure stable rejection;
 - content type, encoding, redirect, size, URL, and candidate text bounds;
-- canonical fingerprint stability.
+- canonical fingerprint stability;
+- result classification full enumeration (the seven Fetcher-supplied and the
+  three server-derived category→code mappings);
+- category/code mismatch rejection (`INVALID_GATEWAY_REQUEST`).
 
 ### Core tests
 
@@ -612,7 +807,21 @@ Render/Export
 - object integrity mismatch;
 - source role conflict;
 - archived Package;
-- safe Event exact shape.
+- safe Event exact shape;
+- exact replay after terminal → `duplicate=true`;
+- exact replay after original lease expiry → `duplicate=true`;
+- unseen first result after lease expiry → rejected;
+- same claim/attempt but different payload → rejected;
+- old recovered attempt without existing result → rejected;
+- Fetcher-submitted `succeeded` that fails Package/capacity/integrity recheck
+  records a server-derived failure result;
+- storage key exact-parser: exact valid task/attempt/snapshot key; wrong
+  task; wrong attempt; extra segment; dot/dot-dot; duplicate separator;
+  backslash; malformed UUID;
+- pasted/upload storage key remains unaffected;
+- compensation never deletes a non-current key;
+- `source_capture` Node already completed/failed/cancelled/awaiting_human →
+  Result submission rejected with no side effect.
 
 ### PostgreSQL tests
 
@@ -641,8 +850,14 @@ Render/Export
 - duplicate Secret/Claim headers;
 - malformed path/body;
 - exact DTO;
+- duplicate submission DTO (`duplicate=true` with the persisted recorded
+  values);
 - no sensitive values in errors/logs/OpenAPI;
-- claim/heartbeat existing behavior unchanged.
+- claim/heartbeat existing behavior unchanged;
+- HTTP transport: missing Content-Type; duplicate Content-Type;
+  `application/json` with an unsupported parameter; wrong media type; body
+  exactly at the limit; body over the limit; malformed JSON; array/null/string
+  body.
 
 ### Regression tests
 
@@ -676,21 +891,44 @@ db:generate ×2
 git diff --check
 ```
 
-Require no residue of:
+Sensitive surfaces must not carry a full URL, object key, Claim, Secret, or
+Candidate body in any of:
 
-- Secret;
-- Claim;
-- full URL;
-- raw body;
-- object key;
-- signed URL;
-- local absolute path;
-- temporary object;
-- Queue Job;
-- Container/Network;
-- Worker/Fetcher process;
-- credential residue;
-- migration drift.
+```text
+Queue payload
+Workflow Event
+ordinary application log
+error response
+OpenAPI
+browser DTO
+ordinary telemetry
+real runtime values in the PR Completion Report
+```
+
+The following locations may carry the necessary values, strictly private and
+test-scoped:
+
+```text
+private Result request
+dedicated private PostgreSQL evidence fields
+ObjectStore integrity request
+isolated integration fixture
+test-only expected values
+```
+
+After the run there must be no residue of:
+
+```text
+temporary object
+Queue Job
+container/network
+Worker/Fetcher process
+credential
+test bucket data
+signed URL
+local absolute path
+migration drift
+```
 
 Do not touch the `contentos-local` volumes.
 
