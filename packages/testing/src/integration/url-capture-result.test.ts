@@ -3,18 +3,23 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 import {
+  FetcherGatewayApplicationError,
   FetcherGatewayService,
+  FetcherResultService,
   UrlCaptureService,
   buildUrlCaptureStorageKey,
   hashFetcherGatewayClaim,
   type ContentPackageId,
   type ContentPackageOwnerId,
   type FetcherResultSuccessEvidence,
+  type ObjectStore,
+  type StoredObject,
   type UrlCaptureIdGenerator,
   type UrlCaptureResultRecordCommand,
 } from '@contentos/core';
 import {
   createFetcherGatewayRepositoryTestBoundary,
+  createSourceRepositoryTestBoundary,
   createUrlCaptureRepositoryTestBoundary,
   createUrlCaptureResultRepositoryTestBoundary,
   type UrlCaptureRepositoryTestBoundary,
@@ -44,6 +49,7 @@ interface LeasedTask {
   readonly packageId: ContentPackageId;
   readonly ownerUserId: ContentPackageOwnerId;
   readonly taskId: string;
+  readonly claim: string;
   readonly claimHash: string;
   readonly attemptNumber: number;
   readonly sourceReferenceId: string;
@@ -98,6 +104,7 @@ async function createLeasedTask(commandBoundary: UrlCaptureRepositoryTestBoundar
     packageId,
     ownerUserId,
     taskId: submitted.taskId,
+    claim,
     claimHash: hashFetcherGatewayClaim(claim),
     attemptNumber: claimed.attemptNumber,
     sourceReferenceId: referenceRow?.source_reference_id ?? '',
@@ -577,6 +584,695 @@ describe('M2-SRC-003 PostgreSQL url_capture_results repository', () => {
       await commandBoundary.close();
       await first.close();
       await second.close();
+    }
+  });
+});
+
+describe('M2-SRC-003 Object Storage read ordering (service over the real repository)', () => {
+  function countingObjectStore(integrity: boolean): ObjectStore & { reads: string[]; deletes: string[] } {
+    const reads: string[] = [];
+    const deletes: string[] = [];
+    return {
+      reads,
+      deletes,
+      putImmutable: async (): Promise<StoredObject> => {
+        throw new Error('M2-SRC-003 does not write fetcher objects');
+      },
+      readForIntegrity: async (expected: StoredObject) => {
+        reads.push(expected.storageKey);
+        return integrity;
+      },
+      deleteForCompensation: async (storageKey: string) => {
+        deletes.push(storageKey);
+      },
+    };
+  }
+
+  function serviceFor(objectStore: ObjectStore, repository: never): FetcherResultService {
+    return new FetcherResultService(
+      repository,
+      objectStore,
+      {
+        generateResultId: () => randomUUID(),
+        generateWorkingCopyId: () => randomUUID(),
+        generateSourceReviewNodeId: () => randomUUID() as never,
+        generateResultEventId: () => randomUUID() as never,
+      },
+      { now: () => new Date() },
+    );
+  }
+
+  function successBodyFor(taskId: string, attemptNumber: number): Record<string, unknown> {
+    const snapshotId = randomUUID();
+    return {
+      resultVersion: 'fetcher-result/v1',
+      attemptNumber,
+      outcome: 'succeeded',
+      snapshot: {
+        snapshotId,
+        storageKey: buildUrlCaptureStorageKey({ taskId, attemptNumber, snapshotId }),
+        sha256: 'a'.repeat(64),
+        byteSize: 1234,
+        contentType: 'text/html',
+        contentEncoding: 'identity',
+      },
+      capture: {
+        finalUrl: 'https://example.com/final',
+        redirects: [],
+        responseStatus: 200,
+        encodedByteSize: 1234,
+        decodedByteSize: 5678,
+      },
+      candidate: { schemaVersion: 'source/normalized/v1', text: 'reviewable normalized text' },
+    };
+  }
+
+  it('an eligible first success reads the object exactly once', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const store = countingObjectStore(true);
+      const service = serviceFor(store, resultBoundary.repository as never);
+      const outcome = await service.submitResult(
+        fixture.taskId as never,
+        fixture.claim,
+        successBodyFor(fixture.taskId, fixture.attemptNumber),
+      );
+      expect(outcome.taskState).toBe('succeeded');
+      expect(outcome.duplicate).toBe(false);
+      expect(store.reads).toHaveLength(1);
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('wrong claim, wrong attempt, and unknown task do not read the object', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const store = countingObjectStore(true);
+      const service = serviceFor(store, resultBoundary.repository as never);
+
+      await expect(
+        service.submitResult(
+          fixture.taskId as never,
+          'B'.repeat(43),
+          successBodyFor(fixture.taskId, fixture.attemptNumber),
+        ),
+      ).rejects.toEqual(new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE'));
+
+      await expect(
+        service.submitResult(
+          fixture.taskId as never,
+          fixture.claim,
+          successBodyFor(fixture.taskId, fixture.attemptNumber + 1),
+        ),
+      ).rejects.toEqual(new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE'));
+
+      const unknownTaskId = randomUUID();
+      await expect(
+        service.submitResult(
+          unknownTaskId as never,
+          fixture.claim,
+          successBodyFor(unknownTaskId, fixture.attemptNumber),
+        ),
+      ).rejects.toEqual(new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE'));
+
+      expect(store.reads).toHaveLength(0);
+      expect(store.deletes).toHaveLength(0);
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('an expired lease and a non-ready node do not read the object', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const store = countingObjectStore(true);
+      const service = serviceFor(store, resultBoundary.repository as never);
+
+      // Expire the lease.
+      await commandBoundary.query(
+        `UPDATE workflow_tasks SET lease_started_at = $2, lease_heartbeat_at = $2, lease_expires_at = $3, updated_at = now() WHERE id = $1`,
+        [fixture.taskId, new Date('2020-01-01T00:00:00.000Z'), new Date('2020-01-01T00:00:01.000Z')],
+      );
+      await expect(
+        service.submitResult(
+          fixture.taskId as never,
+          fixture.claim,
+          successBodyFor(fixture.taskId, fixture.attemptNumber),
+        ),
+      ).rejects.toEqual(new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE'));
+
+      // Restore lease, then make the node non-ready.
+      await commandBoundary.query(
+        `UPDATE workflow_tasks SET lease_started_at = now(), lease_heartbeat_at = now(), lease_expires_at = now() + interval '1 hour', updated_at = now() WHERE id = $1`,
+        [fixture.taskId],
+      );
+      await commandBoundary.query(
+        `UPDATE workflow_nodes SET state = 'running', updated_at = now() WHERE id = (SELECT workflow_node_id FROM workflow_tasks WHERE id = $1)`,
+        [fixture.taskId],
+      );
+      await expect(
+        service.submitResult(
+          fixture.taskId as never,
+          fixture.claim,
+          successBodyFor(fixture.taskId, fixture.attemptNumber),
+        ),
+      ).rejects.toEqual(new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE'));
+
+      expect(store.reads).toHaveLength(0);
+      expect(store.deletes).toHaveLength(0);
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('an exact replay and a mismatched replay do not read the object', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const store = countingObjectStore(true);
+      const service = serviceFor(store, resultBoundary.repository as never);
+      const body = successBodyFor(fixture.taskId, fixture.attemptNumber);
+
+      const first = await service.submitResult(fixture.taskId as never, fixture.claim, body);
+      expect(first.taskState).toBe('succeeded');
+      expect(first.duplicate).toBe(false);
+      expect(store.reads).toHaveLength(1);
+
+      // Exact replay: same claim/attempt/payload -> duplicate, no additional read.
+      const replay = await service.submitResult(fixture.taskId as never, fixture.claim, body);
+      expect(replay.duplicate).toBe(true);
+      expect(store.reads).toHaveLength(1);
+
+      // Mismatched replay (different payload): unavailable, no additional read.
+      const altered = successBodyFor(fixture.taskId, fixture.attemptNumber);
+      (altered.candidate as Record<string, unknown>).text = 'a different reviewable text';
+      await expect(service.submitResult(fixture.taskId as never, fixture.claim, altered)).rejects.toEqual(
+        new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE'),
+      );
+      expect(store.reads).toHaveLength(1);
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('a Fetcher-reported failure never reads the object', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const store = countingObjectStore(true);
+      const service = serviceFor(store, resultBoundary.repository as never);
+      const body = {
+        resultVersion: 'fetcher-result/v1',
+        attemptNumber: fixture.attemptNumber,
+        outcome: 'failed',
+        category: 'fetch_failed',
+        code: 'FETCH_FAILED',
+      };
+      const outcome = await service.submitResult(fixture.taskId as never, fixture.claim, body);
+      expect(outcome.taskState).toBe('failed');
+      expect(outcome.resultCategory).toBe('fetch_failed');
+      expect(store.reads).toHaveLength(0);
+      expect(store.deletes).toHaveLength(0);
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+});
+
+const RESULT_INSERT_COLUMNS =
+  'id, task_id, url_capture_request_id, source_reference_id, content_package_id, owner_user_id, attempt_number, claim_hash, result_version, submitted_payload_sha256, submitted_outcome, submitted_category, recorded_outcome, recorded_category, safe_code, source_id, snapshot_id, success_evidence, accepted_at';
+
+async function tryInsertResult(
+  commandBoundary: UrlCaptureRepositoryTestBoundary,
+  v: Record<string, unknown>,
+): Promise<{ ok: boolean; constraint?: string }> {
+  try {
+    await commandBoundary.query(
+      `INSERT INTO url_capture_results (${RESULT_INSERT_COLUMNS})
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::jsonb, now())`,
+      [
+        v.id,
+        v.taskId,
+        v.requestId,
+        v.sourceReferenceId,
+        v.packageId,
+        v.ownerUserId,
+        v.attemptNumber,
+        v.claimHash,
+        v.resultVersion,
+        v.payloadSha,
+        v.submittedOutcome,
+        v.submittedCategory,
+        v.recordedOutcome,
+        v.recordedCategory,
+        v.safeCode,
+        v.sourceId,
+        v.snapshotId,
+        v.evidenceJson,
+      ],
+    );
+    return { ok: true };
+  } catch (error) {
+    const err = error as { constraint?: string; cause?: { constraint?: string } };
+    const constraint = err.constraint ?? err.cause?.constraint;
+    return constraint === undefined ? { ok: false } : { ok: false, constraint };
+  }
+}
+
+function validEvidenceJson(taskId: string, attemptNumber: number, snapshotId: string): string {
+  return JSON.stringify({
+    snapshot: {
+      snapshotId,
+      storageKey: buildUrlCaptureStorageKey({ taskId, attemptNumber, snapshotId }),
+      sha256: 'a'.repeat(64),
+      byteSize: 1234,
+      contentType: 'text/html',
+      contentEncoding: 'identity',
+    },
+    capture: {
+      finalUrl: 'https://example.com/final',
+      redirects: [],
+      responseStatus: 200,
+      encodedByteSize: 1234,
+      decodedByteSize: 5678,
+    },
+    candidate: { schemaVersion: 'source/normalized/v1', text: 'reviewable normalized text' },
+  });
+}
+
+function mutateEvidence(
+  taskId: string,
+  attemptNumber: number,
+  mutate: (evidence: Record<string, unknown>) => void,
+): string {
+  const snapshotId = randomUUID();
+  const evidence = JSON.parse(validEvidenceJson(taskId, attemptNumber, snapshotId)) as Record<string, unknown>;
+  mutate(evidence);
+  return JSON.stringify(evidence);
+}
+
+describe('M2-SRC-003 url_capture_results database constraints (direct SQL)', () => {
+  async function setup() {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const fixture = await createLeasedTask(commandBoundary);
+    const [requestRow] = await commandBoundary.query<{ url_capture_request_id: string }>(
+      'SELECT url_capture_request_id FROM workflow_tasks WHERE id = $1',
+      [fixture.taskId],
+    );
+    const requestId = requestRow?.url_capture_request_id ?? '';
+    const snapshotId = randomUUID();
+    const baseSuccess: Record<string, unknown> = {
+      id: randomUUID(),
+      taskId: fixture.taskId,
+      requestId,
+      sourceReferenceId: fixture.sourceReferenceId,
+      packageId: fixture.packageId,
+      ownerUserId: fixture.ownerUserId,
+      attemptNumber: fixture.attemptNumber,
+      claimHash: fixture.claimHash,
+      resultVersion: 'fetcher-result/v1',
+      payloadSha: 'a'.repeat(64),
+      submittedOutcome: 'succeeded',
+      submittedCategory: null,
+      recordedOutcome: 'succeeded',
+      recordedCategory: null,
+      safeCode: null,
+      sourceId: fixture.sourceReferenceId,
+      snapshotId,
+      evidenceJson: validEvidenceJson(fixture.taskId, fixture.attemptNumber, snapshotId),
+    };
+    const baseFailure: Record<string, unknown> = {
+      ...baseSuccess,
+      id: randomUUID(),
+      submittedOutcome: 'failed',
+      submittedCategory: 'fetch_failed',
+      recordedOutcome: 'failed',
+      recordedCategory: 'fetch_failed',
+      safeCode: 'FETCH_FAILED',
+      sourceId: null,
+      snapshotId: null,
+      evidenceJson: null,
+    };
+    return { commandBoundary, fixture, baseSuccess, baseFailure };
+  }
+
+  it('accepts a valid success row and a valid failure row on distinct tasks', async () => {
+    const { commandBoundary, fixture, baseSuccess } = await setup();
+    const fixture2 = await createLeasedTask(commandBoundary);
+    try {
+      expect((await tryInsertResult(commandBoundary, baseSuccess)).ok).toBe(true);
+
+      const [requestRow2] = await commandBoundary.query<{ url_capture_request_id: string }>(
+        'SELECT url_capture_request_id FROM workflow_tasks WHERE id = $1',
+        [fixture2.taskId],
+      );
+      const validFailure: Record<string, unknown> = {
+        id: randomUUID(),
+        taskId: fixture2.taskId,
+        requestId: requestRow2?.url_capture_request_id ?? '',
+        sourceReferenceId: fixture2.sourceReferenceId,
+        packageId: fixture2.packageId,
+        ownerUserId: fixture2.ownerUserId,
+        attemptNumber: fixture2.attemptNumber,
+        claimHash: fixture2.claimHash,
+        resultVersion: 'fetcher-result/v1',
+        payloadSha: 'a'.repeat(64),
+        submittedOutcome: 'failed',
+        submittedCategory: 'fetch_failed',
+        recordedOutcome: 'failed',
+        recordedCategory: 'fetch_failed',
+        safeCode: 'FETCH_FAILED',
+        sourceId: null,
+        snapshotId: null,
+        evidenceJson: null,
+      };
+      expect((await tryInsertResult(commandBoundary, validFailure)).ok).toBe(true);
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await cleanup(commandBoundary, fixture2.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects category/code mismatches through the exact mapping check', async () => {
+    const { commandBoundary, fixture, baseFailure } = await setup();
+    try {
+      const fetchFailedWithTimeout = await tryInsertResult(commandBoundary, {
+        ...baseFailure,
+        recordedCategory: 'fetch_failed',
+        safeCode: 'TIMEOUT',
+      });
+      expect(fetchFailedWithTimeout.ok).toBe(false);
+      expect(fetchFailedWithTimeout.constraint).toBe('url_capture_results_category_code_mapping_check');
+
+      const timeoutWithFetchFailed = await tryInsertResult(commandBoundary, {
+        ...baseFailure,
+        submittedCategory: 'timeout',
+        recordedCategory: 'timeout',
+        safeCode: 'FETCH_FAILED',
+      });
+      expect(timeoutWithFetchFailed.ok).toBe(false);
+      expect(timeoutWithFetchFailed.constraint).toBe('url_capture_results_category_code_mapping_check');
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects a submitted failure recorded under a different category', async () => {
+    const { commandBoundary, fixture, baseFailure } = await setup();
+    try {
+      const result = await tryInsertResult(commandBoundary, {
+        ...baseFailure,
+        submittedCategory: 'fetch_failed',
+        recordedCategory: 'timeout',
+        safeCode: 'TIMEOUT',
+      });
+      expect(result.ok).toBe(false);
+      expect(result.constraint).toBe('url_capture_results_submitted_failure_check');
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects a submitted success recorded as a Fetcher-supplied failure', async () => {
+    const { commandBoundary, fixture, baseSuccess } = await setup();
+    try {
+      const result = await tryInsertResult(commandBoundary, {
+        ...baseSuccess,
+        recordedOutcome: 'failed',
+        recordedCategory: 'fetch_failed',
+        safeCode: 'FETCH_FAILED',
+        sourceId: null,
+        snapshotId: null,
+        evidenceJson: null,
+      });
+      expect(result.ok).toBe(false);
+      expect(result.constraint).toBe('url_capture_results_submitted_success_check');
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects malformed JSONB evidence value types', async () => {
+    const { commandBoundary, fixture } = await setup();
+    try {
+      const cases: Array<(taskId: string, attempt: number) => string> = [
+        (taskId, attempt) =>
+          mutateEvidence(taskId, attempt, (e) => ((e.snapshot as Record<string, unknown>).snapshotId = 123)),
+        (taskId, attempt) =>
+          mutateEvidence(taskId, attempt, (e) => ((e.snapshot as Record<string, unknown>).byteSize = '1234')),
+        (taskId, attempt) =>
+          mutateEvidence(taskId, attempt, (e) => ((e.capture as Record<string, unknown>).redirects = {})),
+        (taskId, attempt) =>
+          mutateEvidence(taskId, attempt, (e) => ((e.capture as Record<string, unknown>).responseStatus = '200')),
+        (taskId, attempt) =>
+          mutateEvidence(taskId, attempt, (e) => ((e.candidate as Record<string, unknown>).text = 123)),
+      ];
+      for (const build of cases) {
+        const snapshotId = randomUUID();
+        const evidenceJson = build(fixture.taskId, fixture.attemptNumber);
+        const result = await tryInsertResult(commandBoundary, {
+          id: randomUUID(),
+          taskId: fixture.taskId,
+          requestId: (
+            await commandBoundary.query<{ url_capture_request_id: string }>(
+              'SELECT url_capture_request_id FROM workflow_tasks WHERE id = $1',
+              [fixture.taskId],
+            )
+          )[0]?.url_capture_request_id,
+          sourceReferenceId: fixture.sourceReferenceId,
+          packageId: fixture.packageId,
+          ownerUserId: fixture.ownerUserId,
+          attemptNumber: fixture.attemptNumber,
+          claimHash: fixture.claimHash,
+          resultVersion: 'fetcher-result/v1',
+          payloadSha: 'a'.repeat(64),
+          submittedOutcome: 'succeeded',
+          submittedCategory: null,
+          recordedOutcome: 'succeeded',
+          recordedCategory: null,
+          safeCode: null,
+          sourceId: fixture.sourceReferenceId,
+          snapshotId,
+          evidenceJson,
+        });
+        expect(result.ok).toBe(false);
+        expect(result.constraint).toBeDefined();
+      }
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects snapshot binding mismatch, missing nested key, and extra nested key', async () => {
+    const { commandBoundary, fixture, baseSuccess } = await setup();
+    try {
+      // snapshot_id column differs from evidence.snapshot.snapshotId.
+      const bindingMismatch = await tryInsertResult(commandBoundary, {
+        ...baseSuccess,
+        id: randomUUID(),
+        snapshotId: randomUUID(),
+      });
+      expect(bindingMismatch.ok).toBe(false);
+      expect(bindingMismatch.constraint).toBe('url_capture_results_evidence_snapshot_binding_check');
+
+      // Missing nested key.
+      const snapshotIdA = randomUUID();
+      const missingKeyEvidence = JSON.stringify({
+        snapshot: {
+          snapshotId: snapshotIdA,
+          storageKey: buildUrlCaptureStorageKey({
+            taskId: fixture.taskId,
+            attemptNumber: fixture.attemptNumber,
+            snapshotId: snapshotIdA,
+          }),
+          byteSize: 1234,
+          contentType: 'text/html',
+          contentEncoding: 'identity',
+        },
+        capture: {
+          finalUrl: 'https://example.com/final',
+          redirects: [],
+          responseStatus: 200,
+          encodedByteSize: 1234,
+          decodedByteSize: 5678,
+        },
+        candidate: { schemaVersion: 'source/normalized/v1', text: 'reviewable normalized text' },
+      });
+      const missingKey = await tryInsertResult(commandBoundary, {
+        ...baseSuccess,
+        id: randomUUID(),
+        snapshotId: snapshotIdA,
+        evidenceJson: missingKeyEvidence,
+      });
+      expect(missingKey.ok).toBe(false);
+      expect(missingKey.constraint).toBe('url_capture_results_evidence_shape_check');
+
+      // Extra nested key.
+      const extraKeyEvidence = mutateEvidence(
+        fixture.taskId,
+        fixture.attemptNumber,
+        (e) => ((e.snapshot as Record<string, unknown>).extra = 'x'),
+      );
+      const parsedExtra = JSON.parse(extraKeyEvidence) as { snapshot: { snapshotId: string } };
+      const extraKey = await tryInsertResult(commandBoundary, {
+        ...baseSuccess,
+        id: randomUUID(),
+        snapshotId: parsedExtra.snapshot.snapshotId,
+        evidenceJson: extraKeyEvidence,
+      });
+      expect(extraKey.ok).toBe(false);
+      expect(extraKey.constraint).toBe('url_capture_results_evidence_shape_check');
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+    }
+  });
+});
+
+describe('M2-SRC-003 reconciliation transaction cleanup', () => {
+  it('returns UNKNOWN on an injected mid-transaction failure and leaves the pool usable', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const faultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl(), {
+      reconcileAt: (point) => {
+        if (point === 'resultQuery') throw new Error('injected-reconcile-failure');
+      },
+    });
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const reconciliation = await faultBoundary.repository.reconcileResult({
+        taskId: fixture.taskId as never,
+        claimHash: fixture.claimHash,
+        attemptNumber: fixture.attemptNumber,
+        submittedPayloadSha256: 'a'.repeat(64),
+      });
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+
+      // The same pool must run a fresh query without open-transaction residue.
+      const rows = await faultBoundary.query<{ one: number }>('SELECT 1 AS one');
+      expect(rows[0]?.one).toBe(1);
+
+      // A subsequent legal Result operation on the same boundary succeeds.
+      const outcome = await faultBoundary.repository.recordResult(successCommand(fixture));
+      expect(outcome.kind).toBe('recorded');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await faultBoundary.close();
+    }
+  });
+});
+
+describe('M2-SRC-003 guarded transition rollback', () => {
+  it('rolls back the entire transaction when the guarded node transition is not applied', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const faultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl(), {
+      beforeTransitions: async (exec, taskId) => {
+        await exec(
+          `UPDATE workflow_nodes SET state = 'running', updated_at = now()
+           WHERE id = (SELECT workflow_node_id FROM workflow_tasks WHERE id = $1) AND template_node_key = 'source_capture'`,
+          [taskId],
+        );
+      },
+    });
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      await expect(faultBoundary.repository.recordResult(successCommand(fixture))).rejects.toBeDefined();
+
+      // No Result, Source, or Event was persisted; the Task remains leased and the node returns to ready.
+      expect(
+        (await commandBoundary.query('SELECT id FROM url_capture_results WHERE task_id = $1', [fixture.taskId])).length,
+      ).toBe(0);
+      expect(
+        (await commandBoundary.query('SELECT id FROM sources WHERE content_package_id = $1', [fixture.packageId]))
+          .length,
+      ).toBe(0);
+      const [task] = await commandBoundary.query<{ state: string }>('SELECT state FROM workflow_tasks WHERE id = $1', [
+        fixture.taskId,
+      ]);
+      expect(task?.state).toBe('leased');
+      const [node] = await commandBoundary.query<{ state: string }>(
+        `SELECT state FROM workflow_nodes WHERE id = (SELECT workflow_node_id FROM workflow_tasks WHERE id = $1)`,
+        [fixture.taskId],
+      );
+      expect(node?.state).toBe('ready');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await faultBoundary.close();
+    }
+  });
+});
+
+describe('M2-SRC-003 Source compatibility through the existing Source repository', () => {
+  it('reads and lists a public_url Source after a recorded success', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    const sourceBoundary = createSourceRepositoryTestBoundary(databaseUrl(), { hit: async () => {} });
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const outcome = await resultBoundary.repository.recordResult(successCommand(fixture));
+      expect(outcome.kind).toBe('recorded');
+
+      const state = await sourceBoundary.repository.findByIdForPackageOwner(
+        fixture.sourceReferenceId as never,
+        fixture.packageId,
+        fixture.ownerUserId,
+      );
+      expect(state).not.toBeNull();
+      expect(state?.reference.sourceType).toBe('public_url');
+      expect(state?.reference.captureType).toBe('public_url');
+      expect(state?.reference.role).toBe('primary');
+      expect(state?.workingCopy.revision).toBe(1);
+      expect(state?.workingCopy.body.text).toBe('reviewable normalized text');
+      expect(state?.rawSnapshot.contentType).toBe('text/html');
+      expect(state?.head.latestVersionId).toBeNull();
+      expect(state?.head.approvedVersionId).toBeNull();
+
+      const list = await sourceBoundary.repository.listForPackage({
+        contentPackageId: fixture.packageId,
+        ownerUserId: fixture.ownerUserId,
+        limit: 50,
+      });
+      expect(
+        list.items.some((item) => item.id === fixture?.sourceReferenceId && item.sourceType === 'public_url'),
+      ).toBe(true);
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+      await sourceBoundary.close();
     }
   });
 });

@@ -512,29 +512,52 @@ function validCandidateText(value: unknown): value is string {
 }
 
 function extractRedirects(value: unknown): readonly FetcherResultRedirectSubmission[] | undefined {
-  if (!Array.isArray(value) || value.length > FETCHER_RESULT_REDIRECT_MAX_COUNT) return undefined;
   try {
+    if (!Array.isArray(value)) return undefined;
     const ownKeys = Reflect.ownKeys(value);
-    if (ownKeys.length !== value.length + 1 || !ownKeys.includes('length')) return undefined;
-  } catch {
-    return undefined;
-  }
-  const redirects: FetcherResultRedirectSubmission[] = [];
-  for (let index = 0; index < value.length; index += 1) {
-    const item = extractResultRecord(value[index]);
-    if (item === undefined || !hasExactly(item, ['status', 'url'])) return undefined;
-    const status = item.status;
-    const url = item.url;
+    // `length` must be an own data descriptor holding a safe integer 0..max.
+    const lengthDescriptor = Object.getOwnPropertyDescriptor(value, 'length');
+    if (lengthDescriptor === undefined || !('value' in lengthDescriptor)) return undefined;
+    const length = lengthDescriptor.value;
     if (
-      typeof status !== 'number' ||
-      !(RESULT_REDIRECT_STATUSES as readonly number[]).includes(status) ||
-      !validResultUrl(url)
+      typeof length !== 'number' ||
+      !Number.isSafeInteger(length) ||
+      length < 0 ||
+      length > FETCHER_RESULT_REDIRECT_MAX_COUNT
     ) {
       return undefined;
     }
-    redirects.push({ status: status as FetcherResultRedirectStatus, url });
+    // Own keys must be exactly the dense indices 0..length-1 plus `length`;
+    // this rejects sparse arrays, Symbol keys, and extra string properties.
+    if (ownKeys.length !== length + 1) return undefined;
+    const expectedKeys = new Set<string>(['length']);
+    for (let index = 0; index < length; index += 1) expectedKeys.add(String(index));
+    for (const key of ownKeys) {
+      if (typeof key !== 'string' || !expectedKeys.has(key)) return undefined;
+    }
+    // Read every element through its data descriptor only — never via `get`,
+    // so an index accessor or Proxy `get` trap cannot execute.
+    const redirects: FetcherResultRedirectSubmission[] = [];
+    for (let index = 0; index < length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (descriptor === undefined || !('value' in descriptor)) return undefined;
+      const item = extractResultRecord(descriptor.value);
+      if (item === undefined || !hasExactly(item, ['status', 'url'])) return undefined;
+      const status = item.status;
+      const url = item.url;
+      if (
+        typeof status !== 'number' ||
+        !(RESULT_REDIRECT_STATUSES as readonly number[]).includes(status) ||
+        !validResultUrl(url)
+      ) {
+        return undefined;
+      }
+      redirects.push({ status: status as FetcherResultRedirectStatus, url });
+    }
+    return Object.freeze(redirects);
+  } catch {
+    return undefined;
   }
-  return Object.freeze(redirects);
 }
 
 function extractSuccessSubmission(top: Record<string, unknown>): FetcherResultSuccessSubmission {
@@ -865,7 +888,24 @@ export type UrlCaptureResultReconciliation =
   | { readonly outcome: 'ABSENT' }
   | { readonly outcome: 'UNKNOWN' };
 
+/**
+ * Read-only preflight decision taken before any Object Storage access. The
+ * preflight is never an authorization cache: `recordResult` re-locks and
+ * re-checks every condition inside its own transaction.
+ */
+export type UrlCaptureResultPreflight =
+  | { readonly kind: 'duplicate'; readonly result: UrlCaptureResultRecord }
+  | { readonly kind: 'unavailable' }
+  | { readonly kind: 'eligible' };
+
 export interface UrlCaptureResultRepository {
+  prepareResult(input: {
+    readonly taskId: WorkflowTaskId;
+    readonly claimHash: string;
+    readonly attemptNumber: number;
+    readonly submittedPayloadSha256: string;
+    readonly acceptedAt: Date;
+  }): Promise<UrlCaptureResultPreflight>;
   recordResult(command: UrlCaptureResultRecordCommand): Promise<UrlCaptureResultRecordOutcome>;
   reconcileResult(input: {
     readonly taskId: WorkflowTaskId;
@@ -916,7 +956,27 @@ export class FetcherResultService {
     const claimHash = hashFetcherGatewayClaim(claim);
     const submittedPayloadSha256 = fetcherResultPayloadFingerprint(submission);
 
-    // 3. For a success, bind and integrity-verify the task-scoped object.
+    // 3. Preflight in PostgreSQL BEFORE any Object Storage access. The
+    //    preflight returns duplicate/eligible/unavailable and is never an
+    //    authorization cache: recordResult re-locks and re-checks everything.
+    const acceptedAt = this.clock.now();
+    if (!validDate(acceptedAt)) throw new FetcherResultInternalError('COMMIT_UNKNOWN');
+    const preflight = await this.repository.prepareResult({
+      taskId,
+      claimHash,
+      attemptNumber: submission.attemptNumber,
+      submittedPayloadSha256,
+      acceptedAt: new Date(acceptedAt.getTime()),
+    });
+    if (preflight.kind === 'duplicate') {
+      return this.toGatewayOutcome(preflight.result, true);
+    }
+    if (preflight.kind === 'unavailable') {
+      throw new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE');
+    }
+
+    // 4. Only an eligible success submission binds and integrity-verifies the
+    //    task-scoped object. Failure submissions and replays never read it.
     let taskScopedKey: string | null = null;
     let objectIntegrityVerified = false;
     if (submission.outcome === 'succeeded') {
@@ -939,9 +999,9 @@ export class FetcherResultService {
       objectIntegrityVerified = await this.objectStore.readForIntegrity(expected).catch(() => false);
     }
 
-    // 4. Persist the authoritative Result transaction.
-    const acceptedAt = this.clock.now();
-    if (!validDate(acceptedAt)) throw new FetcherResultInternalError('COMMIT_UNKNOWN');
+    // 5. Persist the authoritative Result transaction. It re-locks the Task and
+    //    re-validates every condition, so a race between preflight and record is
+    //    resolved as duplicate (exact match) or unavailable (mismatch).
     const command: UrlCaptureResultRecordCommand = {
       taskId,
       claimHash,

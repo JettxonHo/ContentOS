@@ -839,8 +839,16 @@ export const urlCaptureResults = pgTable(
       sql`${table.safeCode} IS NULL OR ${table.safeCode} IN ('FETCH_FAILED', 'VALIDATION_BLOCKED', 'UNSUPPORTED_CONTENT', 'TOO_LARGE', 'TIMEOUT', 'REDIRECT_BLOCKED', 'EXTRACTION_FAILED', 'PACKAGE_ARCHIVED', 'SOURCE_ROLE_LIMIT', 'OBJECT_INTEGRITY_FAILED')`,
     ),
     check(
-      'url_capture_results_submitted_classification_check',
-      sql`(${table.submittedOutcome} = 'succeeded' AND ${table.submittedCategory} IS NULL AND ${table.successEvidence} IS NOT NULL) OR (${table.submittedOutcome} = 'failed' AND ${table.submittedCategory} IS NOT NULL AND ${table.successEvidence} IS NULL)`,
+      'url_capture_results_category_code_mapping_check',
+      sql`(${table.recordedCategory} IS NULL AND ${table.safeCode} IS NULL) OR (${table.recordedCategory} = 'fetch_failed' AND ${table.safeCode} = 'FETCH_FAILED') OR (${table.recordedCategory} = 'validation_blocked' AND ${table.safeCode} = 'VALIDATION_BLOCKED') OR (${table.recordedCategory} = 'unsupported_content' AND ${table.safeCode} = 'UNSUPPORTED_CONTENT') OR (${table.recordedCategory} = 'too_large' AND ${table.safeCode} = 'TOO_LARGE') OR (${table.recordedCategory} = 'timeout' AND ${table.safeCode} = 'TIMEOUT') OR (${table.recordedCategory} = 'redirect_blocked' AND ${table.safeCode} = 'REDIRECT_BLOCKED') OR (${table.recordedCategory} = 'extraction_failed' AND ${table.safeCode} = 'EXTRACTION_FAILED') OR (${table.recordedCategory} = 'package_archived' AND ${table.safeCode} = 'PACKAGE_ARCHIVED') OR (${table.recordedCategory} = 'source_role_limit' AND ${table.safeCode} = 'SOURCE_ROLE_LIMIT') OR (${table.recordedCategory} = 'object_integrity_failed' AND ${table.safeCode} = 'OBJECT_INTEGRITY_FAILED')`,
+    ),
+    check(
+      'url_capture_results_submitted_failure_check',
+      sql`${table.submittedOutcome} <> 'failed' OR (${table.successEvidence} IS NULL AND ${table.recordedOutcome} = 'failed' AND ${table.recordedCategory} = ${table.submittedCategory} AND ((${table.submittedCategory} = 'fetch_failed' AND ${table.safeCode} = 'FETCH_FAILED') OR (${table.submittedCategory} = 'validation_blocked' AND ${table.safeCode} = 'VALIDATION_BLOCKED') OR (${table.submittedCategory} = 'unsupported_content' AND ${table.safeCode} = 'UNSUPPORTED_CONTENT') OR (${table.submittedCategory} = 'too_large' AND ${table.safeCode} = 'TOO_LARGE') OR (${table.submittedCategory} = 'timeout' AND ${table.safeCode} = 'TIMEOUT') OR (${table.submittedCategory} = 'redirect_blocked' AND ${table.safeCode} = 'REDIRECT_BLOCKED') OR (${table.submittedCategory} = 'extraction_failed' AND ${table.safeCode} = 'EXTRACTION_FAILED')))`,
+    ),
+    check(
+      'url_capture_results_submitted_success_check',
+      sql`${table.submittedOutcome} <> 'succeeded' OR (${table.successEvidence} IS NOT NULL AND ${table.submittedCategory} IS NULL AND (${table.recordedOutcome} = 'succeeded' OR (${table.recordedOutcome} = 'failed' AND ${table.recordedCategory} IN ('package_archived', 'source_role_limit', 'object_integrity_failed'))))`,
     ),
     check(
       'url_capture_results_recorded_classification_check',
@@ -861,6 +869,18 @@ export const urlCaptureResults = pgTable(
     check(
       'url_capture_results_evidence_shape_check',
       sql`${table.successEvidence} IS NULL OR (${table.successEvidence} ?& ARRAY['snapshot', 'capture', 'candidate'] AND (${table.successEvidence} - 'snapshot' - 'capture' - 'candidate') = '{}'::jsonb AND jsonb_typeof(${table.successEvidence}->'snapshot') = 'object' AND (${table.successEvidence}->'snapshot') ?& ARRAY['snapshotId', 'storageKey', 'sha256', 'byteSize', 'contentType', 'contentEncoding'] AND (((${table.successEvidence}->'snapshot') - 'snapshotId') - 'storageKey' - 'sha256' - 'byteSize' - 'contentType' - 'contentEncoding') = '{}'::jsonb AND jsonb_typeof(${table.successEvidence}->'capture') = 'object' AND (${table.successEvidence}->'capture') ?& ARRAY['finalUrl', 'redirects', 'responseStatus', 'encodedByteSize', 'decodedByteSize'] AND (((${table.successEvidence}->'capture') - 'finalUrl') - 'redirects' - 'responseStatus' - 'encodedByteSize' - 'decodedByteSize') = '{}'::jsonb AND jsonb_typeof(${table.successEvidence}->'candidate') = 'object' AND (${table.successEvidence}->'candidate') ?& ARRAY['schemaVersion', 'text'] AND (((${table.successEvidence}->'candidate') - 'schemaVersion') - 'text') = '{}'::jsonb)`,
+    ),
+    check(
+      'url_capture_results_evidence_value_types_check',
+      sql`${table.successEvidence} IS NULL OR (jsonb_typeof(${table.successEvidence}->'snapshot'->'snapshotId') = 'string' AND jsonb_typeof(${table.successEvidence}->'snapshot'->'storageKey') = 'string' AND jsonb_typeof(${table.successEvidence}->'snapshot'->'sha256') = 'string' AND jsonb_typeof(${table.successEvidence}->'snapshot'->'byteSize') = 'number' AND jsonb_typeof(${table.successEvidence}->'snapshot'->'contentType') = 'string' AND jsonb_typeof(${table.successEvidence}->'snapshot'->'contentEncoding') = 'string' AND jsonb_typeof(${table.successEvidence}->'capture'->'finalUrl') = 'string' AND jsonb_typeof(${table.successEvidence}->'capture'->'redirects') = 'array' AND jsonb_typeof(${table.successEvidence}->'capture'->'responseStatus') = 'number' AND jsonb_typeof(${table.successEvidence}->'capture'->'encodedByteSize') = 'number' AND jsonb_typeof(${table.successEvidence}->'capture'->'decodedByteSize') = 'number' AND jsonb_typeof(${table.successEvidence}->'candidate'->'schemaVersion') = 'string' AND jsonb_typeof(${table.successEvidence}->'candidate'->'text') = 'string')`,
+    ),
+    check(
+      'url_capture_results_evidence_value_bounds_check',
+      sql`${table.successEvidence} IS NULL OR ((${table.successEvidence}->'snapshot'->>'sha256') ~ '^[0-9a-f]{64}$' AND (${table.successEvidence}->'snapshot'->>'contentType') IN ('text/html', 'text/plain', 'text/markdown') AND (${table.successEvidence}->'snapshot'->>'contentEncoding') IN ('identity', 'gzip', 'deflate', 'br') AND CASE WHEN jsonb_typeof(${table.successEvidence}->'snapshot'->'byteSize') = 'number' THEN (${table.successEvidence}->'snapshot'->>'byteSize')::numeric >= 1 AND (${table.successEvidence}->'snapshot'->>'byteSize')::numeric <= 2097152 ELSE TRUE END AND CASE WHEN jsonb_typeof(${table.successEvidence}->'capture'->'responseStatus') = 'number' THEN (${table.successEvidence}->'capture'->>'responseStatus')::numeric = 200 ELSE TRUE END AND CASE WHEN jsonb_typeof(${table.successEvidence}->'capture'->'encodedByteSize') = 'number' AND jsonb_typeof(${table.successEvidence}->'snapshot'->'byteSize') = 'number' THEN (${table.successEvidence}->'capture'->>'encodedByteSize')::numeric = (${table.successEvidence}->'snapshot'->>'byteSize')::numeric ELSE TRUE END AND CASE WHEN jsonb_typeof(${table.successEvidence}->'capture'->'decodedByteSize') = 'number' THEN (${table.successEvidence}->'capture'->>'decodedByteSize')::numeric >= 1 AND (${table.successEvidence}->'capture'->>'decodedByteSize')::numeric <= 8388608 ELSE TRUE END AND CASE WHEN jsonb_typeof(${table.successEvidence}->'capture'->'redirects') = 'array' THEN jsonb_array_length(${table.successEvidence}->'capture'->'redirects') <= 5 ELSE TRUE END AND (${table.successEvidence}->'candidate'->>'schemaVersion') = 'source/normalized/v1')`,
+    ),
+    check(
+      'url_capture_results_evidence_snapshot_binding_check',
+      sql`${table.successEvidence} IS NULL OR ${table.snapshotId}::text = ${table.successEvidence}->'snapshot'->>'snapshotId'`,
     ),
   ],
 );

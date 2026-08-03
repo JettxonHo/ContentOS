@@ -124,12 +124,27 @@ export interface UrlCaptureResultRepositoryTestBoundary {
   close(): Promise<void>;
 }
 
+/**
+ * Local structural test-options type, kept distinct from the repository's
+ * internal options: referencing that type in this helper's public signature
+ * would pull the Drizzle client declaration surface into the emitted `.d.ts`
+ * and leak third-party optional-peer declarations into consumer builds.
+ */
+export interface UrlCaptureResultRepositoryTestOptions {
+  readonly beforeTransitions?: (
+    exec: (text: string, values?: readonly unknown[]) => Promise<unknown>,
+    taskId: string,
+  ) => Promise<void> | void;
+  readonly reconcileAt?: (point: 'afterBegin' | 'taskBarrier' | 'resultQuery') => void;
+}
+
 export function createUrlCaptureResultRepositoryTestBoundary(
   databaseUrl: string,
+  options?: UrlCaptureResultRepositoryTestOptions,
 ): UrlCaptureResultRepositoryTestBoundary {
   const connection = createDatabaseConnection(databaseUrl);
   return {
-    repository: new DrizzleUrlCaptureResultRepository(connection),
+    repository: new DrizzleUrlCaptureResultRepository(connection, options),
     async query<TRow extends Record<string, unknown>>(
       text: string,
       values: readonly unknown[] = [],

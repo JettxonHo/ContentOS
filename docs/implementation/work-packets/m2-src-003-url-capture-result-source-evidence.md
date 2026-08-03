@@ -755,6 +755,8 @@ apps/api/src/runtime.tokens.ts
 
 packages/contracts/src/api/fetcher-gateway-contracts.ts
 packages/contracts/src/api/fetcher-gateway-contracts.test.ts
+packages/contracts/src/api/source-contracts.ts
+packages/contracts/src/api/source-contracts.test.ts
 packages/contracts/src/index.ts
 
 packages/core/src/index.ts
@@ -778,6 +780,7 @@ packages/database/src/url-capture-result-repository.ts
 packages/testing/src/integration/api.test.ts
 packages/testing/src/integration/fetcher-gateway-api.test.ts
 packages/testing/src/integration/fetcher-gateway-repository.test.ts
+packages/testing/src/integration/postgres.test.ts
 packages/testing/src/integration/source-repository.test.ts
 packages/testing/src/integration/source.test.ts
 packages/testing/src/integration/url-capture-result.test.ts
@@ -800,6 +803,14 @@ docs/implementation/roadmap.md
 docs/implementation/work-packets/m2-src-003-url-capture-result-source-evidence.md
 docs/security/source-fetcher.md
 ```
+
+The following three files were added to the boundary by the bounded
+independent-review Correction Packet for PR #82:
+`packages/testing/src/integration/postgres.test.ts`,
+`packages/contracts/src/api/source-contracts.ts`, and
+`packages/contracts/src/api/source-contracts.test.ts`. Added by the bounded
+independent-review Correction Packet for PR #82. No product, architecture,
+security, dependency, or Fetcher execution scope change is authorized.
 
 New files are allowed only:
 

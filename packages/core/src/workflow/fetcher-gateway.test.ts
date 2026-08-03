@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ObjectStore, StoredObject } from '../source/object-store.js';
+import { rehydrateReference } from '../source/source.js';
+import type { SourceReferenceState } from '../source/source-values.js';
 
 import {
   FETCHER_GATEWAY_CONNECTION_POLICY_VERSION,
@@ -26,6 +28,7 @@ import {
   fetcherResultPayloadFingerprint,
   hashFetcherGatewayClaim,
   parseUrlCaptureStorageKey,
+  type UrlCaptureResultPreflight,
   type UrlCaptureResultRecordCommand,
   type UrlCaptureResultRecordOutcome,
   type UrlCaptureResultReconciliation,
@@ -676,9 +679,11 @@ function makeService(
   store: FakeObjectStore,
   recordResult: RecordResultFn,
   reconcileResult?: () => Promise<UrlCaptureResultReconciliation>,
+  prepareResult?: () => Promise<UrlCaptureResultPreflight>,
 ): { service: FetcherResultService; commands: UrlCaptureResultRecordCommand[] } {
   const commands: UrlCaptureResultRecordCommand[] = [];
   const repository = {
+    prepareResult: prepareResult ?? (async (): Promise<UrlCaptureResultPreflight> => ({ kind: 'eligible' })),
     recordResult: async (command: UrlCaptureResultRecordCommand) => {
       commands.push(command);
       return recordResult(command);
@@ -768,32 +773,57 @@ describe('FetcherResultService', () => {
     expect(commands[0]!.submittedCategory).toBe('fetch_failed');
   });
 
-  it('returns the persisted result with duplicate=true for an exact replay', async () => {
+  it('returns the persisted result with duplicate=true for an exact preflight replay without reading the object', async () => {
     const store = makeObjectStore(true);
-    const { service } = makeService(store, async (command) => ({
-      kind: 'duplicate',
-      result: {
-        taskId: command.taskId,
-        attemptNumber: command.attemptNumber,
-        recordedOutcome: 'succeeded',
-        recordedCategory: null,
-        safeCode: null,
-        sourceId: resultSourceReferenceId,
-      },
-    }));
+    const { service, commands } = makeService(
+      store,
+      async (command) => ({
+        kind: 'recorded',
+        result: {
+          taskId: command.taskId,
+          attemptNumber: command.attemptNumber,
+          recordedOutcome: 'succeeded',
+          recordedCategory: null,
+          safeCode: null,
+          sourceId: resultSourceReferenceId,
+        },
+      }),
+      undefined,
+      async () => ({
+        kind: 'duplicate',
+        result: {
+          taskId: resultTaskId as never,
+          attemptNumber: 1,
+          recordedOutcome: 'succeeded',
+          recordedCategory: null,
+          safeCode: null,
+          sourceId: resultSourceReferenceId,
+        },
+      }),
+    );
     const outcome = await service.submitResult(resultTaskId as never, resultClaim, validSuccessSubmission());
     expect(outcome.duplicate).toBe(true);
     expect(outcome.taskState).toBe('succeeded');
     expect(outcome.sourceId).toBe(resultSourceReferenceId);
+    expect(store.integrityChecks).toBe(0);
     expect(store.deleted).toEqual([]);
+    expect(commands).toEqual([]);
   });
 
-  it('throws FETCHER_RESULT_UNAVAILABLE when the repository reports unavailable', async () => {
+  it('throws FETCHER_RESULT_UNAVAILABLE from an ineligible preflight without reading the object', async () => {
     const store = makeObjectStore(true);
-    const { service } = makeService(store, async () => ({ kind: 'unavailable' }));
+    const { service, commands } = makeService(
+      store,
+      async () => ({ kind: 'unavailable' }),
+      undefined,
+      async () => ({ kind: 'unavailable' }),
+    );
     await expect(service.submitResult(resultTaskId as never, resultClaim, validSuccessSubmission())).rejects.toEqual(
       new FetcherGatewayApplicationError('FETCHER_RESULT_UNAVAILABLE'),
     );
+    expect(store.integrityChecks).toBe(0);
+    expect(store.deleted).toEqual([]);
+    expect(commands).toEqual([]);
   });
 
   it('rejects a storage key not bound to the route task id', async () => {
@@ -880,5 +910,149 @@ describe('FetcherResultService', () => {
       new FetcherResultInternalError('RECONCILIATION_REQUIRED'),
     );
     expect(store.deleted).toEqual([]);
+  });
+});
+
+describe('public_url Source domain compatibility (M2-SRC-003 correction)', () => {
+  it('rehydrates an exact public_url Source Reference', () => {
+    const reference: SourceReferenceState = {
+      id: '40000000-0000-4000-8000-000000000001' as never,
+      contentPackageId: '10000000-0000-4000-8000-000000000001' as never,
+      ownerUserId: '00000000-0000-4000-8000-000000000001' as never,
+      sourceType: 'public_url',
+      role: 'primary',
+      label: null,
+      captureType: 'public_url',
+      createdAt: new Date('2026-08-04T00:00:00.000Z'),
+    };
+    const rehydrated = rehydrateReference(reference);
+    expect(rehydrated.sourceType).toBe('public_url');
+    expect(rehydrated.captureType).toBe('public_url');
+    expect(rehydrated.role).toBe('primary');
+  });
+});
+
+describe('redirect array Proxy/getter safety (M2-SRC-003 correction)', () => {
+  function submissionWithRedirects(redirects: unknown): unknown {
+    return {
+      resultVersion: 'fetcher-result/v1',
+      attemptNumber: 1,
+      outcome: 'succeeded',
+      snapshot: {
+        snapshotId: resultSnapshotId,
+        storageKey: successKey,
+        sha256: 'a'.repeat(64),
+        byteSize: 1234,
+        contentType: 'text/html',
+        contentEncoding: 'identity',
+      },
+      capture: {
+        finalUrl: 'https://example.com/final',
+        redirects,
+        responseStatus: 200,
+        encodedByteSize: 1234,
+        decodedByteSize: 5678,
+      },
+      candidate: { schemaVersion: 'source/normalized/v1', text: 'reviewable normalized text' },
+    };
+  }
+
+  it('still accepts a normal dense redirects array', () => {
+    const value = defineFetcherResultSubmission(
+      submissionWithRedirects([
+        { status: 301, url: 'https://example.com/a' },
+        { status: 302, url: 'https://example.com/b' },
+      ]),
+    );
+    expect(value.outcome).toBe('succeeded');
+  });
+
+  it('does not execute a Proxy length/index get trap', () => {
+    let getTrapCalled = false;
+    const proxied = new Proxy([{ status: 301, url: 'https://example.com/a' }], {
+      get: () => {
+        getTrapCalled = true;
+        throw new Error('GET_TRAP');
+      },
+    });
+    const value = defineFetcherResultSubmission(submissionWithRedirects(proxied));
+    expect(getTrapCalled).toBe(false);
+    expect(value.outcome).toBe('succeeded');
+  });
+
+  it('returns a stable INVALID_FETCHER_RESULT for a throwing ownKeys trap', () => {
+    const proxied = new Proxy([], {
+      ownKeys: () => {
+        throw new Error('OWNKEYS_BOOM');
+      },
+    });
+    expect(() => defineFetcherResultSubmission(submissionWithRedirects(proxied))).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_RESULT'),
+    );
+  });
+
+  it('returns a stable INVALID_FETCHER_RESULT for a throwing descriptor trap', () => {
+    const proxied = new Proxy([{ status: 301, url: 'https://example.com/a' }], {
+      getOwnPropertyDescriptor: () => {
+        throw new Error('DESCRIPTOR_BOOM');
+      },
+    });
+    expect(() => defineFetcherResultSubmission(submissionWithRedirects(proxied))).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_RESULT'),
+    );
+  });
+
+  it('rejects an index accessor without executing the getter', () => {
+    let getterCalled = false;
+    const arr: unknown[] = [];
+    Object.defineProperty(arr, '0', {
+      enumerable: true,
+      configurable: true,
+      get: () => {
+        getterCalled = true;
+        return { status: 301, url: 'https://example.com/a' };
+      },
+    });
+    expect(() => defineFetcherResultSubmission(submissionWithRedirects(arr))).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_RESULT'),
+    );
+    expect(getterCalled).toBe(false);
+  });
+
+  it('rejects a length accessor descriptor', () => {
+    const proxied = new Proxy([], {
+      getOwnPropertyDescriptor: (target, prop) => {
+        if (prop === 'length') {
+          return { get: () => 0, configurable: true, enumerable: false };
+        }
+        return Object.getOwnPropertyDescriptor(target, prop);
+      },
+    });
+    expect(() => defineFetcherResultSubmission(submissionWithRedirects(proxied))).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_RESULT'),
+    );
+  });
+
+  it('rejects a sparse array', () => {
+    const sparse = new Array(1);
+    expect(() => defineFetcherResultSubmission(submissionWithRedirects(sparse))).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_RESULT'),
+    );
+  });
+
+  it('rejects an extra array property', () => {
+    const arr: unknown[] = [{ status: 301, url: 'https://example.com/a' }];
+    (arr as unknown as Record<string, unknown>).extra = 'x';
+    expect(() => defineFetcherResultSubmission(submissionWithRedirects(arr))).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_RESULT'),
+    );
+  });
+
+  it('rejects a Symbol property on the array', () => {
+    const arr: unknown[] = [];
+    (arr as unknown as Record<symbol, unknown>)[Symbol('leak')] = 'x';
+    expect(() => defineFetcherResultSubmission(submissionWithRedirects(arr))).toThrow(
+      new FetcherGatewayDomainError('INVALID_FETCHER_RESULT'),
+    );
   });
 });

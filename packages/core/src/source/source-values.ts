@@ -6,13 +6,13 @@ export type SourceWorkingCopyId = string & { readonly __brand: 'SourceWorkingCop
 export type SourceVersionId = string & { readonly __brand: 'SourceVersionId' };
 export type SourceApprovalId = string & { readonly __brand: 'SourceApprovalId' };
 
-export const SOURCE_TYPES = ['pasted_text', 'uploaded_text'] as const;
+export const SOURCE_TYPES = ['pasted_text', 'uploaded_text', 'public_url'] as const;
 export type SourceType = (typeof SOURCE_TYPES)[number];
 
 export const SOURCE_ROLES = ['primary', 'supporting'] as const;
 export type SourceRole = (typeof SOURCE_ROLES)[number];
 
-export const SOURCE_CAPTURE_TYPES = ['pasted_text', 'uploaded_text'] as const;
+export const SOURCE_CAPTURE_TYPES = ['pasted_text', 'uploaded_text', 'public_url'] as const;
 export type SourceCaptureType = (typeof SOURCE_CAPTURE_TYPES)[number];
 
 export const SOURCE_SCHEMA_VERSION = 'source/normalized/v1' as const;
