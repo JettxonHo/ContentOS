@@ -4,7 +4,7 @@
 
 **Scope:** Cross-agent planning, implementation handoff, independent review, and Pull Request progression
 
-**Last Updated:** 2026-07-28
+**Last Updated:** 2026-08-06
 
 This document defines a collaboration workflow for bounded ContentOS Work Items. It separates planning, implementation, and independent review without creating a second product, architecture, or Decision authority.
 
@@ -32,12 +32,13 @@ No Agent, Issue, Work Packet, report, or review may override a higher authority.
 
 The roles are responsibilities, not permanent model, provider, or tool assignments. A Work Packet names an abstract Executor Profile and, when useful, the approved execution configuration for that one task.
 
-| Role                     | Primary responsibility                                                      | May                                                                                                                                                               | Must not                                                                                             |
-| ------------------------ | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Human decision authority | Product, architecture, security, destructive-operation, and merge decisions | Resolve escalations; approve scope or decision changes; decide whether to merge                                                                                   | Delegate a higher-authority decision implicitly to an Agent                                          |
-| Planning Agent           | Turn a Ready Work Item into an executable handoff                           | Inspect repository truth; select or refine one Ready Work Item; create an Issue and branch when authorized; issue a Work Packet                                   | Implement the task; bypass a DEC; approve its own implementation                                     |
-| Implementation Agent     | Execute one Work Packet                                                     | Modify only allowed files; add required tests; run required verification; return a Completion Report                                                              | Change requirements; create a DEC; expand scope; commit, push, create a PR, merge, or approve itself |
-| Independent Review Agent | Check implementation evidence against authority and the Work Packet         | Inspect the real diff and repository state; run independent checks; return a Review Gate result; after `PASS`, perform Git actions only when expressly authorized | Approve from a report alone; ignore failed evidence; merge on behalf of the Human                    |
+| Role                     | Primary responsibility                                              | May                                                                                                                                                                                   | Must not                                                                                      |
+| ------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Human decision authority | Product direction and high-risk or irreversible decisions           | Resolve escalations; approve scope, architecture, security, production, or acceptance changes; retain any merge decision escalated by this workflow                                   | Delegate a higher-authority decision implicitly to an Agent                                   |
+| Planning Agent           | Turn a Ready Work Item into an executable handoff                   | Inspect repository truth; select or refine one Ready Work Item; create an Issue and branch when authorized; issue a Work Packet                                                       | Implement the task; bypass a DEC; approve its own implementation                              |
+| Implementation Agent     | Execute one Work Packet                                             | Modify only allowed files; add required tests; run verification; return a Completion Report; when the Work Packet explicitly permits, commit, push, and open or update a **draft** PR | Change requirements; create a DEC; expand scope; approve itself; mark its own PR ready; merge |
+| Independent Review Agent | Check implementation evidence against authority and the Work Packet | Inspect the real diff and repository state; run independent checks; return a Review Gate result                                                                                       | Approve from a report alone; edit the implementation while reviewing; ignore failed evidence  |
+| Orchestrator / Reviewer  | Enforce ordering and complete the bounded review-and-merge gate     | Route corrections; confirm independent `PASS`, required green CI, and escalation status; mark a PR ready and squash merge when the bounded autonomous gate permits                    | Substitute for independent review; merge a failed, incomplete, high-risk, or self-reviewed PR |
 
 The current Claude Code entry point is [CLAUDE.md](../../CLAUDE.md). It is an implementation-agent entry point only; [AGENTS.md](../../AGENTS.md) remains the repository-wide executable guidance.
 
@@ -50,7 +51,7 @@ Use a durable, task-oriented Executor Profile instead of embedding a provider or
 - `DOCUMENTATION_EXECUTOR` for bounded documentation or governance work; and
 - `INFRASTRUCTURE_EXECUTOR` for approved local infrastructure, operational configuration, and recovery verification.
 
-The Planning Agent records the selected profile and any execution configuration in the Work Packet. The Implementation Agent reports the actual runtime configuration in its Completion Report when it can be verified. No profile changes the authority hierarchy, file permissions, required verification, or Git restrictions.
+The Planning Agent records the selected profile and any target execution configuration in the Work Packet. Every Work Packet, Completion Report, and Review Gate also records the logical role, actual model, reasoning setting, thread, and runtime-model status. Use `VERIFIED` only when the runtime exposes the value; otherwise record `UNVERIFIED_RUNTIME_MODEL`. Never infer a model from a requested configuration or a product label. No profile or model changes the authority hierarchy, file permissions, required verification, or Git restrictions.
 
 ## 4. Standard lifecycle
 
@@ -65,7 +66,8 @@ Phase 3: Independent Review
     real diff + repository state + verification → PASS | NEEDS CHANGES | BLOCKED
 
 Phase 4: Pull Request and Merge
-    authorized commit / push / PR after PASS → Human review and merge decision
+    authorized draft PR → independent PASS + required green CI
+    → bounded autonomous squash merge or HUMAN_DECISION_REQUIRED
 ```
 
 ### 4.1 Planning
@@ -76,7 +78,7 @@ The Planning Agent may create the associated GitHub Issue and a branch from the 
 
 ### 4.2 Implementation
 
-The Implementation Agent reads `AGENTS.md`, the supplied Work Packet, the listed canonical sources, the associated Issue when present, and relevant existing code or tests. It works only in the Work Packet's allowed files and returns the [Implementation Completion Report](templates/implementation-report-template.md).
+The Implementation Agent reads `AGENTS.md`, the supplied Work Packet, the listed canonical sources, the associated Issue when present, and relevant existing code or tests. It works only in the Work Packet's allowed files and returns the [Implementation Completion Report](templates/implementation-report-template.md). An explicit Git permission may let it commit, push, and create or update a draft PR for that Work Item. That permission does not allow self-approval, a ready-for-review declaration, or merge.
 
 One agent owns repository writes during this phase. The Planning and Review Agents may inspect read-only state, but do not make concurrent edits. An implementation that needs a forbidden-file change, a broader dependency update, a destructive operation, or a decision change must stop and escalate rather than work around the boundary.
 
@@ -84,7 +86,7 @@ One agent owns repository writes during this phase. The Planning and Review Agen
 
 The Review Agent treats the repository as the primary evidence source and the Completion Report as an index. It uses the [Review Gate](templates/review-gate-template.md) to compare the real diff, file scope, tests, failure-path evidence, and Current-truth compliance with the Work Packet.
 
-- `PASS`: the bounded change has sufficient evidence. The Review Agent may commit, push, and create a Pull Request only if that authority is explicitly granted for the Work Item and by repository policy.
+- `PASS`: the bounded change has sufficient evidence. The Orchestrator may progress the authorized PR gate after reconciling this result with the real CI state.
 - `NEEDS CHANGES`: the Review Agent issues a bounded Correction Packet that names the failed criterion, evidence, permitted files, and required re-verification. The Implementation Agent resumes only for that correction.
 - `BLOCKED`: an external failure or authority conflict prevents a safe decision. No approval, commit, push, or PR follows until the blocker is resolved.
 
@@ -92,9 +94,17 @@ The same agent must not both implement the change and independently approve it. 
 
 ### 4.4 Pull Request and merge
 
-After an authorized `PASS`, the Review Agent prepares a reviewable commit and Pull Request linked to the Work Item's Issue. The Pull Request includes the Work Item, scope, verification evidence, security and migration impact, documentation updates, limitations, and any accepted exceptions.
+When authorized by the Work Packet, the Implementation Agent may prepare the commit and draft Pull Request before independent review. The Pull Request links the Issue and includes the implementation approach, explicit non-changes, Acceptance Criteria evidence, verification, security and migration impact, rollback, review focus, documentation updates, limitations, and any accepted exceptions.
 
-The Human retains the merge decision. A merged dependency is synchronized to the current base before a dependent Work Item starts. A Work Item is not `Completed` merely because an implementation report, commit, or Pull Request exists; its status follows the applicable Roadmap and review evidence.
+The Orchestrator may mark the PR ready and squash merge only when all of these are true:
+
+- the change is ordinary, reversible, and inside an already Ready Work Item;
+- an independent Review Gate returned `PASS` against the real diff;
+- every required CI check is green;
+- no unresolved review finding or required verification remains; and
+- none of the Human escalation categories in §7 applies.
+
+Otherwise return `HUMAN_DECISION_REQUIRED`; do not silently treat an Agent review as Human approval. A merged dependency is synchronized to the current base before a dependent Work Item starts. A Work Item is not `Completed` merely because an implementation report, commit, or Pull Request exists; its status follows the applicable Roadmap and review evidence.
 
 ## 5. Branch and repository ownership
 
@@ -128,11 +138,16 @@ The escalation records the blocker, concrete evidence, affected authority or Acc
 
 - a new or revised DEC is required;
 - an Accepted DEC or Current-truth conflict cannot be reconciled;
-- MVP scope, architecture, security boundary, workflow, agent responsibility, or release gate would change;
+- product direction or a choice between materially reasonable product approaches is required;
+- authentication, authorization, permissions, production data, sensitive information, or production configuration is affected;
+- MVP scope, technical stack, public protocol, architecture, a major security/privacy/compliance boundary, workflow, agent responsibility, or release gate would change;
+- an irreversible migration or external action is required;
+- material cost, a high-risk release, or a production operation is involved;
 - the Work Packet requires a destructive operation that has not been specifically authorized;
 - a required dependency, credential, provider, or external system prevents verification;
 - a required test or failure-path check cannot run safely; or
-- satisfying the task requires files, contracts, or dependencies outside the bounded scope.
+- satisfying the task requires files, contracts, or dependencies outside the bounded scope; or
+- the only way forward is to lower or waive an accepted Acceptance Criterion.
 
 Do not silently replace a blocked component, weaken an Acceptance Criterion, suppress a failing check, or classify incomplete runtime verification as passed.
 
@@ -140,4 +155,4 @@ Do not silently replace a blocked component, weaken an Acceptance Criterion, sup
 
 This workflow does not replace the [Work Item Template](work-item-template.md), GitHub Issue Forms, or Pull Request template. It adds an explicit handoff and independent-review layer around them. Documentation is synchronized only when the Work Item changes a repository fact or approved behavior. Accepted DEC are never edited by this workflow.
 
-When the workflow itself needs a change that affects accepted agent responsibility, security, architecture, or release governance, use the Decision Review path rather than revising this document as an implementation detail.
+When the workflow itself needs a change that affects accepted agent responsibility, security, architecture, or release governance, use the Decision Review path rather than revising this document as an implementation detail. This bounded autonomous gate was accepted by Human authority through [M2-GOV-004](work-packets/m2-gov-004-autonomous-development-governance.md); it does not authorize product-level autonomous Approval or production release.

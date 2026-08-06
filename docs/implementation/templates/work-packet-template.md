@@ -17,6 +17,11 @@ Use this template after the Work Item is Ready. It does not replace the [Work It
 - Base Commit:
 - Executor Profile:
 - Target Execution Configuration: # Optional; profile remains the durable governance label.
+- Logical Role:
+- Actual Model: # Record only when observable; otherwise `UNVERIFIED_RUNTIME_MODEL`.
+- Reasoning:
+- Thread:
+- Runtime Model Status: VERIFIED | UNVERIFIED_RUNTIME_MODEL
 
 ## Goal
 
@@ -75,8 +80,15 @@ Not authorized unless each permitted operation, exact target, precondition, reco
 
 - Commit: No
 - Push: No
-- Pull Request: No
+- Draft Pull Request: No
+- Mark Pull Request Ready: No
 - Merge: No
+
+An ordinary, reversible, in-scope Work Packet may explicitly change Commit,
+Push, and Draft Pull Request to `Yes`. This never grants self-approval,
+ready-for-review, or merge authority. The Orchestrator applies the independent
+review, CI, and escalation gate from the
+[Agent Collaboration Workflow](../agent-collaboration-workflow.md).
 
 ## Escalation Conditions
 
