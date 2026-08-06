@@ -34,7 +34,7 @@ The processes share one Repository, one authoritative Domain model, one primary 
 
 ### Current implementation boundary
 
-M0-ENG-002 created independently buildable and startable entry points. The current M2 boundary includes the API-owned URL-capture Command and Fetcher Gateway, Worker Outbox delivery and lease recovery, and the `M2-FETCH-001C` Fetcher orchestration now in review. The Fetcher consumes only the fixed Queue contract, obtains its authority through the private Gateway, uses controlled public HTTP/HTTPS and its scoped Object Storage identity, and submits an exact Result. It does not access PostgreSQL.
+M0-ENG-002 created independently buildable and startable entry points. The current M2 boundary includes the API-owned URL-capture Command and Fetcher Gateway, Worker Outbox delivery and lease recovery, Fetcher orchestration, and the `M2-WF-004A` owner-scoped Workflow projection and Timeline REST reads now in review. The API reads those views from PostgreSQL; they are not SSE or a second Workflow store. The Fetcher consumes only the fixed Queue contract, obtains its authority through the private Gateway, uses controlled public HTTP/HTTPS and its scoped Object Storage identity, and submits an exact Result. It does not access PostgreSQL.
 
 ## 2. Runtime Topology Diagram
 

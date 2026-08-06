@@ -88,8 +88,10 @@ Source Reference, Capture Request, queued Task, pending Outbox record, and
 safe append-only Event. The Command is a durable request boundary only: it
 does not dispatch a Queue Job, make a network request, create Source evidence,
 write Object Storage, or expose URL text through responses, Events, or Outbox
-payloads. Timeline/SSE and later Workflow transitions remain inactive until
-their own Ready Work Items.
+payloads. M2-WF-004A adds the owner-scoped authoritative REST projection and
+bounded Timeline read paths: they return only materialized Nodes and safe
+public Event variants, while PostgreSQL remains the truth. SSE and later
+Workflow transitions remain inactive until their own Ready Work Items.
 
 M2-WF-003A adds the first delivery-only execution boundary. The Worker owns a
 bounded Dispatcher that moves the PostgreSQL Outbox record through

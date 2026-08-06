@@ -8,6 +8,7 @@ import type {
   UrlCaptureCommandRepository,
   UrlCaptureResultRepository,
   FetcherGatewayClaimRepository,
+  WorkflowQueryPort,
 } from '@contentos/core';
 import { createDatabaseRuntime, type DatabaseRuntime } from '@contentos/database';
 
@@ -22,6 +23,7 @@ export class DatabaseService implements OnModuleDestroy {
   readonly urlCapture: UrlCaptureCommandRepository;
   readonly fetcherGateway: FetcherGatewayClaimRepository;
   readonly urlCaptureResults: UrlCaptureResultRepository;
+  readonly workflowQuery: WorkflowQueryPort;
 
   constructor(@Inject(API_SECRETS) secrets: ApiSecrets) {
     this.runtime = createDatabaseRuntime(secrets.databaseUrl);
@@ -31,6 +33,7 @@ export class DatabaseService implements OnModuleDestroy {
     this.urlCapture = this.runtime.urlCapture;
     this.fetcherGateway = this.runtime.fetcherGateway;
     this.urlCaptureResults = this.runtime.urlCaptureResults;
+    this.workflowQuery = this.runtime.workflowQuery;
   }
 
   async onModuleDestroy(): Promise<void> {

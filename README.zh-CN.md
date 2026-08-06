@@ -130,7 +130,7 @@ corepack pnpm test:integration
 
 ## 下一步实施工作
 
-1. M2 — 来源与工作流基础 — 正在进行。`M2-FETCH-001` 与 `M2-SRC-004` 已完成。内部的当前已批准 Source 输入投影不提供 Research 就绪判定、Frozen Input、API/UI 或 Research 执行。Workflow Timeline/SSE、Source workspace 和 M2 acceptance work 均尚未启动。
+1. M2 — 来源与工作流基础 — 正在进行。`M2-FETCH-001` 与 `M2-SRC-004` 已完成。`M2-WF-004A` 已实现并处于审核中，提供只读的 Workflow 投影与 Timeline REST 查询。内部的当前已批准 Source 输入投影不提供 Research 就绪判定、Frozen Input、API/UI 或 Research 执行。SSE、Source workspace 和 M2 acceptance work 均尚未启动。
 2. 不要从当前阶段推断 M2 范围，也不要开始 Agent、Research 或发布路径。
 
 本仓库不承诺完成日期。

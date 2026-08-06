@@ -25,7 +25,21 @@ describe('api smoke', () => {
     const response = await fetch(`${state.apiOrigin}/openapi.json`);
     expect(response.status).toBe(200);
     const document = (await response.json()) as {
-      paths?: Record<string, unknown>;
+      paths?: Record<
+        string,
+        Record<
+          string,
+          {
+            responses?: Record<string, unknown>;
+            parameters?: Array<{
+              name?: string;
+              in?: string;
+              required?: boolean;
+              schema?: { type?: string; default?: number; minimum?: number; maximum?: number };
+            }>;
+          }
+        >
+      >;
       components?: { securitySchemes?: Record<string, unknown> };
     };
     expect(Object.keys(document.paths ?? {})).toEqual(
@@ -43,10 +57,12 @@ describe('api smoke', () => {
         '/v1/content-packages/{packageId}/sources/{sourceId}/versions/{versionId}',
         '/v1/content-packages/{packageId}/sources/{sourceId}/approval',
         '/v1/content-packages/{packageId}/url-capture-requests',
+        '/v1/content-packages/{packageId}/workflow',
+        '/v1/content-packages/{packageId}/workflow/events',
       ]),
     );
     expect(document.components?.securitySchemes).toHaveProperty('contentos_session');
-    const sourcePaths = document.paths as Record<string, Record<string, { responses?: Record<string, unknown> }>>;
+    const sourcePaths = document.paths ?? {};
     expect(document.paths).not.toHaveProperty('/internal/fetcher/tasks/{taskId}/claim');
     expect(document.paths).not.toHaveProperty('/internal/fetcher/tasks/{taskId}/heartbeat');
     const expectedSourceResponses = [
@@ -83,6 +99,30 @@ describe('api smoke', () => {
     const urlCaptureResponses =
       sourcePaths['/v1/content-packages/{packageId}/url-capture-requests']?.post?.responses ?? {};
     expect(Object.keys(urlCaptureResponses).sort()).toEqual(['201', '401', '404', '409', '422']);
+    for (const pathName of [
+      '/v1/content-packages/{packageId}/workflow',
+      '/v1/content-packages/{packageId}/workflow/events',
+    ]) {
+      const responses = sourcePaths[pathName]?.get?.responses ?? {};
+      expect(Object.keys(responses).sort()).toEqual(['200', '401', '404', '422', '500']);
+    }
+    const timelineParameters = sourcePaths['/v1/content-packages/{packageId}/workflow/events']?.get?.parameters ?? [];
+    expect(timelineParameters).toEqual(
+      expect.arrayContaining([
+        {
+          name: 'after',
+          in: 'query',
+          required: false,
+          schema: { type: 'integer', default: 0, minimum: 0, maximum: 2_147_483_647 },
+        },
+        {
+          name: 'limit',
+          in: 'query',
+          required: false,
+          schema: { type: 'integer', default: 20, minimum: 1, maximum: 50 },
+        },
+      ]),
+    );
   });
 
   it('fails startup on invalid secret configuration without reflecting secret values', async () => {
