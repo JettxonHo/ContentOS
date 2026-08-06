@@ -4,9 +4,9 @@
 
 **Scope:** MVP public-URL validation, safe fetch, immutable capture, extraction, review Candidate, and failure boundaries
 
-**Last Updated:** 2026-08-02
+**Last Updated:** 2026-08-06
 
-This document defines how ContentOS safely converts a user-supplied public URL into an immutable Raw Snapshot and a Safe Source Candidate. It defines security and responsibility boundaries, not an HTTP library, DNS-pinning algorithm, concrete timeout, exact byte limit, parser, or implementation code.
+This document defines how ContentOS safely converts a user-supplied public URL into an immutable Raw Snapshot and a Safe Source Candidate. It defines the security and responsibility boundary, including the accepted first-release connection and resource policy; it does not make a running Fetcher process available by itself.
 
 Related current-truth documents:
 
@@ -43,6 +43,18 @@ The Fetcher does not own:
 - login, paywall, CAPTCHA, region, or Access Control bypass;
 - automatic secondary-link crawling;
 - direct creation of an approved Normalized Source Version.
+
+### Current implementation boundary
+
+`M2-FETCH-001A` implements an unregistered Fetcher-private Node.js 24 public
+transport foundation. It applies the accepted URL, address, connection, TLS,
+redirect, resource, streaming, deadline, and direct-no-proxy policies, then
+returns a one-shot private response handle. The running Fetcher process remains
+a configuration-only lifecycle skeleton: it does not invoke this transport,
+consume a Queue Job, Claim or Heartbeat a Task, write Object Storage, submit a
+Result, extract a Candidate, or create Source evidence. Those remaining steps
+belong respectively to `M2-FETCH-001B` and `M2-FETCH-001C` under their own
+bounded Work Items.
 
 ## 2. Fetcher Trust Boundary
 
@@ -84,6 +96,8 @@ It does not bypass Access Control and does not guarantee capture of JavaScript-h
 Before a request, the Fetcher applies a deny-by-default URL policy:
 
 - allow only the approved `http` and `https` schemes;
+- allow only standard public port `80` for `http` and `443` for `https`,
+  including explicit default-port URL forms;
 - parse and normalize the URL using one controlled representation;
 - validate hostname syntax and destination policy;
 - apply an explicit port policy;
@@ -125,11 +139,22 @@ Every redirect destination and the final connection address require revalidation
 - Treat mixed allowed/restricted resolution conservatively and fail closed when policy cannot establish a safe connection.
 - Record only the minimum redacted resolution and policy evidence required for diagnosis and audit.
 
-The exact DNS pinning and connection-binding mechanism remains open.
+The Fetcher uses a controlled Node Resolver path for complete usable A and AAAA
+evidence. Its exact `public-url-connection/v1` public-address snapshot is a
+reviewed typed code constant; it is never downloaded or raised at runtime. A
+determinate no-record result (`ENODATA`) for one address family may be combined
+with public records from the other family; timeout, `SERVFAIL`, malformed, or
+any other indeterminate family result rejects the complete evidence set. A
+hostname hop selects one validated numeric address deterministically and opens a
+fresh direct socket to that address only. The observed peer must equal that
+selection. HTTPS wraps that preconnected socket with native CA validation and
+the normalized hostname as SNI/certificate identity; IP literals omit SNI and
+use the literal as certificate identity. No request may perform a hidden
+hostname lookup after the policy decision.
 
 ## 7. Redirect Policy
 
-- Redirect count is bounded.
+- At most five redirects and six requests are allowed per capture attempt.
 - Every hop is parsed, normalized, resolved, and validated as a fresh destination.
 - Restricted schemes and ports are blocked.
 - Relative redirects are resolved against the current validated URL before checking.
@@ -143,15 +168,27 @@ The exact DNS pinning and connection-binding mechanism remains open.
 
 - The baseline uses safe read behavior only; user-controlled methods and request bodies are not supported.
 - Headers are controlled by Fetcher policy; users cannot provide arbitrary headers.
+- Each request is `GET` with no body and the fixed `ContentOS-Fetcher/1.0`
+  User-Agent. It sends no Cookie, Authorization, proxy, or caller header.
+- Non-empty standard proxy environment configuration and Node's
+  environment-proxy flag, including through `NODE_OPTIONS`, fail closed; unset
+  or empty variables do not enable a proxy. The transport uses a fresh direct
+  connection for every hop.
 - User Cookies, Browser Sessions, internal authorization headers, and infrastructure Credentials are never forwarded.
-- Connection, response, and total Task time are bounded.
-- Response body, decompressed size, header size, and relevant parser resources are bounded.
-- Content type is validated against an explicit allowlist before text extraction.
-- Compression ratios and decompressed bytes are constrained to prevent compression bombs.
-- Rate, concurrency, retry, and total redirect behavior are bounded.
+- The non-extendable Capture Budget is 30 seconds from the first resolver or
+  numeric connection action through later immutable-object verification. TCP,
+  TLS, response-header, and final-body inactivity deadlines are respectively
+  5, 5, 10, and 10 seconds and always abort owned streams and sockets.
+- Response headers are limited to 16 KiB and 100 fields. The final response
+  must be a non-empty `200` with `text/html`, `text/plain`, or
+  `text/markdown` media type.
+- One identity, `gzip`, `deflate`, or `br` content coding is allowed. The
+  transport streams and aborts at 2 MiB encoded bytes, 8 MiB decoded bytes, or
+  a 20:1 decoded-to-encoded expansion ratio; it does not buffer an unbounded
+  body.
+- Transport automatic network retry is disabled. One-active-capture scheduling
+  is owned by `M2-FETCH-001C`, not this transport.
 - TLS verification and protected transport remain enabled for HTTPS.
-
-Exact numeric limits remain Open Implementation Decisions.
 
 ## 9. Response Handling
 
@@ -174,7 +211,11 @@ Exact numeric limits remain Open Implementation Decisions.
 - Research consumes only an exact Approved Normalized Source Version.
 - Extraction failure is preserved as a result category and never replaced by fabricated content.
 
-No extraction or sanitization library is selected here.
+`M2-DES-006` selects `parse5@8.0.1` for the later deterministic HTML
+extraction adapter, with strict UTF-8 handling and the approved text/Markdown
+path. That adapter, dependency addition, Snapshot write, and Result
+construction are not implemented in `M2-FETCH-001A`; they remain unavailable
+until `M2-FETCH-001B` is complete.
 
 ## 11. Prompt Injection Containment
 
@@ -222,7 +263,8 @@ These are semantic distinctions, not a selected persisted Enum.
 - The user may supply Pasted Text or an allowed `.md`/`.txt` upload instead.
 - Manual fallback still creates a formal Source Reference, Working Copy, immutable Normalized Source Version, Review, and Approval history.
 - A security block cannot be bypassed through unlimited Retry, another User-Agent, user-supplied headers, Cookie forwarding, proxy selection, Browser automation, or manual override.
-- Only eligible transient failures receive bounded automatic retry.
+- No transport failure receives automatic network retry. Any later owner Retry
+  is a new API/Workflow-authorized attempt with fresh policy evidence.
 - Preserving the original URL for later does not mark the Source captured or approved.
 
 ## 15. Logging and Audit
@@ -259,28 +301,24 @@ Ordinary logs must not contain complete Source bodies, Cookies, Credentials, aut
 
 ## 17. Open Implementation Decisions
 
-The following remain open and are not selected here:
-
-- HTTP client;
-- DNS pinning method;
-- exact timeout;
-- exact response and decompressed size limit;
-- redirect limit;
-- extraction library;
-- content-type allowlist;
-- retry policy;
-- future strategy for JavaScript-heavy pages.
+The connection mechanism, standard ports, fixed User-Agent, resource limits,
+redirect bound, content-type allowlist, no-automatic-retry policy, and
+deterministic extraction choice are accepted first-release policy. Remaining
+implementation work is the separately scoped `M2-FETCH-001B` Snapshot and
+Candidate handoff and `M2-FETCH-001C` Queue-to-Gateway orchestration; neither
+is a policy override. The future strategy for JavaScript-heavy pages remains
+open and requires a separate review if proposed.
 
 ## 18. Decision Traceability
 
-| Area | Accepted Decisions | Primary historical sources |
-|---|---|---|
-| Source layers, immutable Raw Snapshot, allowed inputs, approved normalization, and fallback | DEC-059–DEC-066 | [Session-011](../sessions/session-011.md) |
-| Frozen Task input, failure, and Promotion eligibility | DEC-129–DEC-139 | [Session-017](../sessions/session-017.md) |
-| Untrusted Context and tool/capability boundaries | DEC-177, DEC-185, DEC-190–DEC-192 | [Session-020](../sessions/session-020.md) |
-| Private-by-default, principals, Prompt Injection, SSRF, safe display, upload, and security review | DEC-199–DEC-209, DEC-220 | [Session-021](../sessions/session-021.md) |
-| Fetcher process, Queue minimization, identity, Object Storage, configuration, and telemetry | DEC-221, DEC-228, DEC-230–DEC-232, DEC-239–DEC-240 | [Session-022](../sessions/session-022.md) |
-| Deterministic security, Queue, and SSRF release gates | DEC-245, DEC-249, DEC-259, DEC-262 | [Session-023](../sessions/session-023.md) |
-| Public URL scope, staged implementation, horizontal security, and resilient MVP | DEC-268, DEC-280, DEC-284–DEC-285, DEC-293 | [Session-024](../sessions/session-024.md) |
+| Area                                                                                              | Accepted Decisions                                 | Primary historical sources                |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------- |
+| Source layers, immutable Raw Snapshot, allowed inputs, approved normalization, and fallback       | DEC-059–DEC-066                                    | [Session-011](../sessions/session-011.md) |
+| Frozen Task input, failure, and Promotion eligibility                                             | DEC-129–DEC-139                                    | [Session-017](../sessions/session-017.md) |
+| Untrusted Context and tool/capability boundaries                                                  | DEC-177, DEC-185, DEC-190–DEC-192                  | [Session-020](../sessions/session-020.md) |
+| Private-by-default, principals, Prompt Injection, SSRF, safe display, upload, and security review | DEC-199–DEC-209, DEC-220                           | [Session-021](../sessions/session-021.md) |
+| Fetcher process, Queue minimization, identity, Object Storage, configuration, and telemetry       | DEC-221, DEC-228, DEC-230–DEC-232, DEC-239–DEC-240 | [Session-022](../sessions/session-022.md) |
+| Deterministic security, Queue, and SSRF release gates                                             | DEC-245, DEC-249, DEC-259, DEC-262                 | [Session-023](../sessions/session-023.md) |
+| Public URL scope, staged implementation, horizontal security, and resilient MVP                   | DEC-268, DEC-280, DEC-284–DEC-285, DEC-293         | [Session-024](../sessions/session-024.md) |
 
 The authoritative status and wording of every Decision is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).
