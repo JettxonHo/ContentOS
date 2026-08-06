@@ -1,6 +1,6 @@
 # M2-SRC-004 — Approved Source Input Projection
 
-**Status:** In Review
+**Status:** Completed
 
 **Issue:** [#102](https://github.com/JettxonHo/ContentOS/issues/102)
 
@@ -361,11 +361,12 @@ SQL, connection strings, or query rows.
   exact Head/Version/Approval rule, stable order, and non-Frozen nature.
 - `repository-structure.md`: record Core Interface and Database Adapter
   ownership.
-- `roadmap.md`: add `M2-SRC-004` as `In Review` during implementation; M2 stays
-  `In Progress`.
+- `roadmap.md`: mark `M2-SRC-004` Completed after independent review, green CI,
+  and merge; M2 stays `In Progress`.
 - `AGENTS.md` and README English/Chinese: state only that the internal read
   projection exists; keep Research Agent/API/UI/Frozen Input unavailable.
-- This Work Packet: set `In Review` only after implementation evidence passes.
+- This Work Packet: record Completed only after independent review, required CI,
+  and merge.
 
 No DEC update is expected. Return to Decision Review before adding a Research
 readiness rule, Frozen Input/dependency persistence, new public/private
@@ -433,3 +434,16 @@ Research readiness, the Package-rooted single-statement read can preserve
 missing/archive/active-empty semantics, the exact allowlist is sufficient, and
 the acceptance evidence is independently reviewable. Implementation may start
 only from this Ready packet and its fixed boundaries.
+
+## Completion record
+
+Independent implementation review passed and all required CI checks were green.
+PR [#104](https://github.com/JettxonHo/ContentOS/pull/104) was squash-merged on
+2026-08-06 as `d2ec063743681b64f0406b4903805700bd9866e3`
+(`feat: add approved Source input projection (#104)`). Issue
+[#102](https://github.com/JettxonHo/ContentOS/issues/102) is closed.
+
+This Work Item is completed. M2 remains In Progress: Workflow Timeline/SSE,
+Source workspace, M2 acceptance work, and M3 remain not started. This
+completion does not introduce Research readiness, Frozen Input, API/UI,
+Research execution, Agent, Render, publishing, or M3 behavior.

@@ -130,7 +130,7 @@ The workflow references no repository Secrets, persists no credentials, uploads 
 
 ## Next implementation steps
 
-1. M2 — Source and Workflow Foundation — is in progress. `M2-FETCH-001` is completed and `M2-SRC-004` is in review with an internal current-Approved Source input projection; it does not provide Research readiness, Frozen Input, API/UI, or Research execution. Workflow Timeline/SSE, Source workspace, and M2 acceptance work remain not started.
+1. M2 — Source and Workflow Foundation — is in progress. `M2-FETCH-001` and `M2-SRC-004` are completed. The internal current-Approved Source input projection does not provide Research readiness, Frozen Input, API/UI, or Research execution. Workflow Timeline/SSE, Source workspace, and M2 acceptance work remain not started.
 2. Do not infer M2 scope or begin an Agent, Research, or publishing path from the current stage.
 
 No completion date is committed by this repository.
