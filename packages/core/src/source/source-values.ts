@@ -6,24 +6,47 @@ export type SourceWorkingCopyId = string & { readonly __brand: 'SourceWorkingCop
 export type SourceVersionId = string & { readonly __brand: 'SourceVersionId' };
 export type SourceApprovalId = string & { readonly __brand: 'SourceApprovalId' };
 
-export const SOURCE_TYPES = ['pasted_text', 'uploaded_text'] as const;
+export const SOURCE_TYPES = ['pasted_text', 'uploaded_text', 'public_url'] as const;
 export type SourceType = (typeof SOURCE_TYPES)[number];
 
 export const SOURCE_ROLES = ['primary', 'supporting'] as const;
 export type SourceRole = (typeof SOURCE_ROLES)[number];
 
-export const SOURCE_CAPTURE_TYPES = ['pasted_text', 'uploaded_text'] as const;
+export const SOURCE_CAPTURE_TYPES = ['pasted_text', 'uploaded_text', 'public_url'] as const;
 export type SourceCaptureType = (typeof SOURCE_CAPTURE_TYPES)[number];
 
 export const SOURCE_SCHEMA_VERSION = 'source/normalized/v1' as const;
 
 /**
- * Allowlisted Raw Snapshot content types. Pasted Text is stored as
- * `text/plain; charset=utf-8`; `.txt` uploads use the same value and `.md`
- * uploads use `text/markdown; charset=utf-8`. Documented as a reversible
+ * Raw Snapshot content types for the pasted/upload key family. Pasted Text is
+ * stored as `text/plain; charset=utf-8`; `.txt` uploads use the same value and
+ * `.md` uploads use `text/markdown; charset=utf-8`. Documented as a reversible
  * implementation detail in `docs/architecture/source-foundation.md`.
  */
-export const SOURCE_SNAPSHOT_CONTENT_TYPES = ['text/plain; charset=utf-8', 'text/markdown; charset=utf-8'] as const;
+export const PASTED_UPLOAD_SNAPSHOT_CONTENT_TYPES = [
+  'text/plain; charset=utf-8',
+  'text/markdown; charset=utf-8',
+] as const;
+export type PastedUploadSnapshotContentType = (typeof PASTED_UPLOAD_SNAPSHOT_CONTENT_TYPES)[number];
+
+/**
+ * Raw Snapshot content types for the `public_url` key family (M2-SRC-003).
+ * These are the three canonical URL media types declared by the
+ * `fetcher-result/v1` success contract.
+ */
+export const URL_SNAPSHOT_CONTENT_TYPES = ['text/html', 'text/plain', 'text/markdown'] as const;
+export type UrlSnapshotContentType = (typeof URL_SNAPSHOT_CONTENT_TYPES)[number];
+
+/**
+ * Integrity-read allowlist across both key families. Immutable pasted/upload
+ * writes remain restricted to `PASTED_UPLOAD_SNAPSHOT_CONTENT_TYPES`; the
+ * `public_url` entries exist only so an already-written, task-scoped Fetcher
+ * object can be verified before Source promotion.
+ */
+export const SOURCE_SNAPSHOT_CONTENT_TYPES = [
+  ...PASTED_UPLOAD_SNAPSHOT_CONTENT_TYPES,
+  ...URL_SNAPSHOT_CONTENT_TYPES,
+] as const;
 export type SourceSnapshotContentType = (typeof SOURCE_SNAPSHOT_CONTENT_TYPES)[number];
 
 /**
@@ -63,7 +86,7 @@ export const UPLOAD_FILE_MAX_BYTES = 100_000;
 export const UPLOAD_EXTENSION_CONTENT_TYPES = {
   '.md': 'text/markdown; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',
-} as const satisfies Record<string, SourceSnapshotContentType>;
+} as const satisfies Record<string, PastedUploadSnapshotContentType>;
 export type UploadExtension = keyof typeof UPLOAD_EXTENSION_CONTENT_TYPES;
 
 export const MAX_SUPPORTING_SOURCES = 5;

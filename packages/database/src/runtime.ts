@@ -3,6 +3,7 @@ import type {
   SessionRepository,
   SourceRepository,
   UrlCaptureCommandRepository,
+  UrlCaptureResultRepository,
   FetcherLeaseRecoveryCandidate,
   FetcherLeaseRecoveryRequest,
   WorkflowOutboxDeliveryCandidate,
@@ -14,6 +15,7 @@ import { createDatabaseConnection, DATABASE_UNAVAILABLE_ERROR_CODE } from './cli
 import { DrizzleContentPackageRepository } from './content-package-repository.js';
 import { DrizzleSessionRepository } from './session-repository.js';
 import { DrizzleSourceRepository } from './source-repository.js';
+import { DrizzleUrlCaptureResultRepository } from './url-capture-result-repository.js';
 import { DrizzleWorkflowCommandRepository } from './workflow-command-repository.js';
 import { DrizzleWorkflowDispatchRepository } from './workflow-dispatch-repository.js';
 import { DrizzleWorkflowFetcherGatewayRepository } from './workflow-fetcher-gateway-repository.js';
@@ -38,6 +40,7 @@ export interface DatabaseRuntime {
   readonly sources: SourceRepository;
   readonly urlCapture: UrlCaptureCommandRepository;
   readonly fetcherGateway: FetcherGatewayClaimRepository;
+  readonly urlCaptureResults: UrlCaptureResultRepository;
   close(): Promise<void>;
 }
 
@@ -55,6 +58,7 @@ export function createDatabaseRuntime(databaseUrl: string): DatabaseRuntime {
     sources: new DrizzleSourceRepository(connection),
     urlCapture: new DrizzleWorkflowCommandRepository(connection),
     fetcherGateway: new DrizzleWorkflowFetcherGatewayRepository(connection),
+    urlCaptureResults: new DrizzleUrlCaptureResultRepository(connection),
     async close(): Promise<void> {
       await connection.close();
     },

@@ -6,11 +6,13 @@ export const FETCHER_GATEWAY_UNAUTHENTICATED = 'FETCHER_GATEWAY_UNAUTHENTICATED'
 export const INVALID_GATEWAY_REQUEST = 'INVALID_GATEWAY_REQUEST' as const;
 export const FETCHER_TASK_UNAVAILABLE = 'FETCHER_TASK_UNAVAILABLE' as const;
 export const FETCHER_CLAIM_UNAVAILABLE = 'FETCHER_CLAIM_UNAVAILABLE' as const;
+export const FETCHER_RESULT_UNAVAILABLE = 'FETCHER_RESULT_UNAVAILABLE' as const;
 export type FetcherGatewayErrorCode =
   | typeof FETCHER_GATEWAY_UNAUTHENTICATED
   | typeof INVALID_GATEWAY_REQUEST
   | typeof FETCHER_TASK_UNAVAILABLE
-  | typeof FETCHER_CLAIM_UNAVAILABLE;
+  | typeof FETCHER_CLAIM_UNAVAILABLE
+  | typeof FETCHER_RESULT_UNAVAILABLE;
 
 export interface FetcherGatewayClaimResource {
   readonly taskId: string;
@@ -110,6 +112,60 @@ export const fetcherGatewayHeartbeatResponseSchema: PortableJsonSchema = {
       additionalProperties: false,
       required: ['taskId', 'attemptNumber', 'leaseExpiresAt', 'renewed'],
       properties: fetcherGatewayHeartbeatResourceSchema.properties ?? {},
+    },
+  },
+};
+
+/**
+ * Terminal Result DTO classification. `success` is the only non-failure value;
+ * the remaining ten are the full failure category set (seven Fetcher-supplied
+ * plus three server-derived). `safe_code` is never part of this DTO.
+ */
+export const FETCHER_RESULT_CATEGORIES_DTO = [
+  'success',
+  'fetch_failed',
+  'validation_blocked',
+  'unsupported_content',
+  'too_large',
+  'timeout',
+  'redirect_blocked',
+  'extraction_failed',
+  'package_archived',
+  'source_role_limit',
+  'object_integrity_failed',
+] as const;
+export type FetcherResultCategoryDto = (typeof FETCHER_RESULT_CATEGORIES_DTO)[number];
+
+export interface FetcherGatewayResultResource {
+  readonly taskId: string;
+  readonly attemptNumber: number;
+  readonly taskState: 'succeeded' | 'failed';
+  readonly resultCategory: FetcherResultCategoryDto;
+  readonly sourceId: string | null;
+  readonly duplicate: boolean;
+}
+
+export interface FetcherGatewayResultResponse {
+  readonly data: FetcherGatewayResultResource;
+}
+
+export const fetcherGatewayResultResponseSchema: PortableJsonSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['data'],
+  properties: {
+    data: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['taskId', 'attemptNumber', 'taskState', 'resultCategory', 'sourceId', 'duplicate'],
+      properties: {
+        taskId: { type: 'string', pattern: UUID_PATTERN },
+        attemptNumber: { type: 'integer', minimum: 1 },
+        taskState: { type: 'string', enum: ['succeeded', 'failed'] },
+        resultCategory: { type: 'string', enum: [...FETCHER_RESULT_CATEGORIES_DTO] },
+        sourceId: { anyOf: [{ type: 'string', pattern: UUID_PATTERN }, { type: 'null' }] },
+        duplicate: { enum: [true, false] },
+      },
     },
   },
 };

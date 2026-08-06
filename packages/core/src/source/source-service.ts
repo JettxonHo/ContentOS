@@ -24,7 +24,7 @@ import {
   type SourceHeadState,
   type SourceId,
   type SourceReferenceState,
-  type SourceSnapshotContentType,
+  type PastedUploadSnapshotContentType,
   type SourceState,
   type SourceType,
   type SourceVersionId,
@@ -284,7 +284,7 @@ export class SourceService {
     readonly captureType: SourceCaptureType;
     readonly normalizedBody: NormalizedSourceBody;
     readonly rawBytes: Uint8Array;
-    readonly contentType: SourceSnapshotContentType;
+    readonly contentType: PastedUploadSnapshotContentType;
   }): Promise<SourceState> {
     await this.requireActivePackage(params.contentPackageId, params.ownerUserId);
 

@@ -277,3 +277,61 @@ function validateSourceListResponseWithUploadedText(): boolean {
     },
   });
 }
+
+describe('public_url Source compatibility (M2-SRC-003 correction)', () => {
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+
+  it('accepts public_url sourceType and captureType in the Source response schema', () => {
+    const validateResponse = ajv.compile(sourceResponseSchema);
+    const resource = {
+      data: {
+        source: {
+          id: '30000000-0000-4000-8000-000000000003',
+          contentPackageId: '10000000-0000-4000-8000-000000000001',
+          sourceType: 'public_url',
+          role: 'primary',
+          label: null,
+          captureType: 'public_url',
+          createdAt: '2026-08-04T00:00:00.000Z',
+          workingCopy: { revision: 1, schemaVersion: 'source/normalized/v1', updatedAt: '2026-08-04T00:00:00.000Z' },
+          rawSnapshot: {
+            sha256: 'b'.repeat(64),
+            byteSize: 1234,
+            contentType: 'text/html',
+            capturedAt: '2026-08-04T00:00:00.000Z',
+          },
+          latestVersionId: null,
+          reviewCandidateVersionId: null,
+          approvedVersionId: null,
+        },
+      },
+    };
+    expect(validateResponse(resource)).toBe(true);
+  });
+
+  it('accepts public_url in the Source list response schema', () => {
+    const validateList = ajv.compile(sourceListResponseSchema);
+    expect(
+      validateList({
+        data: {
+          items: [
+            {
+              id: '30000000-0000-4000-8000-000000000004',
+              contentPackageId: '10000000-0000-4000-8000-000000000001',
+              sourceType: 'public_url',
+              role: 'primary',
+              label: null,
+              captureType: 'public_url',
+              createdAt: '2026-08-04T00:00:00.000Z',
+            },
+          ],
+          nextCursor: null,
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it('still rejects public_url through the owner JSON capture request contract', () => {
+    expect(parseCreateSourceRequest({ sourceType: 'public_url', role: 'primary', text: 'x' }).ok).toBe(false);
+  });
+});

@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import { composeExec } from './compose.js';
 import { readComposeCredentials, requireState, type SmokeState } from './env.js';
+import { signedFetch } from './sigv4.js';
 
 const SECRET_HEADER = 'x-contentos-fetcher-gateway-secret';
 const CLAIM_HEADER = 'x-contentos-fetcher-claim';
@@ -93,7 +94,7 @@ async function cleanup(state: SmokeState, packageId: string): Promise<void> {
   const deleted = await composeExec(state, 'postgres', [
     'sh',
     '-c',
-    `PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -c "BEGIN; DELETE FROM workflow_outbox_records WHERE content_package_id = '${packageId}'; DELETE FROM workflow_tasks WHERE content_package_id = '${packageId}'; DELETE FROM url_capture_requests WHERE content_package_id = '${packageId}'; DELETE FROM url_source_references WHERE content_package_id = '${packageId}'; ALTER TABLE workflow_events DISABLE TRIGGER workflow_events_immutable_trigger; DELETE FROM workflow_events WHERE content_package_id = '${packageId}'; ALTER TABLE workflow_events ENABLE TRIGGER workflow_events_immutable_trigger; DELETE FROM workflow_nodes WHERE content_package_id = '${packageId}'; DELETE FROM workflow_instances WHERE content_package_id = '${packageId}'; DELETE FROM content_packages WHERE id = '${packageId}'; COMMIT;"`,
+    `PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -c "BEGIN; DELETE FROM url_capture_results WHERE content_package_id = '${packageId}'; DELETE FROM source_approvals WHERE source_id IN (SELECT id FROM sources WHERE content_package_id = '${packageId}'); DELETE FROM source_versions WHERE source_id IN (SELECT id FROM sources WHERE content_package_id = '${packageId}'); DELETE FROM source_heads WHERE source_id IN (SELECT id FROM sources WHERE content_package_id = '${packageId}'); DELETE FROM source_working_copies WHERE source_id IN (SELECT id FROM sources WHERE content_package_id = '${packageId}'); DELETE FROM source_raw_snapshots WHERE source_id IN (SELECT id FROM sources WHERE content_package_id = '${packageId}'); DELETE FROM sources WHERE content_package_id = '${packageId}'; DELETE FROM workflow_outbox_records WHERE content_package_id = '${packageId}'; DELETE FROM workflow_tasks WHERE content_package_id = '${packageId}'; DELETE FROM url_capture_requests WHERE content_package_id = '${packageId}'; DELETE FROM url_source_references WHERE content_package_id = '${packageId}'; ALTER TABLE workflow_events DISABLE TRIGGER workflow_events_immutable_trigger; DELETE FROM workflow_events WHERE content_package_id = '${packageId}'; ALTER TABLE workflow_events ENABLE TRIGGER workflow_events_immutable_trigger; DELETE FROM workflow_nodes WHERE content_package_id = '${packageId}'; DELETE FROM workflow_instances WHERE content_package_id = '${packageId}'; DELETE FROM content_packages WHERE id = '${packageId}'; COMMIT;"`,
   ]);
   expect(deleted.ok).toBe(true);
 }
@@ -602,6 +603,598 @@ describe('M2-WF-003B private Fetcher Gateway API', () => {
       ]);
     } finally {
       await cleanup(state, fixture.packageId);
+    }
+  });
+});
+
+interface ClaimedFixture extends GatewayFixture {
+  readonly claim: string;
+  readonly attemptNumber: number;
+}
+
+async function claimFixture(
+  state: SmokeState,
+  fixture: GatewayFixture,
+  gatewaySecret: string,
+): Promise<ClaimedFixture> {
+  const claimed = await gatewayRequest(state, `/internal/fetcher/tasks/${fixture.taskId}/claim`, {
+    [SECRET_HEADER]: gatewaySecret,
+  });
+  expect(claimed.status).toBe(200);
+  const body = (await claimed.json()) as { data: { claim: string; attemptNumber: number } };
+  return { ...fixture, claim: body.data.claim, attemptNumber: body.data.attemptNumber };
+}
+
+async function placeUrlObject(
+  state: SmokeState,
+  storageKey: string,
+  body: string,
+  contentType: string,
+): Promise<{ readonly sha256: string; readonly byteSize: number }> {
+  const credentials = readComposeCredentials(state.envFile);
+  const accessKeyId = credentials['OBJECT_STORAGE_ACCESS_KEY'];
+  const secretAccessKey = credentials['OBJECT_STORAGE_SECRET_KEY'];
+  if (!accessKeyId || !secretAccessKey) throw new Error('temporary S3 credentials are missing');
+  const sha256 = createHash('sha256').update(body).digest('hex');
+  const byteSize = Buffer.byteLength(body);
+  const response = await signedFetch({
+    method: 'PUT',
+    url: `http://127.0.0.1:${state.ports.objectStorage}/${state.objectStorageBucket}/${storageKey}`,
+    credentials: { accessKeyId, secretAccessKey },
+    body,
+    headers: {
+      'content-type': contentType,
+      'x-amz-meta-sha256': sha256,
+      'x-amz-meta-bytesize': String(byteSize),
+      'x-amz-meta-immutable': 'true',
+    },
+  });
+  expect(response.status).toBeLessThan(300);
+  return { sha256, byteSize };
+}
+
+async function deleteUrlObject(state: SmokeState, storageKey: string): Promise<void> {
+  const credentials = readComposeCredentials(state.envFile);
+  const accessKeyId = credentials['OBJECT_STORAGE_ACCESS_KEY'];
+  const secretAccessKey = credentials['OBJECT_STORAGE_SECRET_KEY'];
+  if (!accessKeyId || !secretAccessKey) return;
+  await signedFetch({
+    method: 'DELETE',
+    url: `http://127.0.0.1:${state.ports.objectStorage}/${state.objectStorageBucket}/${storageKey}`,
+    credentials: { accessKeyId, secretAccessKey },
+  });
+}
+
+function successResultBody(input: {
+  attemptNumber: number;
+  taskId: string;
+  snapshotId: string;
+  storageKey: string;
+  sha256: string;
+  byteSize: number;
+  candidateText?: string;
+}): Record<string, unknown> {
+  return {
+    resultVersion: 'fetcher-result/v1',
+    attemptNumber: input.attemptNumber,
+    outcome: 'succeeded',
+    snapshot: {
+      snapshotId: input.snapshotId,
+      storageKey: input.storageKey,
+      sha256: input.sha256,
+      byteSize: input.byteSize,
+      contentType: 'text/html',
+      contentEncoding: 'identity',
+    },
+    capture: {
+      finalUrl: 'https://example.com/result-final',
+      redirects: [],
+      responseStatus: 200,
+      encodedByteSize: input.byteSize,
+      decodedByteSize: input.byteSize,
+    },
+    candidate: { schemaVersion: 'source/normalized/v1', text: input.candidateText ?? 'reviewable normalized text' },
+  };
+}
+
+describe('M2-SRC-003 private Fetcher Result API', () => {
+  it('keeps the result route private and rejects transport, identity, and claim faults without effects', async () => {
+    const state = requireState();
+    const { gatewaySecret } = credentials(state);
+    const fixture = await createFixture(state);
+    let claimed: ClaimedFixture | undefined;
+    try {
+      const openApi = await fetch(`${state.apiOrigin}/openapi.json`);
+      const openApiBody = (await openApi.json()) as { paths?: Record<string, unknown> };
+      expect(openApiBody.paths).not.toHaveProperty('/internal/fetcher/tasks/{taskId}/result');
+
+      claimed = await claimFixture(state, fixture, gatewaySecret);
+      const path = `/internal/fetcher/tasks/${fixture.taskId}/result`;
+      const body = JSON.stringify(
+        successResultBody({
+          attemptNumber: claimed.attemptNumber,
+          taskId: fixture.taskId,
+          snapshotId: randomUUID(),
+          storageKey: `fetcher/url-capture/${fixture.taskId}/${claimed.attemptNumber}/raw/${randomUUID()}`,
+          sha256: 'a'.repeat(64),
+          byteSize: 10,
+        }),
+      );
+      const before = await gatewayFacts(state, fixture);
+
+      // Wrong/missing Secret → existing unauthenticated contract.
+      for (const response of await Promise.all([
+        gatewayRequest(state, path, { 'content-type': 'application/json' }, body),
+        gatewayRequest(state, path, { [SECRET_HEADER]: 'wrong-secret', 'content-type': 'application/json' }, body),
+        gatewayRequest(state, path, { cookie: fixture.cookie, 'content-type': 'application/json' }, body),
+      ])) {
+        expect(response.status).toBe(401);
+        expect(await response.text()).toContain('FETCHER_GATEWAY_UNAUTHENTICATED');
+      }
+      const duplicateSecret = await rawHttpPost(
+        state,
+        path,
+        [
+          [SECRET_HEADER, gatewaySecret],
+          [SECRET_HEADER, gatewaySecret],
+          [CLAIM_HEADER, claimed.claim],
+          ['content-type', 'application/json'],
+        ],
+        body,
+      );
+      expect(duplicateSecret.status).toBe(401);
+      expect(duplicateSecret.body).toContain('FETCHER_GATEWAY_UNAUTHENTICATED');
+
+      // Missing / malformed Claim → INVALID_GATEWAY_REQUEST.
+      await expectRejectedWithoutEffects(
+        state,
+        fixture,
+        before,
+        gatewayRequest(state, path, { [SECRET_HEADER]: gatewaySecret, 'content-type': 'application/json' }, body),
+        422,
+        'INVALID_GATEWAY_REQUEST',
+      );
+      await expectRejectedWithoutEffects(
+        state,
+        fixture,
+        before,
+        rawHttpPost(
+          state,
+          path,
+          [
+            [SECRET_HEADER, gatewaySecret],
+            [CLAIM_HEADER, claimed.claim],
+            [CLAIM_HEADER, claimed.claim],
+            ['content-type', 'application/json'],
+          ],
+          body,
+        ),
+        422,
+        'INVALID_GATEWAY_REQUEST',
+      );
+      await expectRejectedWithoutEffects(
+        state,
+        fixture,
+        before,
+        gatewayRequest(
+          state,
+          path,
+          { [SECRET_HEADER]: gatewaySecret, [CLAIM_HEADER]: 'not-a-claim', 'content-type': 'application/json' },
+          body,
+        ),
+        422,
+        'INVALID_GATEWAY_REQUEST',
+      );
+
+      // Wrong Content-Type → INVALID_GATEWAY_REQUEST.
+      await expectRejectedWithoutEffects(
+        state,
+        fixture,
+        before,
+        gatewayRequest(
+          state,
+          path,
+          { [SECRET_HEADER]: gatewaySecret, [CLAIM_HEADER]: claimed.claim, 'content-type': 'text/plain' },
+          body,
+        ),
+        422,
+        'INVALID_GATEWAY_REQUEST',
+      );
+
+      // Malformed JSON → INVALID_GATEWAY_REQUEST.
+      await expectRejectedWithoutEffects(
+        state,
+        fixture,
+        before,
+        rawHttpPost(
+          state,
+          path,
+          [
+            [SECRET_HEADER, gatewaySecret],
+            [CLAIM_HEADER, claimed.claim],
+            ['content-type', 'application/json'],
+          ],
+          '{"resultVersion":"fetcher-result/v1"',
+        ),
+        422,
+        'INVALID_GATEWAY_REQUEST',
+      );
+
+      // Unknown task claim → FETCHER_RESULT_UNAVAILABLE. The body's storage key
+      // must bind the route task so the lookup (not the key check) decides.
+      const unknownTaskId = randomUUID();
+      const unknownSnapshotId = randomUUID();
+      const unknownBody = JSON.stringify(
+        successResultBody({
+          attemptNumber: claimed.attemptNumber,
+          taskId: unknownTaskId,
+          snapshotId: unknownSnapshotId,
+          storageKey: `fetcher/url-capture/${unknownTaskId}/${claimed.attemptNumber}/raw/${unknownSnapshotId}`,
+          sha256: 'a'.repeat(64),
+          byteSize: 10,
+        }),
+      );
+      await expectRejectedWithoutEffects(
+        state,
+        fixture,
+        before,
+        gatewayRequest(
+          state,
+          `/internal/fetcher/tasks/${unknownTaskId}/result`,
+          { [SECRET_HEADER]: gatewaySecret, [CLAIM_HEADER]: claimed.claim, 'content-type': 'application/json' },
+          unknownBody,
+        ),
+        409,
+        'FETCHER_RESULT_UNAVAILABLE',
+      );
+
+      expect(await gatewayFacts(state, fixture)).toBe(before);
+    } finally {
+      await cleanup(state, fixture.packageId);
+    }
+  });
+
+  it('records a success result with a verified object and an exact replay returns duplicate=true', async () => {
+    const state = requireState();
+    const { gatewaySecret } = credentials(state);
+    const fixture = await createFixture(state);
+    let claimed: ClaimedFixture | undefined;
+    const snapshotId = randomUUID();
+    const objectBody = '<html><body>immutable url evidence</body></html>';
+    const storageKey = `fetcher/url-capture/${fixture.taskId}/1/raw/${snapshotId}`;
+    try {
+      claimed = await claimFixture(state, fixture, gatewaySecret);
+      const placed = await placeUrlObject(state, storageKey, objectBody, 'text/html');
+      const body = JSON.stringify(
+        successResultBody({
+          attemptNumber: claimed.attemptNumber,
+          taskId: fixture.taskId,
+          snapshotId,
+          storageKey,
+          sha256: placed.sha256,
+          byteSize: placed.byteSize,
+        }),
+      );
+      const path = `/internal/fetcher/tasks/${fixture.taskId}/result`;
+
+      const first = await gatewayRequest(
+        state,
+        path,
+        { [SECRET_HEADER]: gatewaySecret, [CLAIM_HEADER]: claimed.claim, 'content-type': 'application/json' },
+        body,
+      );
+      expect(first.status).toBe(200);
+      const firstBody = (await first.json()) as { data: Record<string, unknown> };
+      expect(firstBody.data).toMatchObject({
+        taskId: fixture.taskId,
+        attemptNumber: claimed.attemptNumber,
+        taskState: 'succeeded',
+        resultCategory: 'success',
+        duplicate: false,
+      });
+      expect(firstBody.data.sourceId).toMatch(/^[0-9a-f-]{36}$/);
+      expect(JSON.stringify(firstBody)).not.toContain('safeCode');
+      expect(JSON.stringify(firstBody)).not.toContain('storageKey');
+
+      // Database facts: task terminal, source created, one success event.
+      const facts = await composeExec(state, 'postgres', [
+        'sh',
+        '-c',
+        `PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT json_build_object('taskState', (SELECT state FROM workflow_tasks WHERE id = '${fixture.taskId}'), 'resultCount', (SELECT count(*) FROM url_capture_results WHERE task_id = '${fixture.taskId}'), 'sourceCount', (SELECT count(*) FROM sources WHERE content_package_id = '${fixture.packageId}'), 'successEvents', (SELECT count(*) FROM workflow_events WHERE content_package_id = '${fixture.packageId}' AND event_type = 'url_capture_succeeded.v1'))::text"`,
+      ]);
+      expect(facts.ok).toBe(true);
+      const parsed = JSON.parse(facts.stdout.trim()) as Record<string, unknown>;
+      expect(parsed).toMatchObject({ taskState: 'succeeded', resultCount: 1, sourceCount: 1, successEvents: 1 });
+
+      // Exact replay returns duplicate=true and the same projection.
+      const replay = await gatewayRequest(
+        state,
+        path,
+        { [SECRET_HEADER]: gatewaySecret, [CLAIM_HEADER]: claimed.claim, 'content-type': 'application/json' },
+        body,
+      );
+      expect(replay.status).toBe(200);
+      const replayBody = (await replay.json()) as { data: Record<string, unknown> };
+      expect(replayBody.data).toMatchObject({
+        taskId: fixture.taskId,
+        attemptNumber: claimed.attemptNumber,
+        taskState: 'succeeded',
+        resultCategory: 'success',
+        sourceId: firstBody.data.sourceId,
+        duplicate: true,
+      });
+
+      expectRedactedApiLog(state, [gatewaySecret, claimed.claim, fixture.submittedUrl, storageKey]);
+    } finally {
+      await deleteUrlObject(state, storageKey);
+      await cleanup(state, fixture.packageId);
+    }
+  });
+
+  it('records a Fetcher-reported failure without a Source and rejects an over-limit body before parsing', async () => {
+    const state = requireState();
+    const { gatewaySecret } = credentials(state);
+    const fixture = await createFixture(state);
+    let claimed: ClaimedFixture | undefined;
+    try {
+      claimed = await claimFixture(state, fixture, gatewaySecret);
+      const path = `/internal/fetcher/tasks/${fixture.taskId}/result`;
+      const failureBody = JSON.stringify({
+        resultVersion: 'fetcher-result/v1',
+        attemptNumber: claimed.attemptNumber,
+        outcome: 'failed',
+        category: 'fetch_failed',
+        code: 'FETCH_FAILED',
+      });
+      const response = await gatewayRequest(
+        state,
+        path,
+        { [SECRET_HEADER]: gatewaySecret, [CLAIM_HEADER]: claimed.claim, 'content-type': 'application/json' },
+        failureBody,
+      );
+      expect(response.status).toBe(200);
+      const responseBody = (await response.json()) as { data: Record<string, unknown> };
+      expect(responseBody.data).toMatchObject({
+        taskId: fixture.taskId,
+        attemptNumber: claimed.attemptNumber,
+        taskState: 'failed',
+        resultCategory: 'fetch_failed',
+        sourceId: null,
+        duplicate: false,
+      });
+      expect(JSON.stringify(responseBody)).not.toContain('safeCode');
+
+      const sourceCount = await composeExec(state, 'postgres', [
+        'sh',
+        '-c',
+        `PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT count(*) FROM sources WHERE content_package_id = '${fixture.packageId}'"`,
+      ]);
+      expect(sourceCount.stdout.trim()).toBe('0');
+
+      // An over-limit body is rejected at the transport boundary before full parsing.
+      const oversizedCandidate = 'x'.repeat(1_100_000);
+      const oversizedBody = JSON.stringify({
+        resultVersion: 'fetcher-result/v1',
+        attemptNumber: claimed.attemptNumber,
+        outcome: 'failed',
+        category: 'too_large',
+        code: 'TOO_LARGE',
+        padding: oversizedCandidate,
+      });
+      expect(Buffer.byteLength(oversizedBody)).toBeGreaterThan(1_048_576);
+      const overLimit = await gatewayRequest(
+        state,
+        path,
+        { [SECRET_HEADER]: gatewaySecret, [CLAIM_HEADER]: claimed.claim, 'content-type': 'application/json' },
+        oversizedBody,
+      );
+      expect(overLimit.status).toBe(422);
+      expect(await overLimit.text()).toContain('INVALID_GATEWAY_REQUEST');
+    } finally {
+      await cleanup(state, fixture.packageId);
+    }
+  });
+
+  it('rejects missing, duplicate, charset, compound, and wrong Content-Type with a safe 422', async () => {
+    const state = requireState();
+    const { gatewaySecret } = credentials(state);
+    const fixture = await createFixture(state);
+    let claimed: ClaimedFixture | undefined;
+    try {
+      claimed = await claimFixture(state, fixture, gatewaySecret);
+      const path = `/internal/fetcher/tasks/${fixture.taskId}/result`;
+      const body = '{"resultVersion":"fetcher-result/v1"}';
+      const before = await gatewayFacts(state, fixture);
+
+      const missingContentType = await rawHttpPost(
+        state,
+        path,
+        [
+          [SECRET_HEADER, gatewaySecret],
+          [CLAIM_HEADER, claimed.claim],
+        ],
+        body,
+      );
+      expect(missingContentType.status).toBe(422);
+
+      const duplicateContentType = await rawHttpPost(
+        state,
+        path,
+        [
+          [SECRET_HEADER, gatewaySecret],
+          [CLAIM_HEADER, claimed.claim],
+          ['content-type', 'application/json'],
+          ['content-type', 'application/json'],
+        ],
+        body,
+      );
+      expect(duplicateContentType.status).toBe(422);
+
+      for (const contentType of ['application/json; charset=utf-8', 'application/json; boundary=x', 'text/plain']) {
+        const response = await rawHttpPost(
+          state,
+          path,
+          [
+            [SECRET_HEADER, gatewaySecret],
+            [CLAIM_HEADER, claimed.claim],
+            ['content-type', contentType],
+          ],
+          body,
+        );
+        expect(response.status).toBe(422);
+        expect(response.body).toContain('INVALID_GATEWAY_REQUEST');
+      }
+
+      expect(await gatewayFacts(state, fixture)).toBe(before);
+    } finally {
+      await cleanup(state, fixture.packageId);
+    }
+  });
+
+  it('rejects null, array, and string bodies with a safe 422', async () => {
+    const state = requireState();
+    const { gatewaySecret } = credentials(state);
+    const fixture = await createFixture(state);
+    let claimed: ClaimedFixture | undefined;
+    try {
+      claimed = await claimFixture(state, fixture, gatewaySecret);
+      const path = `/internal/fetcher/tasks/${fixture.taskId}/result`;
+      const before = await gatewayFacts(state, fixture);
+      for (const body of ['null', '[]', '"a string body"']) {
+        const response = await gatewayRequest(
+          state,
+          path,
+          { [SECRET_HEADER]: gatewaySecret, [CLAIM_HEADER]: claimed.claim, 'content-type': 'application/json' },
+          body,
+        );
+        expect(response.status).toBe(422);
+        expect(await response.text()).toContain('INVALID_GATEWAY_REQUEST');
+      }
+      expect(await gatewayFacts(state, fixture)).toBe(before);
+    } finally {
+      await cleanup(state, fixture.packageId);
+    }
+  });
+
+  it('accepts a body of exactly 1,048,576 bytes at the transport boundary (then rejects it as a contract fault)', async () => {
+    const state = requireState();
+    const { gatewaySecret } = credentials(state);
+    const fixture = await createFixture(state);
+    let claimed: ClaimedFixture | undefined;
+    try {
+      claimed = await claimFixture(state, fixture, gatewaySecret);
+      const path = `/internal/fetcher/tasks/${fixture.taskId}/result`;
+      // A JSON string padded to exactly 1 MiB: not rejected as over-limit, then
+      // rejected safely because it is not a valid result object.
+      const exactBody = `"${'x'.repeat(1_048_574)}"`;
+      expect(Buffer.byteLength(exactBody)).toBe(1_048_576);
+      const response = await gatewayRequest(
+        state,
+        path,
+        { [SECRET_HEADER]: gatewaySecret, [CLAIM_HEADER]: claimed.claim, 'content-type': 'application/json' },
+        exactBody,
+      );
+      expect(response.status).toBe(422);
+      expect(await response.text()).toContain('INVALID_GATEWAY_REQUEST');
+    } finally {
+      await cleanup(state, fixture.packageId);
+    }
+  });
+
+  it('accepts a 100,000-byte Candidate full of quotes or backslashes and rejects 100,001 bytes', async () => {
+    const state = requireState();
+    const { gatewaySecret } = credentials(state);
+
+    // 100,000 quote characters (JSON escaping doubles them in the transport body).
+    const quotesFixture = await createFixture(state);
+    const quotesSnapshotId = randomUUID();
+    const quotesKey = `fetcher/url-capture/${quotesFixture.taskId}/1/raw/${quotesSnapshotId}`;
+    try {
+      const claimed = await claimFixture(state, quotesFixture, gatewaySecret);
+      const placed = await placeUrlObject(state, quotesKey, '<html>quotes evidence</html>', 'text/html');
+      const body = JSON.stringify(
+        successResultBody({
+          attemptNumber: claimed.attemptNumber,
+          taskId: quotesFixture.taskId,
+          snapshotId: quotesSnapshotId,
+          storageKey: quotesKey,
+          sha256: placed.sha256,
+          byteSize: placed.byteSize,
+          candidateText: '"'.repeat(100_000),
+        }),
+      );
+      expect(Buffer.byteLength(body)).toBeGreaterThan(131_072);
+      const response = await gatewayRequest(
+        state,
+        `/internal/fetcher/tasks/${quotesFixture.taskId}/result`,
+        { [SECRET_HEADER]: gatewaySecret, [CLAIM_HEADER]: claimed.claim, 'content-type': 'application/json' },
+        body,
+      );
+      expect(response.status).toBe(200);
+      expect(((await response.json()) as { data: { taskState: string } }).data.taskState).toBe('succeeded');
+    } finally {
+      await deleteUrlObject(state, quotesKey);
+      await cleanup(state, quotesFixture.packageId);
+    }
+
+    // 100,000 backslash characters.
+    const backslashFixture = await createFixture(state);
+    const backslashSnapshotId = randomUUID();
+    const backslashKey = `fetcher/url-capture/${backslashFixture.taskId}/1/raw/${backslashSnapshotId}`;
+    try {
+      const claimed = await claimFixture(state, backslashFixture, gatewaySecret);
+      const placed = await placeUrlObject(state, backslashKey, '<html>backslash evidence</html>', 'text/html');
+      const body = JSON.stringify(
+        successResultBody({
+          attemptNumber: claimed.attemptNumber,
+          taskId: backslashFixture.taskId,
+          snapshotId: backslashSnapshotId,
+          storageKey: backslashKey,
+          sha256: placed.sha256,
+          byteSize: placed.byteSize,
+          candidateText: '\\'.repeat(100_000),
+        }),
+      );
+      expect(Buffer.byteLength(body)).toBeGreaterThan(131_072);
+      const response = await gatewayRequest(
+        state,
+        `/internal/fetcher/tasks/${backslashFixture.taskId}/result`,
+        { [SECRET_HEADER]: gatewaySecret, [CLAIM_HEADER]: claimed.claim, 'content-type': 'application/json' },
+        body,
+      );
+      expect(response.status).toBe(200);
+      expect(((await response.json()) as { data: { taskState: string } }).data.taskState).toBe('succeeded');
+    } finally {
+      await deleteUrlObject(state, backslashKey);
+      await cleanup(state, backslashFixture.packageId);
+    }
+
+    // 100,001 bytes is still rejected by Domain validation.
+    const oversizedFixture = await createFixture(state);
+    try {
+      const claimed = await claimFixture(state, oversizedFixture, gatewaySecret);
+      const oversizedSnapshotId = randomUUID();
+      const body = JSON.stringify(
+        successResultBody({
+          attemptNumber: claimed.attemptNumber,
+          taskId: oversizedFixture.taskId,
+          snapshotId: oversizedSnapshotId,
+          storageKey: `fetcher/url-capture/${oversizedFixture.taskId}/1/raw/${oversizedSnapshotId}`,
+          sha256: 'a'.repeat(64),
+          byteSize: 10,
+          candidateText: 'x'.repeat(100_001),
+        }),
+      );
+      const response = await gatewayRequest(
+        state,
+        `/internal/fetcher/tasks/${oversizedFixture.taskId}/result`,
+        { [SECRET_HEADER]: gatewaySecret, [CLAIM_HEADER]: claimed.claim, 'content-type': 'application/json' },
+        body,
+      );
+      expect(response.status).toBe(422);
+      expect(await response.text()).toContain('INVALID_GATEWAY_REQUEST');
+    } finally {
+      await cleanup(state, oversizedFixture.packageId);
     }
   });
 });

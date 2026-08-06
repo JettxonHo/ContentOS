@@ -3,7 +3,7 @@ import { Ajv2020, type ErrorObject, type ValidateFunction } from 'ajv/dist/2020.
 import type { ContractValidationError } from './auth-contracts.js';
 import type { PortableJsonSchema } from './error-contract.js';
 
-export const SOURCE_TYPES_DTO = ['pasted_text', 'uploaded_text'] as const;
+export const SOURCE_TYPES_DTO = ['pasted_text', 'uploaded_text', 'public_url'] as const;
 export const SOURCE_ROLES_DTO = ['primary', 'supporting'] as const;
 
 export type SourceTypeDto = (typeof SOURCE_TYPES_DTO)[number];

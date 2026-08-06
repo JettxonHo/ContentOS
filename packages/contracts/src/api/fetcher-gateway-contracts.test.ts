@@ -3,8 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   FETCHER_GATEWAY_CLAIM_HEADER,
   FETCHER_GATEWAY_SECRET_HEADER,
+  FETCHER_RESULT_CATEGORIES_DTO,
+  FETCHER_RESULT_UNAVAILABLE,
   fetcherGatewayClaimResponseSchema,
   fetcherGatewayHeartbeatResponseSchema,
+  fetcherGatewayResultResponseSchema,
   isFetcherGatewayBodyAbsent,
 } from './fetcher-gateway-contracts.js';
 
@@ -49,5 +52,47 @@ describe('Fetcher Gateway HTTP contracts', () => {
     expect(JSON.stringify(fetcherGatewayClaimResponseSchema)).toContain('resourcePolicyVersion');
     expect(JSON.stringify(fetcherGatewayClaimResponseSchema)).toContain('claim');
     expect(JSON.stringify(fetcherGatewayHeartbeatResponseSchema)).toContain('renewed');
+  });
+
+  it('fixes the private Result DTO shape and keeps safe_code out of it', () => {
+    expect(FETCHER_RESULT_UNAVAILABLE).toBe('FETCHER_RESULT_UNAVAILABLE');
+    expect(fetcherGatewayResultResponseSchema).toMatchObject({
+      additionalProperties: false,
+      required: ['data'],
+    });
+    const data = fetcherGatewayResultResponseSchema.properties?.data;
+    expect(data).toMatchObject({
+      additionalProperties: false,
+      required: ['taskId', 'attemptNumber', 'taskState', 'resultCategory', 'sourceId', 'duplicate'],
+    });
+    // The DTO must not carry safe_code, resultCode, URL, object key, or Claim.
+    const serialized = JSON.stringify(fetcherGatewayResultResponseSchema);
+    for (const forbidden of [
+      'safeCode',
+      'resultCode',
+      'safe_code',
+      'storageKey',
+      'claim',
+      'submittedUrl',
+      'finalUrl',
+    ]) {
+      expect(serialized).not.toContain(forbidden);
+    }
+    // The full ten-category classification surface is present exactly once each.
+    expect(FETCHER_RESULT_CATEGORIES_DTO).toEqual([
+      'success',
+      'fetch_failed',
+      'validation_blocked',
+      'unsupported_content',
+      'too_large',
+      'timeout',
+      'redirect_blocked',
+      'extraction_failed',
+      'package_archived',
+      'source_role_limit',
+      'object_integrity_failed',
+    ]);
+    const categorySchema = data?.properties?.resultCategory;
+    expect(categorySchema?.enum).toEqual([...FETCHER_RESULT_CATEGORIES_DTO]);
   });
 });

@@ -125,6 +125,27 @@ the deterministic current-generation Job with the unchanged three-field
 envelope. This reconciliation boundary adds no Fetcher consumer, URL request, result,
 Source evidence, Object Storage write, or public-network capability.
 
+`M2-SRC-003` (In Review, branch `codex/m2-src-003-result-source-evidence`) adds the
+API-owned Fetch Result boundary. The private route
+`POST /internal/fetcher/tasks/:taskId/result` accepts one exact-shape
+`fetcher-result/v1` submission from the authenticated Fetcher service using the
+gateway Secret and the current opaque claim. Only a current, claim-bound,
+unexpired attempt with no existing Result can first record one terminal Result
+into `url_capture_results`; an exact replay (same attempt, claim hash, and
+canonical payload fingerprint) returns the persisted result with
+`duplicate=true`, and any mismatch is rejected with no side effect. A verified
+success transitions the Task `leased → succeeded`, clears the active lease,
+verifies the task/attempt-bound immutable object, and atomically attaches the
+URL Source evidence (Raw Snapshot, revision-1 Working Copy, Head) to the
+existing URL Source Reference, moving `source_capture` to `completed` and
+materializing `source_review` as `awaiting_human`. A failure transitions the
+Task `leased → failed` and `source_capture` to `failed` and appends one safe
+`url_capture_failed.v1` Event. Package-archive, role-capacity, and
+object-integrity failures are recorded as server-derived failure categories.
+No Source Version, Source Approval, or Owner Retry is created; the boundary
+performs no public fetch and no Queue consumption. A terminal Task is never
+dispatched, claimed, heartbeated, or recovered again.
+
 ## 4. Workflow Instance
 
 A Workflow Instance is one Content Package-specific enactment of one exact Workflow Template Version.
@@ -389,9 +410,13 @@ These requirements do not select a metrics backend or exact SSE Event Contract. 
 - Redis, BullMQ, SSE, and browser state are not Workflow authority.
 - A Task is `queued` before an eligible dispatched Fetcher claim and `leased`
   only while its bounded API-owned lease fields satisfy their state invariant.
+  A recorded Fetcher Result moves the Task to the terminal `succeeded` or
+  `failed` state.
 - A queued Task has no claim, claimant, or lease timestamps; a leased Task has
   a positive attempt number, only the `fetcher` claimant, and a stored claim
-  hash rather than the opaque claim value.
+  hash rather than the opaque claim value; a terminal Task clears its claim,
+  claimant, and lease timestamps and is never dispatched, claimed, heartbeated,
+  or recovered again.
 - An expired eligible Fetcher lease is recovered only by the Worker’s bounded
   reconciliation transaction: Task and Outbox state plus one safe recovery
   Event commit together, and the next delivery generation receives a new

@@ -121,11 +121,13 @@ The `api` process owns:
 The API is the authoritative external entry point for Domain writes. It invokes owning-module Application Use Cases; it does not grant Controllers unrestricted table-write authority.
 
 The API also owns the private Fetcher Gateway at
-`/internal/fetcher/tasks/:taskId/{claim,heartbeat}`. These service routes use
+`/internal/fetcher/tasks/:taskId/{claim,heartbeat,result}`. These service routes use
 the dedicated gateway Secret and opaque claim headers, are excluded from
-OpenAPI, and update only the bounded PostgreSQL Task lease. They do not expose
-a session or Cookie fallback and do not perform Fetcher network or storage
-work.
+OpenAPI, and do not expose a session or Cookie fallback. Claim and Heartbeat
+update only the bounded PostgreSQL Task lease. The Result route records one
+terminal, claim-bound `fetcher-result/v1` Result and, on a verified success,
+attaches the URL Source evidence; it performs no Fetcher network or storage
+write work.
 
 The API must not execute long-running Agent calls, public URL fetches, or Browser Final Renders inline. It creates durable Tasks and Outbox records for asynchronous work.
 
