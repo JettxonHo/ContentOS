@@ -117,4 +117,39 @@ describe('bounded S3 integrity response verification', () => {
     ).resolves.toBe(false);
     expect({ reads, destroys }).toEqual({ reads: 0, destroys: 1 });
   });
+
+  it('actively destroys an in-progress integrity body when the inherited signal aborts', async () => {
+    const bytes = new TextEncoder().encode('bounded evidence');
+    const controller = new AbortController();
+    let destroys = 0;
+    let finishRead: ((value: IteratorResult<Uint8Array>) => void) | undefined;
+    const pendingBody: AsyncIterable<Uint8Array> & { destroy(): void } = {
+      [Symbol.asyncIterator]: () => ({
+        next: () =>
+          new Promise<IteratorResult<Uint8Array>>((resolve) => {
+            finishRead = resolve;
+          }),
+      }),
+      destroy: () => {
+        destroys += 1;
+        finishRead?.({ done: true, value: undefined });
+      },
+    };
+
+    const verification = verifyIntegrityResponse(
+      {
+        body: pendingBody,
+        contentLength: bytes.byteLength,
+        contentType: 'text/html',
+        metadata: { sha256: expected(bytes).sha256, bytesize: String(bytes.byteLength) },
+      },
+      expected(bytes),
+      controller.signal,
+    );
+    await Promise.resolve();
+    controller.abort();
+
+    await expect(verification).resolves.toBe(false);
+    expect(destroys).toBe(1);
+  });
 });

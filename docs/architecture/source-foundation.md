@@ -4,7 +4,7 @@
 
 **Scope:** Source domain model, persistence, object storage, and the first Source API boundary
 
-**Last Updated:** 2026-07-31
+**Last Updated:** 2026-08-06
 
 This document records the architectural foundation introduced by `M2-SRC-001 — Pasted-text Source Capture and Approval Foundation` and extended by `M2-SRC-002 — .md/.txt File-upload Source Capture and Upload Quarantine`. It does not introduce URL Fetcher, Workflow Engine, Queue, Agent, Research, Render, Export, or publishing behavior.
 
@@ -87,7 +87,7 @@ The Source domain defines a framework-independent `ObjectStore` Port in `package
 
 The `packages/object-storage` package implements this Port using `@aws-sdk/client-s3@3.1096.0`:
 
-- Object keys are opaque, no-overwrite, and database owner-bound, and are constructed only from server-generated IDs. Two key families exist. Pasted/upload Raw Snapshots use `sources/{ownerUserId}/{contentPackageId}/{sourceId}/raw/{snapshotId}`. `public_url` Raw Snapshots (M2-SRC-003) use `fetcher/url-capture/{taskId}/{attemptNumber}/raw/{snapshotId}`, composed only of the current Task id, the current Attempt, and a server-generated snapshot UUID. No user-controlled path segment, URL, host, or filename is accepted. A `public_url` key must be reconstructed by an exact parser and compared field-by-field before it is integrity-read or compensated; a prefix/substring check is never sufficient. M2-SRC-003 performs no object write (the scoped Fetcher writer arrives with M2-FETCH-001); it only integrity-reads and, on a proven failure, compensates the exact task/attempt-bound object.
+- Object keys are opaque, no-overwrite, and database owner-bound, and are constructed only from server-generated IDs. Two key families exist. Pasted/upload Raw Snapshots use `sources/{ownerUserId}/{contentPackageId}/{sourceId}/raw/{snapshotId}`. `public_url` Raw Snapshots (M2-SRC-003) use `fetcher/url-capture/{taskId}/{attemptNumber}/raw/{snapshotId}`, composed only of the current Task id, the current Attempt, and a server-generated snapshot UUID. No user-controlled path segment, URL, host, or filename is accepted. A `public_url` key must be reconstructed by an exact parser and compared field-by-field before it is integrity-read or compensated; a prefix/substring check is never sufficient. `M2-FETCH-001B` is in review with a dedicated, Fetcher-private writer for this key family; it uses conditional no-overwrite, the existing integrity metadata, and a bounded read-back. It is not registered in the Fetcher runtime, and M2-SRC-003 continues to perform no object write.
 - Immutable-put semantics use one conditional `PutObject` request with `If-None-Match: *`; a collision is rejected and never overwrites existing bytes.
 - SHA-256 and byte size are stored as object metadata and verified with actual streamed bytes and the read allowlisted content type. Integrity reads fail closed on missing/mismatched `Content-Length`, type, metadata, digest, or byte count and never buffer an object beyond the fixed 2 MiB ceiling.
 - Compensation delete is used only when a database write fails after a successful object put. Compensation failure surfaces `SOURCE_COMPENSATION_FAILED` and is never reported as success.
@@ -117,6 +117,13 @@ Object Storage configuration is loaded through typed fail-fast validation in `pa
 
 - `ApiConfig.objectStorage` — non-secret configuration: endpoint, region, bucket, `forcePathStyle`.
 - `ApiSecrets.objectStorageAccessKey` and `ApiSecrets.objectStorageSecretKey` — private credentials that never appear in public config, logs, or error messages.
+
+`M2-FETCH-001B` also defines a separate Fetcher-private configuration contract
+for later runtime use: `CONTENTOS_FETCHER_OBJECT_STORAGE_ENDPOINT`, `REGION`,
+`BUCKET`, `FORCE_PATH_STYLE`, `ACCESS_KEY`, and `SECRET_KEY`. It has no fallback
+to API object-storage names or identity. The Fetcher lifecycle process does not
+load this configuration or connect to Object Storage until a later accepted
+runtime Work Item registers it.
 
 Missing or malformed object-storage configuration causes the API to fail before accepting any work.
 

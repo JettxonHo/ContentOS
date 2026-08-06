@@ -49,12 +49,16 @@ The Fetcher does not own:
 `M2-FETCH-001A` implements an unregistered Fetcher-private Node.js 24 public
 transport foundation. It applies the accepted URL, address, connection, TLS,
 redirect, resource, streaming, deadline, and direct-no-proxy policies, then
-returns a one-shot private response handle. The running Fetcher process remains
-a configuration-only lifecycle skeleton: it does not invoke this transport,
+returns a one-shot private response handle. `M2-FETCH-001B` is in review with
+an equally private, unregistered preparation boundary: it strictly decodes the
+already captured bytes, derives deterministic Candidate text with
+`parse5@8.0.1` where applicable, writes and verifies one Task/Attempt-scoped
+immutable snapshot through a Fetcher-only S3-compatible identity, and
+constructs the existing Result value. The running Fetcher process remains a
+configuration-only lifecycle skeleton: it does not invoke either module,
 consume a Queue Job, Claim or Heartbeat a Task, write Object Storage, submit a
-Result, extract a Candidate, or create Source evidence. Those remaining steps
-belong respectively to `M2-FETCH-001B` and `M2-FETCH-001C` under their own
-bounded Work Items.
+Result, or create Source evidence. Runtime orchestration remains the separate
+`M2-FETCH-001C` Work Item.
 
 ## 2. Fetcher Trust Boundary
 
@@ -211,11 +215,12 @@ hostname lookup after the policy decision.
 - Research consumes only an exact Approved Normalized Source Version.
 - Extraction failure is preserved as a result category and never replaced by fabricated content.
 
-`M2-DES-006` selects `parse5@8.0.1` for the later deterministic HTML
-extraction adapter, with strict UTF-8 handling and the approved text/Markdown
-path. That adapter, dependency addition, Snapshot write, and Result
-construction are not implemented in `M2-FETCH-001A`; they remain unavailable
-until `M2-FETCH-001B` is complete.
+`M2-DES-006` selects `parse5@8.0.1` for the deterministic HTML extraction
+adapter, with strict UTF-8 handling and the approved text/Markdown path.
+`M2-FETCH-001B` supplies that private, unregistered adapter and the scoped
+Snapshot/Result preparation boundary. It does not itself fetch a URL, run from
+the Fetcher lifecycle process, consume a Queue Job, or submit a Result; those
+runtime steps remain unavailable until `M2-FETCH-001C` is accepted.
 
 ## 11. Prompt Injection Containment
 
@@ -303,11 +308,11 @@ Ordinary logs must not contain complete Source bodies, Cookies, Credentials, aut
 
 The connection mechanism, standard ports, fixed User-Agent, resource limits,
 redirect bound, content-type allowlist, no-automatic-retry policy, and
-deterministic extraction choice are accepted first-release policy. Remaining
-implementation work is the separately scoped `M2-FETCH-001B` Snapshot and
-Candidate handoff and `M2-FETCH-001C` Queue-to-Gateway orchestration; neither
-is a policy override. The future strategy for JavaScript-heavy pages remains
-open and requires a separate review if proposed.
+deterministic extraction choice are accepted first-release policy.
+`M2-FETCH-001B` is in review; its Snapshot and Candidate preparation is not a
+runtime capability. `M2-FETCH-001C` Queue-to-Gateway orchestration remains
+separate. Neither is a policy override. The future strategy for
+JavaScript-heavy pages remains open and requires a separate review if proposed.
 
 ## 18. Decision Traceability
 

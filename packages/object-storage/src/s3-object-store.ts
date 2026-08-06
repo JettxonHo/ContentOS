@@ -54,8 +54,13 @@ function abortBody(body: IntegrityBody | undefined): void {
  * Header/metadata mismatches abort before iteration; the streaming loop has an
  * exact expected-byte cap and a fixed 2 MiB defense-in-depth ceiling.
  */
-export async function verifyIntegrityResponse(response: IntegrityResponse, expected: StoredObject): Promise<boolean> {
+export async function verifyIntegrityResponse(
+  response: IntegrityResponse,
+  expected: StoredObject,
+  signal?: AbortSignal,
+): Promise<boolean> {
   if (
+    signal?.aborted ||
     !Number.isSafeInteger(expected.byteSize) ||
     expected.byteSize < 1 ||
     expected.byteSize > MAX_INTEGRITY_READ_BYTES ||
@@ -73,8 +78,17 @@ export async function verifyIntegrityResponse(response: IntegrityResponse, expec
 
   const hash = createHash('sha256');
   let byteSize = 0;
+  const onAbort = (): void => abortBody(response.body);
+  signal?.addEventListener('abort', onAbort, { once: true });
   try {
+    if (signal?.aborted) {
+      onAbort();
+      return false;
+    }
     for await (const chunk of response.body) {
+      if (signal?.aborted) {
+        return false;
+      }
       if (!(chunk instanceof Uint8Array)) {
         abortBody(response.body);
         return false;
@@ -87,10 +101,12 @@ export async function verifyIntegrityResponse(response: IntegrityResponse, expec
       hash.update(chunk);
     }
   } catch {
-    abortBody(response.body);
+    if (!signal?.aborted) abortBody(response.body);
     return false;
+  } finally {
+    signal?.removeEventListener('abort', onAbort);
   }
-  return byteSize === expected.byteSize && hash.digest('hex') === expected.sha256;
+  return !signal?.aborted && byteSize === expected.byteSize && hash.digest('hex') === expected.sha256;
 }
 
 function buildKey(input: {
