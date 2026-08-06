@@ -6,7 +6,7 @@
 
 **Last Updated:** 2026-08-06
 
-This document records the architectural foundation introduced by `M2-SRC-001 — Pasted-text Source Capture and Approval Foundation` and extended by `M2-SRC-002 — .md/.txt File-upload Source Capture and Upload Quarantine`. It does not introduce URL Fetcher, Workflow Engine, Queue, Agent, Research, Render, Export, or publishing behavior.
+This document records the architectural foundation introduced by `M2-SRC-001 — Pasted-text Source Capture and Approval Foundation`, extended by `M2-SRC-002 — .md/.txt File-upload Source Capture and Upload Quarantine`, and its current-Approved input projection added by `M2-SRC-004`. It does not introduce Research execution, a Research Agent, Frozen Input persistence, Render, Export, or publishing behavior.
 
 Related documents: [Domain Overview](domain-overview.md), [Artifact Versioning](artifact-versioning.md), [Technical Architecture](technical-architecture.md), [Repository Structure](repository-structure.md), [Security Baseline](../security/security-baseline.md), [Data Classification](../security/data-classification.md), [Integration Smoke Harness](../quality/integration-smoke-harness.md), and the [Roadmap](../implementation/roadmap.md).
 
@@ -30,6 +30,25 @@ A Source is not one row or one JSON object. It is a composite of distinct object
 | Source Approval  | Append-only | Records that one exact eligible Version was human-approved; duplicates are rejected     |
 
 Head is not one "current" pointer. It distinguishes Working Copy, Latest Version, Review Candidate, and Approved Version as separate fields, following the artifact-versioning invariant.
+
+### Current Approved Source input projection
+
+`M2-SRC-004` provides one internal, owner-scoped read Port for a future Source
+consumer. For one active Content Package it returns only the exact immutable
+Version currently named by each Source Head's `approved_version_id`, and only
+when the same Source and owner also have its append-only Approval record. The
+projection returns the Source ID, role, exact Version ID and number,
+`source/normalized/v1` schema version, and normalized `{ text }` body.
+
+The result order is Primary first, then Supporting Sources by Source creation
+time and ID. It returns an empty list for an active Package with no current
+Approved input; it does not decide whether Research may start. It rejects an
+unknown or cross-owner Package as not found and an owned archived Package as
+archived, matching existing Source read semantics. It is a PostgreSQL-only,
+current read: it does not read Raw Snapshot bytes or Object Storage, write any
+Source state, expose labels/types/URLs/Approval details, or freeze input.
+A future M3 use case must persist the exact returned Version IDs before it
+executes; it must not dynamically re-resolve historical Source input.
 
 ## 3. Role and limit rules
 

@@ -1,4 +1,5 @@
 import type {
+  ApprovedSourceInputPort,
   ContentPackageRepository,
   SessionRepository,
   SourceRepository,
@@ -11,6 +12,7 @@ import type {
   FetcherGatewayClaimRepository,
 } from '@contentos/core';
 
+import { DrizzleApprovedSourceInputProjection } from './approved-source-input-projection.js';
 import { createDatabaseConnection, DATABASE_UNAVAILABLE_ERROR_CODE } from './client.js';
 import { DrizzleContentPackageRepository } from './content-package-repository.js';
 import { DrizzleSessionRepository } from './session-repository.js';
@@ -38,6 +40,7 @@ export interface DatabaseRuntime {
   readonly sessions: SessionRepository;
   readonly contentPackages: ContentPackageRepository;
   readonly sources: SourceRepository;
+  readonly approvedSourceInputs: ApprovedSourceInputPort;
   readonly urlCapture: UrlCaptureCommandRepository;
   readonly fetcherGateway: FetcherGatewayClaimRepository;
   readonly urlCaptureResults: UrlCaptureResultRepository;
@@ -56,6 +59,7 @@ export function createDatabaseRuntime(databaseUrl: string): DatabaseRuntime {
     sessions: new DrizzleSessionRepository(connection),
     contentPackages: new DrizzleContentPackageRepository(connection),
     sources: new DrizzleSourceRepository(connection),
+    approvedSourceInputs: new DrizzleApprovedSourceInputProjection(connection),
     urlCapture: new DrizzleWorkflowCommandRepository(connection),
     fetcherGateway: new DrizzleWorkflowFetcherGatewayRepository(connection),
     urlCaptureResults: new DrizzleUrlCaptureResultRepository(connection),
