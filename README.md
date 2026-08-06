@@ -12,7 +12,7 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001`, `M2-SRC-002`, `M2-WF-001`, `M2-WF-002`, `M2-WF-003A`, `M2-WF-003B`, `M2-WF-003C`, `M2-SRC-003`, `M2-FETCH-001A`, and `M2-FETCH-001B` are completed. `M2-FETCH-001C` is **In Review**: it activates the bounded Fetcher Queue → Gateway → controlled capture → scoped Snapshot → Result loop. `M2-FETCH-001` and M2 remain incomplete until this review and the later M2 exit work complete.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001`, `M2-SRC-002`, `M2-WF-001`, `M2-WF-002`, `M2-WF-003A`, `M2-WF-003B`, `M2-WF-003C`, `M2-SRC-003`, and `M2-FETCH-001A` through `M2-FETCH-001C` are completed. `M2-FETCH-001` is completed through PR #100, squash merge `4fe20a48a02b83ec68886bae68b86f5e65ba3895` (`feat: add queue-to-gateway Fetcher orchestration (#100)`). M2 remains incomplete until the later M2 work and exit criteria pass.
 
 This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package and URL-capture API boundaries, the M1 Web thin slice, Worker Outbox delivery and lease reconciliation, and the private API-owned Fetcher Gateway Claim/Heartbeat/Result boundary. `M2-FETCH-001C` registers the existing controlled public transport and Candidate/Snapshot preparation behind one `contentos-fetcher` BullMQ consumer: it validates a fixed current-generation Job, claims through the API, captures once, and submits the exact Result. PostgreSQL and the API remain authoritative for Task and Source state; the Fetcher has no database connection. The repository still does not provide Source UI, Agent, Render, publishing behavior, deployment, or a development server.
 
@@ -130,7 +130,7 @@ The workflow references no repository Secrets, persists no credentials, uploads 
 
 ## Next implementation steps
 
-1. M2 — Source and Workflow Foundation — is in progress. `M2-FETCH-001C` is **In Review** and activates the bounded Fetcher consumer; `M2-FETCH-001` remains incomplete until this slice is independently reviewed and M2 exit criteria pass.
+1. M2 — Source and Workflow Foundation — is in progress. `M2-FETCH-001` is completed; Approved Source input projection, Workflow Timeline/SSE, Source workspace, and M2 acceptance work remain not started.
 2. Do not infer M2 scope or begin an Agent, Research, or publishing path from the current stage.
 
 No completion date is committed by this repository.

@@ -12,7 +12,7 @@ Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Rend
 
 ## 当前状态
 
-仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001`、`M2-WF-002`、`M2-WF-003A`、`M2-WF-003B`、`M2-WF-003C`、`M2-SRC-003`、`M2-FETCH-001A` 和 `M2-FETCH-001B` 已完成。`M2-FETCH-001C` 当前为 **In Review**：它启用受限的 Fetcher Queue → Gateway → 受控抓取 → Scoped Snapshot → Result 闭环。`M2-FETCH-001` 与 M2 仍未完成，需等待独立 Review 和 M2 Exit 工作完成。
+仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001`、`M2-WF-002`、`M2-WF-003A`、`M2-WF-003B`、`M2-WF-003C`、`M2-SRC-003` 以及 `M2-FETCH-001A` 至 `M2-FETCH-001C` 已完成。`M2-FETCH-001` 已通过 PR #100 完成，squash merge 为 `4fe20a48a02b83ec68886bae68b86f5e65ba3895`（`feat: add queue-to-gateway Fetcher orchestration (#100)`）。M2 仍未完成，须等待其余 M2 工作项和 Exit Criteria 通过。
 
 当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 投递与 lease reconciliation，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat/Result 边界。`M2-FETCH-001C` 已将既有受控 transport 和 Candidate/Snapshot preparation 注册到一个 `contentos-fetcher` BullMQ consumer：它校验固定的当前 generation Job、经 API Claim、执行一次抓取并提交精确 Result。PostgreSQL 与 API 仍是 Task/Source 状态权威；Fetcher 不连接数据库。仓库仍不提供 Source UI、Agent、Render、发布、部署或开发服务器。
 
@@ -130,7 +130,7 @@ corepack pnpm test:integration
 
 ## 下一步实施工作
 
-1. M2 — 来源与工作流基础 — 正在进行。`M2-FETCH-001C` 为 **In Review**，已启用受限 Fetcher consumer；`M2-FETCH-001` 仍未完成，需等待该切片独立审查以及 M2 exit criteria 通过。
+1. M2 — 来源与工作流基础 — 正在进行。`M2-FETCH-001` 已完成；Approved Source input projection、Workflow Timeline/SSE、Source workspace 和 M2 acceptance work 均尚未启动。
 2. 不要从当前阶段推断 M2 范围，也不要开始 Agent、Research 或发布路径。
 
 本仓库不承诺完成日期。

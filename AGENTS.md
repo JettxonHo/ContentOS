@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M1 completed; M2 is in progress (`M2-SRC-001`, `M2-SRC-002`, `M2-WF-001`, `M2-WF-002`, `M2-WF-003A`, `M2-WF-003B`, `M2-WF-003C`, `M2-SRC-003`, `M2-FETCH-001A`, and `M2-FETCH-001B` completed; `M2-FETCH-001C` is In Review; and `M2-FETCH-001` remains incomplete).
+**Current stage:** M1 completed; M2 is in progress (`M2-SRC-001`, `M2-SRC-002`, `M2-WF-001`, `M2-WF-002`, `M2-WF-003A`, `M2-WF-003B`, `M2-WF-003C`, `M2-SRC-003`, and `M2-FETCH-001A` through `M2-FETCH-001C` completed; `M2-FETCH-001` is completed; later M2 work remains not started).
 **Last updated:** 2026-08-06
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the private Login → Dashboard → Content Package Workspace loop and its Domain/persistence/security foundations. M2 — Source and Workflow Foundation — is in progress; the M2 Source, Workflow, delivery, Gateway, recovery, Result, public-transport, and Candidate/Snapshot foundations through `M2-FETCH-001B` are completed. `M2-FETCH-001C` is In Review: it activates the bounded Fetcher Queue → Gateway → controlled capture → scoped Snapshot → Result loop while preserving API/PostgreSQL authority. `M2-FETCH-001` and M2 remain incomplete pending independent review and exit work.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the private Login → Dashboard → Content Package Workspace loop and its Domain/persistence/security foundations. M2 — Source and Workflow Foundation — is in progress; its Source, Workflow, delivery, Gateway, recovery, Result, public-transport, Candidate/Snapshot, and Queue-to-Gateway Fetcher foundations through `M2-FETCH-001C` are completed. `M2-FETCH-001` is completed through PR #100, squash merge `4fe20a48a02b83ec68886bae68b86f5e65ba3895` (`feat: add queue-to-gateway Fetcher orchestration (#100)`). Approved Source input projection, Timeline/SSE, Source Web workspace, and M2 exit work remain not started; M2 remains incomplete.
 
 ## 2. Product goal and MVP boundary
 
