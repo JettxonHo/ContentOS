@@ -1,8 +1,12 @@
 # M2-WF-004A — Workflow Projection and Timeline Query
 
-**Status:** In Review
+**Status:** Completed
 
 **Issue:** [#106](https://github.com/JettxonHo/ContentOS/issues/106)
+
+**Implementation PR:** [#108](https://github.com/JettxonHo/ContentOS/pull/108)
+
+**Merge commit:** `acdb971ffd8a1c8898666182ac017817f095e1b7`
 
 **Planning branch:** `codex/m2-wf-004a-ready-design`
 
@@ -628,7 +632,7 @@ are sufficient for implementation.
 
 ## Implementation handoff
 
-**Status:** In Review
+**Status at handoff:** In Review
 
 - Logical Role: `IMPLEMENTATION_AGENT`
 - Requested Model / Reasoning: `gpt-5.6-terra` / XHigh
@@ -665,8 +669,8 @@ Both were corrected at their roots; the focused rerun passed 8 tests. Final
 `pnpm check` passed 46 files / 422 tests, and the tracked full Integration
 Harness passed 24 files / 176 tests with owned cleanup complete. No schema,
 migration, dependency, lockfile, configuration, or new hash mechanism was
-introduced. Status remains In Review pending Git publication, required CI, and
-merge.
+introduced. At handoff, status remained In Review pending Git publication,
+required CI, and merge.
 
 ## Independent implementation review
 
@@ -692,3 +696,19 @@ the root causes and expanded focused evidence without changing the Work Item
 scope. All three independent re-reviews returned `PASS`; no new P1/P2 defect,
 Blocking Design Question, possible DEC, migration, dependency, or high-risk
 escalation remains.
+
+## Publication and completion evidence
+
+PR #108 (`feat: add workflow projection and timeline queries`) passed all
+three required CI jobs: Docker-independent quality, Integration smoke, and the
+M1 browser thin slice. The first Browser attempt failed before repository
+checkout because the GitHub Actions download service returned an external
+service error; rerunning only that failed job passed. No project correction was
+required for that infrastructure failure.
+
+After independent split-axis review passed and required CI was green, PR #108
+was squash-merged as
+`acdb971ffd8a1c8898666182ac017817f095e1b7` (`feat: add workflow projection
+and timeline queries (#108)`) on 2026-08-06. `M2-WF-004A` is Completed. M2
+remains In Progress; SSE, Source Web workspace, and M2 exit acceptance remain
+separate later Work Items.
