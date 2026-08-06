@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M1 completed; M2 is in progress (`M2-SRC-001`, `M2-SRC-002`, `M2-WF-001`, `M2-WF-002`, `M2-WF-003A`, `M2-WF-003B`, `M2-WF-003C`, `M2-SRC-003`, and `M2-FETCH-001A` through `M2-FETCH-001C` completed; `M2-FETCH-001` is completed; later M2 work remains not started).
+**Current stage:** M1 completed; M2 is in progress (`M2-SRC-001` through `M2-SRC-004`, `M2-WF-001` through `M2-WF-003C`, and `M2-FETCH-001A` through `M2-FETCH-001C` are complete or in review; `M2-FETCH-001` is completed; later M2 work remains not started).
 **Last updated:** 2026-08-06
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the private Login → Dashboard → Content Package Workspace loop and its Domain/persistence/security foundations. M2 — Source and Workflow Foundation — is in progress; its Source, Workflow, delivery, Gateway, recovery, Result, public-transport, Candidate/Snapshot, and Queue-to-Gateway Fetcher foundations through `M2-FETCH-001C` are completed. `M2-FETCH-001` is completed through PR #100, squash merge `4fe20a48a02b83ec68886bae68b86f5e65ba3895` (`feat: add queue-to-gateway Fetcher orchestration (#100)`). Approved Source input projection, Timeline/SSE, Source Web workspace, and M2 exit work remain not started; M2 remains incomplete.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the private Login → Dashboard → Content Package Workspace loop and its Domain/persistence/security foundations. M2 — Source and Workflow Foundation — is in progress; its Source, Workflow, delivery, Gateway, recovery, Result, public-transport, Candidate/Snapshot, Queue-to-Gateway Fetcher, and internal current-Approved Source input projection foundations through `M2-SRC-004` are complete or in review. `M2-FETCH-001` is completed through PR #100, squash merge `4fe20a48a02b83ec68886bae68b86f5e65ba3895` (`feat: add queue-to-gateway Fetcher orchestration (#100)`). The projection does not create Research readiness, Frozen Input, API/UI, or Research execution. Timeline/SSE, Source Web workspace, and M2 exit work remain not started; M2 remains incomplete.
 
 ## 2. Product goal and MVP boundary
 

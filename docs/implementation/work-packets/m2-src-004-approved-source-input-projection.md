@@ -1,6 +1,6 @@
 # M2-SRC-004 — Approved Source Input Projection
 
-**Status:** Ready
+**Status:** In Review
 
 **Issue:** [#102](https://github.com/JettxonHo/ContentOS/issues/102)
 
@@ -8,7 +8,9 @@
 
 **Implementation branch:** `codex/m2-src-004-approved-source-input-projection`
 
-**Base commit:** `7d7d5b6b756c852a513dbfb5b4130c5c809877cb`
+**Planning / Definition-of-Ready base:** `7d7d5b6b756c852a513dbfb5b4130c5c809877cb`
+
+**Implementation base:** `b689736af26cab5fd448369b5b7bcdfc5a76885e`
 
 ## Identification
 
