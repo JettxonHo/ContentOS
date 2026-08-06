@@ -104,8 +104,8 @@ describe('M2-WF-003B PostgreSQL Fetcher Gateway repository', () => {
         { now: () => now.value },
       );
       const outcomes = await Promise.allSettled([
-        serviceOne.claim(fixture.taskId as never),
-        serviceTwo.claim(fixture.taskId as never),
+        serviceOne.claim(fixture.taskId as never, 1),
+        serviceTwo.claim(fixture.taskId as never, 1),
       ]);
       const fulfilled = outcomes.filter((outcome) => outcome.status === 'fulfilled');
       const rejected = outcomes.filter((outcome) => outcome.status === 'rejected');
@@ -179,7 +179,7 @@ describe('M2-WF-003B PostgreSQL Fetcher Gateway repository', () => {
          WHERE task_id = $1`,
         [fixture.taskId],
       );
-      await expect(service.claim(fixture.taskId as never)).rejects.toMatchObject({
+      await expect(service.claim(fixture.taskId as never, 1)).rejects.toMatchObject({
         code: 'FETCHER_TASK_UNAVAILABLE',
       });
       const rows = await gatewayBoundary.query<{ state: string; claim_hash: string | null }>(

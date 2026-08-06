@@ -9,6 +9,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+    "@contentos/contracts": "workspace:*",
     "@contentos/config": "workspace:*",
     "@contentos/core": "workspace:*",
     "@contentos/database": "workspace:*",

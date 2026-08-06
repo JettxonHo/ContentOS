@@ -8,6 +8,12 @@ import {
 } from './index.js';
 
 const secret = 'A'.repeat(43);
+const snapshot = {
+  CONTENTOS_FETCHER_OBJECT_STORAGE_ENDPOINT: 'http://127.0.0.1:8333',
+  CONTENTOS_FETCHER_OBJECT_STORAGE_BUCKET: 'contentos-fetcher-test',
+  CONTENTOS_FETCHER_OBJECT_STORAGE_ACCESS_KEY: 'fetcher-access',
+  CONTENTOS_FETCHER_OBJECT_STORAGE_SECRET_KEY: 'fetcher-secret',
+};
 
 describe('Fetcher configuration', () => {
   it('accepts the exact loopback origin and shared Secret contract', () => {
@@ -16,11 +22,22 @@ describe('Fetcher configuration', () => {
         CONTENTOS_ENV: 'test',
         CONTENTOS_FETCHER_GATEWAY_SECRET: secret,
         CONTENTOS_FETCHER_GATEWAY_API_ORIGIN: 'http://127.0.0.1:3001',
+        CONTENTOS_FETCHER_REDIS_URL: 'redis://127.0.0.1:6379',
+        ...snapshot,
       }),
     ).toEqual({
       environment: 'test',
       gatewaySecret: secret,
       apiOrigin: 'http://127.0.0.1:3001',
+      redisUrl: 'redis://127.0.0.1:6379',
+      snapshot: {
+        endpoint: snapshot.CONTENTOS_FETCHER_OBJECT_STORAGE_ENDPOINT,
+        region: 'us-east-1',
+        bucket: snapshot.CONTENTOS_FETCHER_OBJECT_STORAGE_BUCKET,
+        forcePathStyle: true,
+        accessKeyId: snapshot.CONTENTOS_FETCHER_OBJECT_STORAGE_ACCESS_KEY,
+        secretAccessKey: snapshot.CONTENTOS_FETCHER_OBJECT_STORAGE_SECRET_KEY,
+      },
     });
   });
 

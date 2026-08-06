@@ -93,7 +93,7 @@ async function createLeasedTask(commandBoundary: UrlCaptureRepositoryTestBoundar
       { generate: () => claim },
       { now: () => new Date() },
     );
-    claimed = await gateway.claim(submitted.taskId as never);
+    claimed = await gateway.claim(submitted.taskId as never, 1);
   } finally {
     await gatewayBoundary.close();
   }

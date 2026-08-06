@@ -170,4 +170,9 @@ export class FetcherS3SnapshotStore implements FetcherSnapshotStore {
       throw new FetcherSnapshotStoreError('COMPENSATION_FAILED');
     }
   }
+
+  /** Closes only the S3 client owned by this Fetcher-scoped store. */
+  close(): void {
+    this.client.destroy();
+  }
 }

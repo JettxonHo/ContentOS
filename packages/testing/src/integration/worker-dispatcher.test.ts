@@ -218,6 +218,8 @@ describe('M2-WF-003A Worker integration', () => {
       expect(job.name).toBe('fetcher-task');
       expect(job.data).toEqual({ taskId: fixture.taskId, taskKind: 'url_capture', envelopeVersion: 'fetcher-task/v1' });
       expect(job.opts.attempts).toBe(1);
+      expect(job.opts.removeOnComplete).toBe(true);
+      expect(job.opts.removeOnFail).toBe(true);
       expect(JSON.stringify(job.data)).not.toContain('worker');
 
       const ledger = await boundary.query<{
@@ -241,6 +243,8 @@ describe('M2-WF-003A Worker integration', () => {
       );
       expect(repaired.id).toBe(jobId);
       expect(repaired.data).toEqual(job.data);
+      expect(repaired.opts.removeOnComplete).toBe(true);
+      expect(repaired.opts.removeOnFail).toBe(true);
       const repairedLedger = await boundary.query<{ state: string }>(
         'SELECT state FROM workflow_outbox_records WHERE id = $1',
         [fixture.outboxId],
@@ -307,6 +311,8 @@ describe('M2-WF-003A Worker integration', () => {
         envelopeVersion: 'fetcher-task/v1',
       });
       expect(newJob.opts.attempts).toBe(1);
+      expect(newJob.opts.removeOnComplete).toBe(true);
+      expect(newJob.opts.removeOnFail).toBe(true);
       expect(await queue.getJob(oldJobId)).toBeDefined();
 
       const task = await boundary.query<{

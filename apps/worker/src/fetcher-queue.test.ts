@@ -17,6 +17,7 @@ import {
   type FetcherQueueClient,
   type FetcherTaskQueueData,
 } from './fetcher-queue.js';
+import { FETCHER_JOB_REMOVE_ON_COMPLETE, FETCHER_JOB_REMOVE_ON_FAIL } from '@contentos/contracts';
 
 const now = new Date('2026-08-02T00:00:00.000Z');
 
@@ -74,7 +75,11 @@ describe('Fetcher BullMQ adapter', () => {
           id: String(options.jobId),
           name,
           data,
-          opts: { attempts: options.attempts },
+          opts: {
+            attempts: options.attempts,
+            removeOnComplete: options.removeOnComplete,
+            removeOnFail: options.removeOnFail,
+          },
         });
       },
       async getJob(jobId): Promise<unknown | undefined> {
@@ -97,7 +102,12 @@ describe('Fetcher BullMQ adapter', () => {
     expect(added).toEqual({
       name: FETCHER_JOB_NAME,
       data: { taskId: 'task-1', taskKind: 'url_capture', envelopeVersion: 'fetcher-task/v1' },
-      options: { jobId: 'fetcher-task-1-1', attempts: FETCHER_JOB_ATTEMPTS },
+      options: {
+        jobId: 'fetcher-task-1-1',
+        attempts: FETCHER_JOB_ATTEMPTS,
+        removeOnComplete: FETCHER_JOB_REMOVE_ON_COMPLETE,
+        removeOnFail: FETCHER_JOB_REMOVE_ON_FAIL,
+      },
     });
     expect(added && JSON.stringify(added)).not.toContain('secret');
     expect(

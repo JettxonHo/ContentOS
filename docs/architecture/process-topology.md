@@ -4,7 +4,7 @@
 
 **Scope:** MVP deployable processes, runtime responsibilities, permissions, communication, and recovery boundaries
 
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-06
 
 This document defines the logical runtime topology for the ContentOS MVP. A process boundary provides workload and security isolation; it does not create a microservice, separate Domain model, separate database, or independent release.
 
@@ -34,7 +34,7 @@ The processes share one Repository, one authoritative Domain model, one primary 
 
 ### Current implementation boundary
 
-M0-ENG-002 created independently buildable and startable entry points. The current M2 boundary extends that skeleton only with the accepted API-owned URL-capture Command, Outbox Dispatcher, and private Fetcher Gateway Claim/Heartbeat lease. Web, Worker, and Renderer have no new responsibility here. The Fetcher process validates its two startup settings and maintains lifecycle only; it is not a Queue consumer and does not make public requests or access PostgreSQL, Redis, or Object Storage.
+M0-ENG-002 created independently buildable and startable entry points. The current M2 boundary includes the API-owned URL-capture Command and Fetcher Gateway, Worker Outbox delivery and lease recovery, and the `M2-FETCH-001C` Fetcher orchestration now in review. The Fetcher consumes only the fixed Queue contract, obtains its authority through the private Gateway, uses controlled public HTTP/HTTPS and its scoped Object Storage identity, and submits an exact Result. It does not access PostgreSQL.
 
 ## 2. Runtime Topology Diagram
 
@@ -69,16 +69,16 @@ flowchart TB
     worker --> models
 
     fetcher <--> redis
+    fetcher --> api
     fetcher --> internet
     fetcher --> objects
-    fetcher -. "scoped state path; mechanism open" .-> postgres
 
     renderer <--> redis
     renderer <--> objects
     renderer -. "scoped render state; mechanism open" .-> postgres
 ```
 
-The diagram is a logical topology. The reverse proxy product, direct-versus-mediated database access for Fetcher and Renderer, and exact network-policy implementation remain open.
+The diagram is a logical topology. The reverse proxy product and Renderer state-access mechanism remain open. Fetcher Task and Source state are mediated by its private API Gateway; it has no PostgreSQL identity.
 
 ## 3. Web Process
 
@@ -174,7 +174,7 @@ The `fetcher` process owns the controlled Source-capture boundary:
 
 The Fetcher has an independent Service Identity and controlled public HTTP/HTTPS egress. It receives restricted Object Storage permissions for quarantine and Source snapshots.
 
-The Fetcher has no Model Provider Credential, no general Domain write permission, no Approval authority, and no access to Human Opinion. In the current M2-WF-003B skeleton it has no database, Queue, or Object Storage access: the API owns Claim/Heartbeat and the durable lease. Later execution work may add only the separately approved bounded access required by its Contract.
+The Fetcher has no Model Provider Credential, no general Domain write permission, no Approval authority, and no access to Human Opinion. In `M2-FETCH-001C` review it receives only the fixed BullMQ delivery, Gateway Secret/origin, Fetcher-specific Redis and Object Storage identities, and controlled public HTTP/HTTPS egress. Claim, Heartbeat, Result, Task state, and Source promotion remain API-owned; it has no database credential.
 
 JavaScript-heavy Browser Capture is not part of the baseline MVP. It may be proposed only if the supported Source Vertical Slice demonstrates a concrete need.
 
@@ -246,15 +246,15 @@ The table states architectural limits, not concrete IAM rules. Exact service acc
 
 ## 11. Failure and Recovery Boundaries
 
-| Failure                | Durable truth and recovery                                                                                                                |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| API restart            | In-flight HTTP requests may fail; committed PostgreSQL state remains. Clients retry idempotent Commands or reload Queries.                |
+| Failure                | Durable truth and recovery                                                                                                                                                                |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API restart            | In-flight HTTP requests may fail; committed PostgreSQL state remains. Clients retry idempotent Commands or reload Queries.                                                                |
 | Worker crash           | Lease and heartbeat expire; BullMQ may retain an old Job; bounded Reconciliation verifies PostgreSQL state, records safe lease recovery, and dispatches only the next current generation. |
-| Redis loss             | PostgreSQL Tasks and Runs remain; Reconciliation recreates missing Queue Jobs.                                                            |
-| Fetch failure          | Fetch Task records classified failure and bounded retry eligibility; incomplete content cannot become an approved Source.                 |
-| Renderer crash         | Temporary files are not Final output; persisted Render Job state and exact dependencies permit safe retry without mutating prior outputs. |
-| Object Storage failure | Metadata records the failure; no database reference is promoted as usable until object write and integrity checks succeed.                |
-| SSE disconnect         | Client reconnects and uses Polling/full Query to recover; missed events do not change Workflow truth.                                     |
+| Redis loss             | PostgreSQL Tasks and Runs remain; Reconciliation recreates missing Queue Jobs.                                                                                                            |
+| Fetch failure          | Fetch Task records classified failure and bounded retry eligibility; incomplete content cannot become an approved Source.                                                                 |
+| Renderer crash         | Temporary files are not Final output; persisted Render Job state and exact dependencies permit safe retry without mutating prior outputs.                                                 |
+| Object Storage failure | Metadata records the failure; no database reference is promoted as usable until object write and integrity checks succeed.                                                                |
+| SSE disconnect         | Client reconnects and uses Polling/full Query to recover; missed events do not change Workflow truth.                                                                                     |
 
 In every case, PostgreSQL-backed state determines the final status. Queue, process memory, SSE delivery, and local files are evidence or transport, not authority.
 

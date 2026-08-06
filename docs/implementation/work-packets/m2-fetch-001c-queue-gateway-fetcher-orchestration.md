@@ -1,12 +1,12 @@
 # M2-FETCH-001C — Queue-to-Gateway Fetcher Orchestration
 
-**Status:** Ready
+**Status:** In Review
 
 **Issue:** [#98](https://github.com/JettxonHo/ContentOS/issues/98)
 
 **Branch:** `codex/m2-fetch-001c-queue-gateway-orchestration`
 
-**Base commit:** `ed9a04dc108032f95b94b884e94c263ace9035b7`
+**Base commit:** `121b66e111687519a621fcfe6d5b3119af7a1f67`
 
 ## Identification
 
@@ -15,9 +15,9 @@
 - Executor Profile: `BACKEND_GENERAL_EXECUTOR`
 - Target Execution Configuration: `gpt-5.6-terra`, XHigh
 - Logical Role: `IMPLEMENTATION_AGENT`
-- Actual Model: to be recorded by the executor
+- Actual Model: `UNVERIFIED_RUNTIME_MODEL`
 - Reasoning: XHigh requested
-- Thread: to be recorded by the executor
+- Thread: `/root/fetch001c_implement`
 - Runtime Model Status: `UNVERIFIED_RUNTIME_MODEL` unless exposed by the runtime
 - Owner: one Implementation Agent with exclusive repository-write ownership
 - Reviewer: independent `gpt-5.6-sol`, XHigh Review Agents
@@ -224,17 +224,23 @@ POST /internal/fetcher/tasks/:taskId/result
 
 Status interpretation is fixed:
 
-| Response                                      | Fetcher meaning                                                                                     |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Claim `200`                                   | Begin this one claimed attempt.                                                                     |
-| Claim `409 FETCHER_TASK_UNAVAILABLE`          | Authoritative no-op for stale, duplicate, terminal, or otherwise ineligible delivery; do not fetch. |
-| Heartbeat `409 FETCHER_CLAIM_UNAVAILABLE`     | Claim is definitively unavailable; stop further promotion for this attempt.                         |
-| Result `409 FETCHER_RESULT_UNAVAILABLE`       | Result was definitively rejected; do not infer Task state.                                          |
-| `401` or malformed successful DTO             | Stable protocol/identity failure; stop new intake and exit non-zero after owned cleanup.            |
-| Network timeout, connection failure, or `5xx` | Transient delivery failure; do not infer authoritative Task state.                                  |
+HTTP status classification precedes body-limit enforcement and parsing, so a
+status `0` or any `5xx` remains transient regardless of response-body shape or
+size.
 
-Unexpected `4xx` responses use the same stable protocol-failure path. Error
-response content is never copied into logs or Queue failure values.
+| Response                                                | Fetcher meaning                                                                                                      |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Claim `200`                                             | Begin this one claimed attempt.                                                                                      |
+| Claim `409 FETCHER_TASK_UNAVAILABLE`                    | Authoritative no-op for stale, duplicate, terminal, or otherwise ineligible delivery; do not fetch.                  |
+| Heartbeat `409 FETCHER_CLAIM_UNAVAILABLE`               | Claim is definitively unavailable; stop further promotion for this attempt.                                          |
+| Result `409 FETCHER_RESULT_UNAVAILABLE`                 | Definitive rejection; compensate only the Snapshot owned by this Task/Attempt.                                       |
+| Result `401` or unexpected `4xx`                        | Definitively not accepted and a stable protocol/identity failure; scoped compensation is allowed.                    |
+| Result `200` with malformed, mismatched, or >16 KiB DTO | Unknown commit: the API may already have committed. Preserve the Snapshot, stop intake, and exit non-zero safely.    |
+| Result network timeout, connection failure, or `5xx`    | Transient unknown commit; retry once with the exact body, then preserve the Snapshot if the outcome remains unknown. |
+
+Malformed Claim or Heartbeat success responses remain stable protocol
+failures. Error response content is never copied into logs or Queue failure
+values.
 
 ### Capture orchestration
 
@@ -271,12 +277,16 @@ Rules:
    retried exactly once with the same claim and exact body only after an
    ambiguous network/`5xx` outcome; the existing API idempotency contract
    decides whether it committed. No other automatic retry is added.
-8. A definitive non-accepted Result response may compensate only a success
-   Snapshot created by the same Task/Attempt, through the existing structured
-   deletion port and a fresh independent 5-second cleanup signal. A valid HTTP
-   `200` server-derived failure is accepted and never compensated again by the
-   Fetcher. An ambiguous Result outcome preserves the Snapshot because the API
-   may have committed; no broad cleanup or listing is allowed.
+8. Only an exact typed Result `409`, `401`, or unexpected `4xx` is definitively
+   not accepted and may compensate a success Snapshot created by the same
+   Task/Attempt, through the existing structured deletion port and a fresh
+   independent 5-second cleanup signal. A valid HTTP `200` success or
+   server-derived failure is accepted and never compensated again. A Result
+   `200` whose body is malformed, mismatched, unparseable, or over 16 KiB is an
+   unknown commit: preserve the Snapshot and fail safely because the API may
+   already have committed. Network/timeout/`5xx` remains transient unknown,
+   uses the one exact-body retry, and preserves the Snapshot if still unknown.
+   No broad cleanup or listing is allowed.
 9. A failure before a Snapshot exists has no Object Storage cleanup. A
    Fetcher-supplied failure Result is still submitted when the claim remains
    usable.
@@ -418,11 +428,12 @@ artifacts are never committed.
 7. Transport/extraction/resource failures map to the existing exact failure
    Result. Successful preparation submits the exact success Result and Source
    evidence remains API-owned.
-8. Every accepted response is disposed. Definitive non-accepted success cleans
-   only its own Task/Attempt Snapshot under a fresh 5-second bound; a valid
-   server-derived `200` is not double-compensated; ambiguous Result delivery
-   preserves the object and relies on API idempotency/lease recovery rather
-   than guessing.
+8. Every accepted response is disposed. A typed Result `409`, `401`, or
+   unexpected `4xx` cleans only its own Task/Attempt Snapshot under a fresh
+   5-second bound. A valid server-derived `200` is not double-compensated, and
+   malformed, mismatched, unparseable, or oversized Result `200` is treated as
+   unknown commit and preserves the object. Network/timeout/`5xx` ambiguity
+   also preserves the object and relies on API idempotency/lease recovery.
 9. Completed/failed Job removal cooperates with existing PostgreSQL-led
    missing-Job and lease recovery: a pre-existing Job without removal options
    settles under the Fetcher Worker defaults and is repairable; queued
@@ -453,10 +464,12 @@ artifacts are never committed.
 - Config: valid independent settings and safe rejection of missing/malformed
   Fetcher Redis/Object Storage settings; no fallback names.
 - Gateway client: exact request method/path/headers/body, response validation,
-  safe status classification, fixed timeout, and redaction.
+  definitive rejection versus unknown-commit classification, fixed timeout,
+  and redaction.
 - Orchestrator: sequence, one-active scheduling, Heartbeat cadence, response
   disposal, success/failure Result, stale/duplicate no-op, definitive cleanup,
-  ambiguous preservation, and one same-payload Result retry.
+  malformed-success unknown-commit preservation, transient-unknown
+  preservation, and one same-payload Result retry.
 - Lifecycle: startup readiness, Queue/provider failure, signal shutdown, forced
   bounded shutdown, and safe logs.
 
@@ -469,9 +482,12 @@ artifacts are never committed.
   HTTP/HTTPS/DNS transport fixtures. Production SSRF policy remains separately
   covered by 001A; tests do not weaken it or add a runtime bypass.
 - End-to-end success and one Fetcher-supplied failure, exact Source evidence,
-  duplicate/stale delivery, pre-Claim Redis/HTTP failure repair, post-Claim
-  lease recovery, Result idempotency, object cleanup ownership, and no
-  PostgreSQL access by Fetcher.
+  duplicate/stale delivery, and two same-Task cross-component handoffs: a
+  pre-Claim Gateway failure whose removed current Job is repaired by the
+  Worker with the same generation/ID, and a post-Claim Result-delivery failure
+  whose expired lease is recovered and dispatched as generation `N+1` while
+  the old generation remains ineligible. Also cover Result idempotency, object
+  cleanup ownership, and no PostgreSQL access by Fetcher.
 - Upgrade compatibility fixture: a Job published with the pre-001C exact
   name/ID/data/attempt contract and both removal options absent is not rejected
   for that absence; it is processed or Claim-no-oped according to authoritative
@@ -479,7 +495,9 @@ artifacts are never committed.
   Task is repairable with the same generation.
 - Result response fixtures cover success, each existing server-derived failure
   class at the contract level, no double compensation after a valid `200`,
-  definitive rejection cleanup with a fresh bound, and ambiguous preservation.
+  preservation after malformed/mismatched/unparseable/oversized `200`,
+  definitive `409`/`401`/unexpected-`4xx` cleanup with a fresh bound, and
+  transient-unknown preservation.
 - Process integration for real Fetcher startup/SIGTERM and safe malformed
   configuration/provider failure.
 

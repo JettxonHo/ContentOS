@@ -105,7 +105,9 @@ describe('Fetcher Gateway Core contract', () => {
       heartbeatTask: async (): Promise<null> => null,
     };
     const service = new FetcherGatewayService(repository, { generate: () => opaqueClaim }, { now: () => now });
-    await expect(service.claim(taskId)).rejects.toEqual(new FetcherGatewayApplicationError('FETCHER_TASK_UNAVAILABLE'));
+    await expect(service.claim(taskId, 1)).rejects.toEqual(
+      new FetcherGatewayApplicationError('FETCHER_TASK_UNAVAILABLE'),
+    );
     await expect(service.heartbeat(taskId, 'short')).rejects.toEqual(
       new FetcherGatewayApplicationError('FETCHER_CLAIM_UNAVAILABLE'),
     );
@@ -113,8 +115,9 @@ describe('Fetcher Gateway Core contract', () => {
 
   it('produces one bounded claim response from an eligible repository record', async () => {
     const repository = {
-      claimTask: async (input: { claimHash: string; now: Date }) => {
+      claimTask: async (input: { claimHash: string; deliveryGeneration: number; now: Date }) => {
         expect(input.claimHash).toMatch(/^[0-9a-f]{64}$/);
+        expect(input.deliveryGeneration).toBe(1);
         expect(input.now).toEqual(now);
         return {
           taskId,
@@ -130,7 +133,7 @@ describe('Fetcher Gateway Core contract', () => {
       repository,
       { generate: () => opaqueClaim },
       { now: () => now },
-    ).claim(taskId);
+    ).claim(taskId, 1);
     expect(result).toMatchObject({
       taskId,
       taskKind: 'url_capture',

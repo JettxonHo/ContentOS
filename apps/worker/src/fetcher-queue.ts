@@ -5,17 +5,24 @@ import {
   type WorkflowOutboxDeliveryCandidate,
   type WorkflowOutboxRecordState,
 } from '@contentos/core';
+import {
+  buildFetcherTaskJobId,
+  FETCHER_JOB_ATTEMPTS,
+  FETCHER_JOB_NAME,
+  FETCHER_JOB_REMOVE_ON_COMPLETE,
+  FETCHER_JOB_REMOVE_ON_FAIL,
+  FETCHER_QUEUE_NAME,
+  parseFetcherTaskJobContract,
+  type FetcherTaskQueueData,
+} from '@contentos/contracts';
 
-export const FETCHER_QUEUE_NAME = 'contentos-fetcher' as const;
-export const FETCHER_JOB_NAME = 'fetcher-task' as const;
-export const FETCHER_JOB_ATTEMPTS = 1 as const;
+export {
+  FETCHER_JOB_ATTEMPTS,
+  FETCHER_JOB_NAME,
+  FETCHER_QUEUE_NAME,
+  type FetcherTaskQueueData,
+} from '@contentos/contracts';
 const FETCHER_QUEUE_UNAVAILABLE_ERROR_CODE = 'queue_unavailable' as const;
-
-export interface FetcherTaskQueueData {
-  readonly taskId: string;
-  readonly taskKind: 'url_capture';
-  readonly envelopeVersion: 'fetcher-task/v1';
-}
 
 export interface FetcherQueueClient {
   waitUntilReady(): Promise<unknown>;
@@ -33,15 +40,7 @@ export interface FetcherQueueTransport {
 }
 
 export function fetcherTaskJobId(taskId: string, deliveryGeneration: number): string {
-  if (
-    taskId.length === 0 ||
-    taskId.includes(':') ||
-    !Number.isSafeInteger(deliveryGeneration) ||
-    deliveryGeneration < 1
-  ) {
-    throw new Error('invalid_fetcher_job_id');
-  }
-  return `fetcher-${taskId}-${deliveryGeneration}`;
+  return buildFetcherTaskJobId(taskId, deliveryGeneration);
 }
 
 export class BullMQFetcherQueueTransport implements FetcherQueueTransport {
@@ -81,6 +80,8 @@ export class BullMQFetcherQueueTransport implements FetcherQueueTransport {
       await this.queue.add(FETCHER_JOB_NAME, data, {
         jobId,
         attempts: FETCHER_JOB_ATTEMPTS,
+        removeOnComplete: FETCHER_JOB_REMOVE_ON_COMPLETE,
+        removeOnFail: FETCHER_JOB_REMOVE_ON_FAIL,
       });
       const storedJob = await this.queue.getJob(jobId);
       if (!matchesFetcherTaskJob(storedJob, jobId, candidate.taskId)) throw queueUnavailable();
@@ -122,14 +123,10 @@ function queueUnavailable(): Error {
 }
 
 function matchesFetcherTaskJob(job: unknown, jobId: string, taskId: string): boolean {
-  if (!isRecord(job) || job.id !== jobId || job.name !== FETCHER_JOB_NAME) return false;
-  if (!isRecord(job.opts) || job.opts.attempts !== FETCHER_JOB_ATTEMPTS) return false;
-  if (!isRecord(job.data) || Object.keys(job.data).length !== 3) return false;
+  const contract = parseFetcherTaskJobContract(job);
   return (
-    job.data.taskId === taskId && job.data.taskKind === 'url_capture' && job.data.envelopeVersion === 'fetcher-task/v1'
+    contract !== null &&
+    jobId === buildFetcherTaskJobId(taskId, contract.deliveryGeneration) &&
+    contract.taskId === taskId
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
