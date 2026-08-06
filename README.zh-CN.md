@@ -12,9 +12,9 @@ Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Rend
 
 ## 当前状态
 
-仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001` 和 `M2-WF-002` 已完成。`M2-WF-003A`（Transactional Outbox Dispatcher）已通过 PR #69 squash merge，合并提交为 `3211c29ef8e6a934e6473a4f92caf36d8593abc3`；`M2-WF-003B`（Fetcher Gateway Claim and Bounded Lease）已通过 PR #73 合并，合并提交为 `c9c92b70a0ccd99be944107120f03dd3a1776da3`（`feat: add fetcher gateway claim lease (#73)`）。`M2-WF-003C`（Lease and Delivery Reconciliation）已通过 PR #77 完成，合并提交为 `ed428b1c12eb6e2ce01d964d56c05a09a3ba87d1`；`M2-SRC-003`（URL-capture Result Contract and Source Evidence Boundary）已通过 PR #82 完成，合并提交为 `6b6e4a0f2c180093db6e76090ab14b831e5631f6`。`M2-FETCH-001A`（Public Transport and Resource Policy）已通过 PR #92 完成，squash merge 提交为 `551217c130f6717f4b8891ce76de1fa124bf8ee0`（`feat: add public URL transport policy (#92)`）。`M2-FETCH-001B`（Candidate Extraction and Scoped Snapshot Writer）已通过 PR #96 完成，squash merge 提交为 `9b28068eb3ed266973f77bcdffe6c08776b2086c`（`feat: add candidate extraction and scoped snapshot writer (#96)`）；其模块仍为私有且未注册。`M2-FETCH-001C` 尚未启动，`M2-FETCH-001` 仍未完成，Fetcher URL execution 仍不可用。
+仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001`、`M2-WF-002`、`M2-WF-003A`、`M2-WF-003B`、`M2-WF-003C`、`M2-SRC-003`、`M2-FETCH-001A` 和 `M2-FETCH-001B` 已完成。`M2-FETCH-001C` 当前为 **In Review**：它启用受限的 Fetcher Queue → Gateway → 受控抓取 → Scoped Snapshot → Result 闭环。`M2-FETCH-001` 与 M2 仍未完成，需等待独立 Review 和 M2 Exit 工作完成。
 
-当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 到 BullMQ 投递边界，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat/Result 边界。Worker 仍只将 PostgreSQL Outbox 投递为固定的最小 BullMQ envelope，需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`。M2-WF-003C 已完成 Worker 侧有界 lease/delivery reconciliation；M2-SRC-003 已完成成功 Result 后的已验证 URL Source evidence 绑定。M2-FETCH-001B 增加了私有、未注册的 Candidate preparation 和 Fetcher-scoped snapshot 模块；当前仍不存在 Fetcher Queue consumer、URL execution、公网请求、运行时 Object Storage 写入或 Result submission，也不提供 Source UI、Agent、Render、发布行为、部署或开发服务器。
+当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 投递与 lease reconciliation，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat/Result 边界。`M2-FETCH-001C` 已将既有受控 transport 和 Candidate/Snapshot preparation 注册到一个 `contentos-fetcher` BullMQ consumer：它校验固定的当前 generation Job、经 API Claim、执行一次抓取并提交精确 Result。PostgreSQL 与 API 仍是 Task/Source 状态权威；Fetcher 不连接数据库。仓库仍不提供 Source UI、Agent、Render、发布、部署或开发服务器。
 
 ## MVP 边界
 
@@ -80,7 +80,7 @@ corepack pnpm repository:check
 
 在 Commit 前运行 `corepack pnpm check`。它会按顺序执行 `format:check`、`lint`、`typecheck`、`test` 和 `build`，不会启动 Docker 服务、访问网络或读取 Secrets。依赖 Docker 的 `test:integration`、`test:integration:concurrent` 和 `test:browser` 不属于 `check`。`corepack pnpm repository:check`（以及聚焦的 `check:docs`、`check:decisions` 和 `check:secrets`）会对 Git 跟踪文件执行无依赖的仓库完整性检查。
 
-构建成功后，可使用 `corepack pnpm start:web`、`start:api`、`start:worker`、`start:fetcher` 或 `start:renderer` 启动相应进程。Web 提供登录、活跃／已归档 Dashboard 视图、Content Package 创建，以及元数据／归档 Workspace。API 提供存活检查、三个 `/v1/auth/*` 端点、受保护的 `/v1/content-packages` 路由、受保护的 `/v1/content-packages/:packageId/sources` 路由（粘贴文本捕获、`.md`／`.txt` 文件上传捕获、列表、读取、Working Copy 编辑、Version 创建、Version 列表、批准）、受保护的 URL-capture request 路由、私有且不进入 OpenAPI 的 Fetcher Gateway Claim/Heartbeat 路由与 Result 路由，以及 `/openapi.json`；Worker 运行有界的 Outbox Dispatcher 以及 M2-WF-003C 的 lease/delivery reconciliation，需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`，只发布固定的最小 BullMQ envelope，且不消费 Fetcher Job。Fetcher 只校验 `CONTENTOS_FETCHER_GATEWAY_SECRET` 与 `CONTENTOS_FETCHER_GATEWAY_API_ORIGIN`，仍是不会消费 Queue、调用 API 或发起公网请求的生命周期骨架。Web 与 API 的启动要求提供 `.env.example` 所记录的已验证值。
+构建成功后，可使用 `corepack pnpm start:web`、`start:api`、`start:worker`、`start:fetcher` 或 `start:renderer` 启动相应进程。Web 提供登录、活跃／已归档 Dashboard 视图、Content Package 创建，以及元数据／归档 Workspace。API 提供存活检查、三个 `/v1/auth/*` 端点、受保护的 `/v1/content-packages` 路由、受保护的 `/v1/content-packages/:packageId/sources` 路由（粘贴文本捕获、`.md`／`.txt` 文件上传捕获、列表、读取、Working Copy 编辑、Version 创建、Version 列表、批准）、受保护的 URL-capture request 路由、私有且不进入 OpenAPI 的 Fetcher Gateway Claim/Heartbeat/Result 路由，以及 `/openapi.json`；Worker 运行有界的 Outbox Dispatcher 和 lease/delivery reconciliation，只发布固定的最小 BullMQ envelope。Fetcher 需要 Gateway Secret/origin、`CONTENTOS_FETCHER_REDIS_URL` 和 Fetcher-scoped Object Storage 配置；它只消费固定的 Fetcher Job、调用私有 Gateway，且没有 PostgreSQL 凭据。Web 与 API 的启动要求提供 `.env.example` 所记录的已验证值。
 
 交互式生成本地 owner-password hash，然后仅在通过环境变量提供目标 PostgreSQL URL 后应用已提交的数据库迁移：
 
@@ -102,7 +102,7 @@ corepack pnpm infra:logs
 corepack pnpm infra:down
 ```
 
-除非在 `.env` 中覆盖，Compose 基线会在 `127.0.0.1:5432` 运行 PostgreSQL、在 `127.0.0.1:6379` 运行 Redis，并在 `127.0.0.1:8333` 运行 SeaweedFS `weed mini` S3-compatible Object Storage。其余内部组件端口不会暴露给 Host。本地镜像固定为 SeaweedFS `4.29` 及其已验证的 manifest digest。`infra:down` 会保留 named volumes。API 在应用迁移后连接 PostgreSQL 以处理 server-side Sessions、Content Package metadata、Source metadata 和 API-owned Fetcher Task lease，并连接 S3-compatible Object Storage 以处理不可变的 Raw Snapshot bytes；Worker 连接 PostgreSQL 和 Redis 仅用于投递边界。Fetcher runtime 不连接 Queue、PostgreSQL 或 Object Storage；M2-FETCH-001B 的私有 storage module 未注册到运行时。当前不存在 Fetcher URL execution、Queue consumer、Fetcher result、Agent、Render 或生产部署。
+除非在 `.env` 中覆盖，Compose 基线会在 `127.0.0.1:5432` 运行 PostgreSQL、在 `127.0.0.1:6379` 运行 Redis，并在 `127.0.0.1:8333` 运行 SeaweedFS `weed mini` S3-compatible Object Storage。其余内部组件端口不会暴露给 Host。本地镜像固定为 SeaweedFS `4.29` 及其已验证的 manifest digest。`infra:down` 会保留 named volumes。API 在应用迁移后连接 PostgreSQL 以处理 server-side Sessions、Content Package metadata、Source metadata 和 API-owned Fetcher Task lease，并连接 S3-compatible Object Storage 以处理不可变的 Raw Snapshot bytes；Worker 连接 PostgreSQL 和 Redis 仅用于投递边界。Fetcher 只连接独立的 Redis/Object Storage 身份、配置的 literal-loopback Gateway origin 和受控的公网 HTTP/HTTPS；它从不接收 `DATABASE_URL`。当前仍不存在 Agent、Render 或生产部署。
 
 要通过真实入口点和容器验证五个应用骨架及本地状态服务协同工作，请运行：
 
@@ -116,7 +116,7 @@ corepack pnpm test:integration
 
 安装固定的 Chromium revision（`corepack pnpm exec playwright install chromium`）后，运行 `corepack pnpm test:browser` 以演练完整的 M1 owner loop。其安全、清理和范围边界请阅读 [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md)。
 
-这些命令仍只是受限的 M1 基础，以及 M2 中已完成的 Source、delivery 和 M2-WF-003B Claim/Heartbeat lease slices，加上已完成的 M2-WF-003C reconciliation 实现。当前没有 `dev`、广泛的产品 E2E suite、Fetcher execution 或 Queue consumer、当前持久请求／投递／lease／recovery 边界之外的 Workflow Engine、Agent、Render 或内容发布功能。
+这些命令仍只是受限的 M1 基础，加上正在评审的 M2 Source、delivery、Fetcher execution 和 Source-evidence slices。当前没有 `dev`、广泛的产品 E2E suite、持久 request/delivery/lease/recovery/result 边界之外的 Workflow Engine、Agent、Render 或内容发布功能。
 
 ## 持续集成
 
@@ -130,7 +130,7 @@ corepack pnpm test:integration
 
 ## 下一步实施工作
 
-1. M2 — 来源与工作流基础 — 正在进行。`M2-WF-003B` 已通过 PR #73 合并，合并提交为 `c9c92b70a0ccd99be944107120f03dd3a1776da3`；`M2-WF-003C` 已通过 PR #77 完成，合并提交为 `ed428b1c12eb6e2ce01d964d56c05a09a3ba87d1`；`M2-SRC-003` 已通过 PR #82 完成，合并提交为 `6b6e4a0f2c180093db6e76090ab14b831e5631f6`；`M2-FETCH-001A` 已通过 PR #92 完成，squash merge 提交为 `551217c130f6717f4b8891ce76de1fa124bf8ee0`；`M2-FETCH-001B` 已通过 PR #96 完成，squash merge 提交为 `9b28068eb3ed266973f77bcdffe6c08776b2086c`，包含私有未注册 preparation modules；`M2-FETCH-001C` 尚未启动。Fetcher execution 仍不可用，直到未完成的 `M2-FETCH-001` 被接受。
+1. M2 — 来源与工作流基础 — 正在进行。`M2-FETCH-001C` 为 **In Review**，已启用受限 Fetcher consumer；`M2-FETCH-001` 仍未完成，需等待该切片独立审查以及 M2 exit criteria 通过。
 2. 不要从当前阶段推断 M2 范围，也不要开始 Agent、Research 或发布路径。
 
 本仓库不承诺完成日期。

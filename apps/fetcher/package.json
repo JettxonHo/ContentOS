@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@contentos/config": "workspace:*",
+    "@contentos/contracts": "workspace:*",
     "@contentos/core": "workspace:*",
     "@contentos/object-storage": "workspace:*",
+    "bullmq": "5.81.1",
     "parse5": "8.0.1"
   }
 }

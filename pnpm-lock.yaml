@@ -109,12 +109,18 @@ importers:
       '@contentos/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@contentos/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@contentos/core':
         specifier: workspace:*
         version: link:../../packages/core
       '@contentos/object-storage':
         specifier: workspace:*
         version: link:../../packages/object-storage
+      bullmq:
+        specifier: 5.81.1
+        version: 5.81.1(supports-color@7.1.0)
       parse5:
         specifier: 8.0.1
         version: 8.0.1
@@ -148,6 +154,9 @@ importers:
       '@contentos/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@contentos/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@contentos/core':
         specifier: workspace:*
         version: link:../../packages/core

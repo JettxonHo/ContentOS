@@ -46,19 +46,14 @@ The Fetcher does not own:
 
 ### Current implementation boundary
 
-`M2-FETCH-001A` implements an unregistered Fetcher-private Node.js 24 public
-transport foundation. It applies the accepted URL, address, connection, TLS,
-redirect, resource, streaming, deadline, and direct-no-proxy policies, then
-returns a one-shot private response handle. `M2-FETCH-001B` is in review with
-an equally private, unregistered preparation boundary: it strictly decodes the
-already captured bytes, derives deterministic Candidate text with
-`parse5@8.0.1` where applicable, writes and verifies one Task/Attempt-scoped
-immutable snapshot through a Fetcher-only S3-compatible identity, and
-constructs the existing Result value. The running Fetcher process remains a
-configuration-only lifecycle skeleton: it does not invoke either module,
-consume a Queue Job, Claim or Heartbeat a Task, write Object Storage, submit a
-Result, or create Source evidence. Runtime orchestration remains the separate
-`M2-FETCH-001C` Work Item.
+`M2-FETCH-001A` and `M2-FETCH-001B` are completed private Fetcher modules for
+the accepted Node.js 24 public transport, deterministic Candidate extraction,
+and Task/Attempt-scoped immutable Snapshot/Result preparation. `M2-FETCH-001C`
+is in review and registers those modules behind one fixed BullMQ consumer. The
+Fetcher validates the current-generation Job, obtains a private API Claim,
+captures once within the existing budget, then submits the exact Result. The
+API remains the only authority that changes Task or Source state; the Fetcher
+has no PostgreSQL access.
 
 ## 2. Fetcher Trust Boundary
 
@@ -217,10 +212,8 @@ hostname lookup after the policy decision.
 
 `M2-DES-006` selects `parse5@8.0.1` for the deterministic HTML extraction
 adapter, with strict UTF-8 handling and the approved text/Markdown path.
-`M2-FETCH-001B` supplies that private, unregistered adapter and the scoped
-Snapshot/Result preparation boundary. It does not itself fetch a URL, run from
-the Fetcher lifecycle process, consume a Queue Job, or submit a Result; those
-runtime steps remain unavailable until `M2-FETCH-001C` is accepted.
+`M2-FETCH-001C` is the bounded runtime composition of that existing adapter;
+it does not change the extraction or capture policy and remains In Review.
 
 ## 11. Prompt Injection Containment
 
@@ -309,10 +302,9 @@ Ordinary logs must not contain complete Source bodies, Cookies, Credentials, aut
 The connection mechanism, standard ports, fixed User-Agent, resource limits,
 redirect bound, content-type allowlist, no-automatic-retry policy, and
 deterministic extraction choice are accepted first-release policy.
-`M2-FETCH-001B` is in review; its Snapshot and Candidate preparation is not a
-runtime capability. `M2-FETCH-001C` Queue-to-Gateway orchestration remains
-separate. Neither is a policy override. The future strategy for
-JavaScript-heavy pages remains open and requires a separate review if proposed.
+`M2-FETCH-001C` is in review; it activates the existing bounded composition
+without becoming a policy override. The future strategy for JavaScript-heavy
+pages remains open and requires a separate review if proposed.
 
 ## 18. Decision Traceability
 

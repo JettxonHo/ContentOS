@@ -4,6 +4,7 @@ import type { FastifyRequest } from 'fastify';
 
 import {
   FETCHER_GATEWAY_CLAIM_HEADER,
+  FETCHER_GATEWAY_DELIVERY_GENERATION_HEADER,
   INVALID_GATEWAY_REQUEST,
   isFetcherGatewayBodyAbsent,
   type FetcherGatewayClaimResponse,
@@ -46,6 +47,15 @@ function requireSingleClaimHeader(request: FastifyRequest): string {
   return values[0] as string;
 }
 
+function requireDeliveryGeneration(request: FastifyRequest): number {
+  const values = requestHeaderValues(request, FETCHER_GATEWAY_DELIVERY_GENERATION_HEADER);
+  const value = values.length === 1 ? values[0] : undefined;
+  if (value === undefined || !/^[1-9][0-9]*$/u.test(value)) invalidGatewayRequest();
+  const generation = Number(value);
+  if (!Number.isSafeInteger(generation) || generation < 1 || generation > 2_147_483_647) invalidGatewayRequest();
+  return generation;
+}
+
 /**
  * The Result body transport requires exactly one Content-Type header whose
  * OWS-stripped value is exactly `application/json`. Parameters, compound
@@ -74,7 +84,7 @@ export class FetcherGatewayController {
     @Body() body: unknown,
   ): Promise<FetcherGatewayClaimResponse> {
     requireNoBody(request, body);
-    const result = await this.gateway.claim(taskId(rawTaskId));
+    const result = await this.gateway.claim(taskId(rawTaskId), requireDeliveryGeneration(request));
     return {
       data: {
         taskId: result.taskId,

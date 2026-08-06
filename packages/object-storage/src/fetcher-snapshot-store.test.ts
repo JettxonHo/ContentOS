@@ -38,6 +38,13 @@ function store(client: S3Client): FetcherS3SnapshotStore {
 }
 
 describe('Fetcher S3 snapshot store', () => {
+  it('closes only its owned S3 client lifecycle seam', () => {
+    let destroyed = 0;
+    const client = { send: async () => ({}), destroy: () => (destroyed += 1) } as unknown as S3Client;
+    store(client).close();
+    expect(destroyed).toBe(1);
+  });
+
   it('uses the exact immutable public-URL key and independently verifies it', async () => {
     const commands: unknown[] = [];
     const digest = createHash('sha256').update(bytes).digest('hex');

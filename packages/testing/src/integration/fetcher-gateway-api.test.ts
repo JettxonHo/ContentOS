@@ -11,6 +11,7 @@ import { signedFetch } from './sigv4.js';
 
 const SECRET_HEADER = 'x-contentos-fetcher-gateway-secret';
 const CLAIM_HEADER = 'x-contentos-fetcher-claim';
+const DELIVERY_GENERATION_HEADER = 'x-contentos-fetcher-delivery-generation';
 const OWNER_USER_ID = '00000000-0000-4000-8000-000000000001';
 
 interface GatewayFixture {
@@ -341,7 +342,10 @@ describe('M2-WF-003B private Fetcher Gateway API', () => {
         state,
         fixture,
         before,
-        gatewayRequest(state, `/internal/fetcher/tasks/${randomUUID()}/claim`, { [SECRET_HEADER]: gatewaySecret }),
+        gatewayRequest(state, `/internal/fetcher/tasks/${randomUUID()}/claim`, {
+          [SECRET_HEADER]: gatewaySecret,
+          [DELIVERY_GENERATION_HEADER]: '1',
+        }),
         409,
         'FETCHER_TASK_UNAVAILABLE',
       );
@@ -370,7 +374,10 @@ describe('M2-WF-003B private Fetcher Gateway API', () => {
       expect(openApiBody.paths).not.toHaveProperty('/internal/fetcher/tasks/{taskId}/claim');
       expect(openApiBody.paths).not.toHaveProperty('/internal/fetcher/tasks/{taskId}/heartbeat');
 
-      const claimed = await gatewayRequest(state, claimPath, { [SECRET_HEADER]: gatewaySecret });
+      const claimed = await gatewayRequest(state, claimPath, {
+        [SECRET_HEADER]: gatewaySecret,
+        [DELIVERY_GENERATION_HEADER]: '1',
+      });
       expect(claimed.status).toBe(200);
       const claimBody = (await claimed.json()) as {
         data: {
@@ -484,6 +491,7 @@ describe('M2-WF-003B private Fetcher Gateway API', () => {
           before,
           gatewayRequest(state, `/internal/fetcher/tasks/${fixture.taskId}/claim`, {
             [SECRET_HEADER]: gatewaySecret,
+            [DELIVERY_GENERATION_HEADER]: '1',
           }),
           409,
           'FETCHER_TASK_UNAVAILABLE',
@@ -500,7 +508,10 @@ describe('M2-WF-003B private Fetcher Gateway API', () => {
     const fixture = await createFixture(state);
     const claimPath = `/internal/fetcher/tasks/${fixture.taskId}/claim`;
     try {
-      const claimed = await gatewayRequest(state, claimPath, { [SECRET_HEADER]: gatewaySecret });
+      const claimed = await gatewayRequest(state, claimPath, {
+        [SECRET_HEADER]: gatewaySecret,
+        [DELIVERY_GENERATION_HEADER]: '1',
+      });
       expect(claimed.status).toBe(200);
       const claimBody = (await claimed.json()) as { data: { claim: string } };
       const claim = claimBody.data.claim;
@@ -619,6 +630,7 @@ async function claimFixture(
 ): Promise<ClaimedFixture> {
   const claimed = await gatewayRequest(state, `/internal/fetcher/tasks/${fixture.taskId}/claim`, {
     [SECRET_HEADER]: gatewaySecret,
+    [DELIVERY_GENERATION_HEADER]: '1',
   });
   expect(claimed.status).toBe(200);
   const body = (await claimed.json()) as { data: { claim: string; attemptNumber: number } };

@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { createConnection, createServer, type Server, type Socket } from 'node:net';
 import { join } from 'node:path';
 
+import { buildFetcherTaskJobId, FETCHER_JOB_ATTEMPTS, FETCHER_JOB_NAME } from '@contentos/contracts';
+import { Queue } from 'bullmq';
 import { Client } from 'pg';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -227,7 +229,12 @@ describe('process lifecycle', () => {
                 ...process.env,
                 CONTENTOS_ENV: 'test',
                 CONTENTOS_FETCHER_GATEWAY_SECRET: credentials.CONTENTOS_FETCHER_GATEWAY_SECRET,
-                CONTENTOS_FETCHER_GATEWAY_API_ORIGIN: 'http://127.0.0.1:3001',
+                CONTENTOS_FETCHER_GATEWAY_API_ORIGIN: state.apiOrigin,
+                CONTENTOS_FETCHER_REDIS_URL: `redis://:${encodeURIComponent(credentials.REDIS_PASSWORD ?? '')}@127.0.0.1:${state.ports.redis}`,
+                CONTENTOS_FETCHER_OBJECT_STORAGE_ENDPOINT: `http://127.0.0.1:${state.ports.objectStorage}`,
+                CONTENTOS_FETCHER_OBJECT_STORAGE_BUCKET: state.objectStorageBucket,
+                CONTENTOS_FETCHER_OBJECT_STORAGE_ACCESS_KEY: credentials.OBJECT_STORAGE_ACCESS_KEY,
+                CONTENTOS_FETCHER_OBJECT_STORAGE_SECRET_KEY: credentials.OBJECT_STORAGE_SECRET_KEY,
               }
             : process.env;
       const child = spawn(process.execPath, [join(appDir, 'dist', 'main.js')], {
@@ -537,5 +544,86 @@ describe('Fetcher startup configuration boundary', () => {
     expect(stdout).not.toContain('process.started');
     expect(stderr).toContain('CONTENTOS_FETCHER_GATEWAY_SECRET');
     expect(stderr).not.toContain(marker);
+  });
+
+  it('exits non-zero on a private Gateway identity failure without logging sensitive details', async () => {
+    const state = requireState();
+    const credentials = readComposeCredentials(state.envFile);
+    const secretMarker = 'P'.repeat(43);
+    const responseMarker = 'gateway-private-response-marker';
+    const gateway = createServer((socket) => {
+      socket.once('data', () => {
+        const body = JSON.stringify({ error: { code: 'FETCHER_GATEWAY_UNAUTHENTICATED', marker: responseMarker } });
+        socket.end(
+          `HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json\r\nContent-Length: ${Buffer.byteLength(body)}\r\nConnection: close\r\n\r\n${body}`,
+        );
+      });
+    });
+    await new Promise<void>((resolve, reject) => {
+      gateway.once('error', reject);
+      gateway.listen(0, '127.0.0.1', resolve);
+    });
+    const address = gateway.address();
+    if (address === null || typeof address === 'string') throw new Error('gateway lifecycle fixture did not bind');
+    const gatewayOrigin = `http://127.0.0.1:${address.port}`;
+    const queue = new Queue('contentos-fetcher', {
+      connection: {
+        url: `redis://:${encodeURIComponent(credentials.REDIS_PASSWORD ?? '')}@127.0.0.1:${state.ports.redis}`,
+      },
+    });
+    const child = spawn(process.execPath, [join(state.repoRoot, 'apps', 'fetcher', 'dist', 'main.js')], {
+      cwd: join(state.repoRoot, 'apps', 'fetcher'),
+      env: {
+        ...process.env,
+        CONTENTOS_ENV: 'test',
+        CONTENTOS_FETCHER_GATEWAY_SECRET: secretMarker,
+        CONTENTOS_FETCHER_GATEWAY_API_ORIGIN: gatewayOrigin,
+        CONTENTOS_FETCHER_REDIS_URL: `redis://:${encodeURIComponent(credentials.REDIS_PASSWORD ?? '')}@127.0.0.1:${state.ports.redis}`,
+        CONTENTOS_FETCHER_OBJECT_STORAGE_ENDPOINT: `http://127.0.0.1:${state.ports.objectStorage}`,
+        CONTENTOS_FETCHER_OBJECT_STORAGE_BUCKET: state.objectStorageBucket,
+        CONTENTOS_FETCHER_OBJECT_STORAGE_ACCESS_KEY: credentials.OBJECT_STORAGE_ACCESS_KEY,
+        CONTENTOS_FETCHER_OBJECT_STORAGE_SECRET_KEY: credentials.OBJECT_STORAGE_SECRET_KEY,
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout?.setEncoding('utf8');
+    child.stderr?.setEncoding('utf8');
+    child.stdout?.on('data', (chunk: string) => {
+      stdout += chunk;
+    });
+    child.stderr?.on('data', (chunk: string) => {
+      stderr += chunk;
+    });
+    try {
+      const startedDeadline = Date.now() + 15_000;
+      while (!stdout.includes('process.started') && Date.now() < startedDeadline) await sleep(50);
+      expect(stdout).toContain('process.started');
+      const taskId = randomUUID();
+      await queue.add(
+        FETCHER_JOB_NAME,
+        { taskId, taskKind: 'url_capture', envelopeVersion: 'fetcher-task/v1' },
+        {
+          jobId: buildFetcherTaskJobId(taskId, 1),
+          attempts: FETCHER_JOB_ATTEMPTS,
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+      const exitCode = await waitForExit(child, 15_000);
+      expect(exitCode).not.toBe(0);
+      expect(stdout).toContain('gateway_protocol_failure');
+      expect(stdout).toContain('process.stopping');
+      expect(`${stdout}\n${stderr}`).not.toContain(secretMarker);
+      expect(`${stdout}\n${stderr}`).not.toContain(responseMarker);
+      expect(`${stdout}\n${stderr}`).not.toContain(gatewayOrigin);
+      expect(`${stdout}\n${stderr}`).not.toContain('stack');
+      expect(stderr).toBe('');
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) await terminate(child, 10_000);
+      await queue.close();
+      await new Promise<void>((resolve) => gateway.close(() => resolve()));
+    }
   });
 });

@@ -97,6 +97,7 @@ const claimEligibility = `
     AND o.category = 'fetcher'
     AND o.envelope_version = 'fetcher-task/v1'
     AND o.state = 'dispatched'
+    AND o.delivery_generation = $2
     AND o.dispatched_at IS NOT NULL
     AND o.last_dispatch_at IS NOT NULL
     AND o.payload->>'taskId' = t.id::text
@@ -109,6 +110,7 @@ export class DrizzleWorkflowFetcherGatewayRepository {
 
   async claimTask(input: {
     readonly taskId: WorkflowTaskId;
+    readonly deliveryGeneration: number;
     readonly claimHash: string;
     readonly now: Date;
   }): Promise<FetcherGatewayClaimRecord | null> {
@@ -123,7 +125,7 @@ export class DrizzleWorkflowFetcherGatewayRepository {
                 t.claim_attempt_number, t.lease_expires_at
          ${claimEligibility}
          FOR UPDATE OF t, i, n, p, c, r, o`,
-        [input.taskId],
+        [input.taskId, input.deliveryGeneration],
       );
       const row = eligible.rows[0];
       if (!row) {

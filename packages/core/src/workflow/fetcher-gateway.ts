@@ -64,6 +64,7 @@ export interface FetcherGatewayHeartbeatRecord {
 export interface FetcherGatewayClaimRepository {
   claimTask(input: {
     readonly taskId: WorkflowTaskId;
+    readonly deliveryGeneration: number;
     readonly claimHash: string;
     readonly now: Date;
   }): Promise<FetcherGatewayClaimRecord | null>;
@@ -135,7 +136,7 @@ function validTaskId(value: unknown): value is WorkflowTaskId {
 }
 
 function validGeneration(value: unknown): value is number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1;
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1 && value <= 2_147_483_647;
 }
 
 function validOpaqueClaim(value: unknown): value is string {
@@ -280,13 +281,20 @@ export class FetcherGatewayService {
     private readonly clock: FetcherGatewayClock,
   ) {}
 
-  async claim(taskId: WorkflowTaskId): Promise<FetcherGatewayClaimResponse> {
-    if (!validTaskId(taskId)) throw new FetcherGatewayApplicationError('FETCHER_TASK_UNAVAILABLE');
+  async claim(taskId: WorkflowTaskId, deliveryGeneration: number): Promise<FetcherGatewayClaimResponse> {
+    if (!validTaskId(taskId) || !validGeneration(deliveryGeneration)) {
+      throw new FetcherGatewayApplicationError('FETCHER_TASK_UNAVAILABLE');
+    }
     const now = this.clock.now();
     if (!validDate(now)) throw new FetcherGatewayApplicationError('FETCHER_TASK_UNAVAILABLE');
     const claim = this.claims.generate();
     const claimHash = hashFetcherGatewayClaim(claim);
-    const record = await this.repository.claimTask({ taskId, claimHash, now: new Date(now.getTime()) });
+    const record = await this.repository.claimTask({
+      taskId,
+      deliveryGeneration,
+      claimHash,
+      now: new Date(now.getTime()),
+    });
     if (record === null) throw new FetcherGatewayApplicationError('FETCHER_TASK_UNAVAILABLE');
     return defineFetcherGatewayClaimResponse({
       taskId: record.taskId,

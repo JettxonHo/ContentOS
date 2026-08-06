@@ -125,7 +125,7 @@ the deterministic current-generation Job with the unchanged three-field
 envelope. This reconciliation boundary adds no Fetcher consumer, URL request, result,
 Source evidence, Object Storage write, or public-network capability.
 
-`M2-SRC-003` (In Review, branch `codex/m2-src-003-result-source-evidence`) adds the
+`M2-SRC-003` is completed through PR #82 and adds the
 API-owned Fetch Result boundary. The private route
 `POST /internal/fetcher/tasks/:taskId/result` accepts one exact-shape
 `fetcher-result/v1` submission from the authenticated Fetcher service using the
@@ -145,6 +145,14 @@ object-integrity failures are recorded as server-derived failure categories.
 No Source Version, Source Approval, or Owner Retry is created; the boundary
 performs no public fetch and no Queue consumption. A terminal Task is never
 dispatched, claimed, heartbeated, or recovered again.
+
+`M2-FETCH-001C` is in review and composes the completed private public
+transport, Candidate extraction, and scoped Snapshot writer behind one fixed
+BullMQ consumer. A valid current-generation Job is claimed through the private
+API, captured once, prepared, and submitted as the existing exact Result.
+PostgreSQL remains Workflow truth: stale, duplicate, terminal, or otherwise
+ineligible Jobs are Fetcher no-ops, and the Fetcher has no direct Task, Source,
+or database write authority.
 
 ## 4. Workflow Instance
 

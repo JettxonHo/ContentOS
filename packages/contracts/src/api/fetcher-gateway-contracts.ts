@@ -1,7 +1,10 @@
+import { Ajv2020, type ValidateFunction } from 'ajv/dist/2020.js';
+
 import type { PortableJsonSchema } from './error-contract.js';
 
 export const FETCHER_GATEWAY_SECRET_HEADER = 'x-contentos-fetcher-gateway-secret' as const;
 export const FETCHER_GATEWAY_CLAIM_HEADER = 'x-contentos-fetcher-claim' as const;
+export const FETCHER_GATEWAY_DELIVERY_GENERATION_HEADER = 'x-contentos-fetcher-delivery-generation' as const;
 export const FETCHER_GATEWAY_UNAUTHENTICATED = 'FETCHER_GATEWAY_UNAUTHENTICATED' as const;
 export const INVALID_GATEWAY_REQUEST = 'INVALID_GATEWAY_REQUEST' as const;
 export const FETCHER_TASK_UNAVAILABLE = 'FETCHER_TASK_UNAVAILABLE' as const;
@@ -169,6 +172,41 @@ export const fetcherGatewayResultResponseSchema: PortableJsonSchema = {
     },
   },
 };
+
+export class FetcherGatewayContractError extends Error {
+  constructor() {
+    super('invalid_fetcher_gateway_response');
+    this.name = 'FetcherGatewayContractError';
+  }
+}
+
+const ajv = new Ajv2020({ allErrors: true, strict: true });
+const validateClaim = ajv.compile<FetcherGatewayClaimResponse>(
+  fetcherGatewayClaimResponseSchema,
+) as ValidateFunction<FetcherGatewayClaimResponse>;
+const validateHeartbeat = ajv.compile<FetcherGatewayHeartbeatResponse>(
+  fetcherGatewayHeartbeatResponseSchema,
+) as ValidateFunction<FetcherGatewayHeartbeatResponse>;
+const validateResult = ajv.compile<FetcherGatewayResultResponse>(
+  fetcherGatewayResultResponseSchema,
+) as ValidateFunction<FetcherGatewayResultResponse>;
+
+function parse<T>(value: unknown, validate: ValidateFunction<T>): T {
+  if (!validate(value)) throw new FetcherGatewayContractError();
+  return value;
+}
+
+export function parseFetcherGatewayClaimResponse(value: unknown): FetcherGatewayClaimResponse {
+  return parse(value, validateClaim);
+}
+
+export function parseFetcherGatewayHeartbeatResponse(value: unknown): FetcherGatewayHeartbeatResponse {
+  return parse(value, validateHeartbeat);
+}
+
+export function parseFetcherGatewayResultResponse(value: unknown): FetcherGatewayResultResponse {
+  return parse(value, validateResult);
+}
 
 export function isFetcherGatewayBodyAbsent(body: unknown): body is undefined {
   return body === undefined;

@@ -116,12 +116,13 @@ No production Secret Manager is selected here.
   the opaque claim is sent only in the private Heartbeat header and only its
   hash is persisted. `CONTENTOS_FETCHER_GATEWAY_API_ORIGIN` is non-secret and
   is restricted to the approved loopback HTTP(S) origin.
-- The Fetcher Object Storage identity, when its later runtime registration is
-  accepted, uses only `CONTENTOS_FETCHER_OBJECT_STORAGE_ACCESS_KEY` and
+- The Fetcher Object Storage identity uses only
+  `CONTENTOS_FETCHER_OBJECT_STORAGE_ACCESS_KEY` and
   `CONTENTOS_FETCHER_OBJECT_STORAGE_SECRET_KEY` with the matching Fetcher-only
-  endpoint, region, bucket, and path-style settings. It never falls back to
-  API Object Storage credentials and is not loaded by the current lifecycle
-  skeleton.
+  endpoint, region, bucket, and path-style settings. `M2-FETCH-001C` also
+  requires the separate `CONTENTOS_FETCHER_REDIS_URL`; none of these settings
+  fall back to API or Worker credentials, and the Fetcher never receives
+  `DATABASE_URL`.
 - A signed URL is temporary credential material: it is short-lived, scoped, excluded from ordinary logs, and never a permanent Object Reference.
 
 ## 8. Rotation and Revocation

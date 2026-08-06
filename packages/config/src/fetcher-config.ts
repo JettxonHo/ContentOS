@@ -1,4 +1,5 @@
 import { ConfigurationError, type RuntimeEnvironment } from './api-config.js';
+import { loadFetcherSnapshotConfig, type FetcherSnapshotConfig } from './fetcher-snapshot-config.js';
 
 export const FETCHER_GATEWAY_SECRET_PATTERN = /^[A-Za-z0-9_-]+$/;
 export const FETCHER_GATEWAY_SECRET_MIN_LENGTH = 43;
@@ -8,6 +9,8 @@ export interface FetcherConfig {
   readonly environment: RuntimeEnvironment;
   readonly gatewaySecret: string;
   readonly apiOrigin: string;
+  readonly redisUrl: string;
+  readonly snapshot: FetcherSnapshotConfig;
 }
 
 function required(env: NodeJS.ProcessEnv, key: string): string {
@@ -66,5 +69,21 @@ export function loadFetcherConfig(env: NodeJS.ProcessEnv): FetcherConfig {
   const gatewaySecret = required(env, 'CONTENTOS_FETCHER_GATEWAY_SECRET');
   validateFetcherGatewaySecret(gatewaySecret);
   const apiOrigin = validateFetcherGatewayApiOrigin(required(env, 'CONTENTOS_FETCHER_GATEWAY_API_ORIGIN'));
-  return { environment: runtimeEnvironment(env), gatewaySecret, apiOrigin };
+  const redisUrl = required(env, 'CONTENTOS_FETCHER_REDIS_URL');
+  let redis: URL;
+  try {
+    redis = new URL(redisUrl);
+  } catch {
+    throw new ConfigurationError('CONTENTOS_FETCHER_REDIS_URL', 'must be a Redis URL');
+  }
+  if ((redis.protocol !== 'redis:' && redis.protocol !== 'rediss:') || redis.hostname === '') {
+    throw new ConfigurationError('CONTENTOS_FETCHER_REDIS_URL', 'must be a Redis URL');
+  }
+  return {
+    environment: runtimeEnvironment(env),
+    gatewaySecret,
+    apiOrigin,
+    redisUrl,
+    snapshot: loadFetcherSnapshotConfig(env),
+  };
 }
