@@ -49,7 +49,7 @@ content, delivery internals, or legal Workflow Commands.
 - [Test Strategy](../../quality/test-strategy.md)
 - [M2 Exit Criteria](../milestone-exit-criteria.md#12-m2-exit-criteria)
 - [Roadmap](../roadmap.md)
-- [M2-WF-001 — Workflow persistence foundation](m2-wf-001-template-instance-node-event.md)
+- [M2-WF-001 — Workflow persistence foundation](m2-wf-001-template-instance-node-event-persistence.md)
 - [M2-WF-002 — Atomic URL-capture command](m2-wf-002-atomic-url-capture-command.md)
 - [M2-WF-003A — Transactional Outbox dispatch](m2-wf-003a-transactional-outbox-dispatch.md)
 - [M2-WF-003B — Fetcher claim and lease](m2-wf-003b-fetcher-gateway-claim-lease.md)
