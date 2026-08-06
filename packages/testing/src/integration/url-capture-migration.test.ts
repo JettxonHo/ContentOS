@@ -21,7 +21,7 @@ const MIGRATIONS = [
   '0006_special_triton.sql',
 ] as const;
 const LEASE_MIGRATION = '0007_silent_alex_power.sql';
-const RESULT_MIGRATION = '0008_useful_shooting_star.sql';
+const RESULT_MIGRATION = '0008_tricky_wolf_cub.sql';
 
 function postgresConfig(database: string): {
   host: string;

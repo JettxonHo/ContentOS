@@ -1,4 +1,4 @@
-import type { SourceSnapshotContentType } from './source-values.js';
+import type { PastedUploadSnapshotContentType } from './source-values.js';
 
 /**
  * Result of storing immutable object bytes.
@@ -22,8 +22,9 @@ export interface ObjectStore {
    * Stores immutable bytes under an opaque owner/package/source/snapshot-scoped key.
    * Returns the storage key, SHA-256 hex digest, and byte size.
    * Must not overwrite an existing object for the same key.
-   * `contentType` must be one of the allowlisted Source snapshot content
-   * types (`SOURCE_SNAPSHOT_CONTENT_TYPES`); adapters reject other values.
+   * `contentType` must be one of the two allowlisted pasted/upload snapshot
+   * content types. URL-capture media types are read-only at this Port until the
+   * separately approved Fetcher writer exists.
    */
   putImmutable(input: {
     readonly ownerUserId: string;
@@ -31,7 +32,7 @@ export interface ObjectStore {
     readonly sourceId: string;
     readonly snapshotId: string;
     readonly bytes: Uint8Array;
-    readonly contentType: SourceSnapshotContentType;
+    readonly contentType: PastedUploadSnapshotContentType;
   }): Promise<StoredObject>;
 
   /**

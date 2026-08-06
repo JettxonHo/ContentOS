@@ -614,6 +614,19 @@ export const urlCaptureRequests = pgTable(
   },
   (table) => [
     unique('url_capture_requests_id_package_owner_unique').on(table.id, table.contentPackageId, table.ownerUserId),
+    unique('url_capture_requests_id_reference_package_owner_unique').on(
+      table.id,
+      table.sourceReferenceId,
+      table.contentPackageId,
+      table.ownerUserId,
+    ),
+    unique('url_capture_requests_id_node_instance_package_owner_unique').on(
+      table.id,
+      table.workflowNodeId,
+      table.workflowInstanceId,
+      table.contentPackageId,
+      table.ownerUserId,
+    ),
     unique('url_capture_requests_source_reference_unique').on(table.sourceReferenceId),
     unique('url_capture_requests_node_unique').on(table.workflowNodeId),
     unique('url_capture_requests_owner_package_kind_key_unique').on(
@@ -677,6 +690,12 @@ export const workflowTasks = pgTable(
   },
   (table) => [
     unique('workflow_tasks_id_package_owner_unique').on(table.id, table.contentPackageId, table.ownerUserId),
+    unique('workflow_tasks_id_request_package_owner_unique').on(
+      table.id,
+      table.urlCaptureRequestId,
+      table.contentPackageId,
+      table.ownerUserId,
+    ),
     unique('workflow_tasks_request_unique').on(table.urlCaptureRequestId),
     foreignKey({
       name: 'workflow_tasks_instance_binding_fk',
@@ -697,6 +716,23 @@ export const workflowTasks = pgTable(
       name: 'workflow_tasks_request_binding_fk',
       columns: [table.urlCaptureRequestId, table.contentPackageId, table.ownerUserId],
       foreignColumns: [urlCaptureRequests.id, urlCaptureRequests.contentPackageId, urlCaptureRequests.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'workflow_tasks_request_graph_binding_fk',
+      columns: [
+        table.urlCaptureRequestId,
+        table.workflowNodeId,
+        table.workflowInstanceId,
+        table.contentPackageId,
+        table.ownerUserId,
+      ],
+      foreignColumns: [
+        urlCaptureRequests.id,
+        urlCaptureRequests.workflowNodeId,
+        urlCaptureRequests.workflowInstanceId,
+        urlCaptureRequests.contentPackageId,
+        urlCaptureRequests.ownerUserId,
+      ],
     }).onDelete('restrict'),
     index('workflow_tasks_owner_package_state_idx').on(table.ownerUserId, table.contentPackageId, table.state),
     check('workflow_tasks_kind_check', sql`${table.kind} = 'url_capture'`),
@@ -801,13 +837,23 @@ export const urlCaptureResults = pgTable(
     unique('url_capture_results_id_task_owner_unique').on(table.id, table.taskId, table.ownerUserId),
     foreignKey({
       name: 'url_capture_results_task_binding_fk',
-      columns: [table.taskId, table.contentPackageId, table.ownerUserId],
-      foreignColumns: [workflowTasks.id, workflowTasks.contentPackageId, workflowTasks.ownerUserId],
+      columns: [table.taskId, table.urlCaptureRequestId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [
+        workflowTasks.id,
+        workflowTasks.urlCaptureRequestId,
+        workflowTasks.contentPackageId,
+        workflowTasks.ownerUserId,
+      ],
     }).onDelete('restrict'),
     foreignKey({
       name: 'url_capture_results_request_binding_fk',
-      columns: [table.urlCaptureRequestId, table.contentPackageId, table.ownerUserId],
-      foreignColumns: [urlCaptureRequests.id, urlCaptureRequests.contentPackageId, urlCaptureRequests.ownerUserId],
+      columns: [table.urlCaptureRequestId, table.sourceReferenceId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [
+        urlCaptureRequests.id,
+        urlCaptureRequests.sourceReferenceId,
+        urlCaptureRequests.contentPackageId,
+        urlCaptureRequests.ownerUserId,
+      ],
     }).onDelete('restrict'),
     foreignKey({
       name: 'url_capture_results_reference_binding_fk',

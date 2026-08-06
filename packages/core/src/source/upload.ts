@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 
 import {
-  type SourceSnapshotContentType,
+  type PastedUploadSnapshotContentType,
   PASTED_TEXT_MAX_BYTES,
   UPLOAD_EXTENSION_CONTENT_TYPES,
   type UploadExtension,
@@ -58,7 +58,7 @@ export const ACCEPTED_UPLOAD_DECLARED_MEDIA_TYPES = ['text/plain', 'text/markdow
 
 export interface ValidatedUploadFile {
   readonly extension: UploadExtension;
-  readonly contentType: SourceSnapshotContentType;
+  readonly contentType: PastedUploadSnapshotContentType;
   /** Decoded normalized text: strict UTF-8, one leading BOM stripped. */
   readonly text: string;
   /** Sanitized filename stem (≤200 scalar values) or null when empty. */

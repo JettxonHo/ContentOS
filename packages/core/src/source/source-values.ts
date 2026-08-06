@@ -27,6 +27,7 @@ export const PASTED_UPLOAD_SNAPSHOT_CONTENT_TYPES = [
   'text/plain; charset=utf-8',
   'text/markdown; charset=utf-8',
 ] as const;
+export type PastedUploadSnapshotContentType = (typeof PASTED_UPLOAD_SNAPSHOT_CONTENT_TYPES)[number];
 
 /**
  * Raw Snapshot content types for the `public_url` key family (M2-SRC-003).
@@ -37,11 +38,10 @@ export const URL_SNAPSHOT_CONTENT_TYPES = ['text/html', 'text/plain', 'text/mark
 export type UrlSnapshotContentType = (typeof URL_SNAPSHOT_CONTENT_TYPES)[number];
 
 /**
- * Allowlisted Raw Snapshot content types across both key families. The
- * Object Storage adapter uses this set for both the no-overwrite write path
- * (pasted/upload only, before M2-FETCH-001) and the integrity read path; the
- * `public_url` entries are required so a verified URL Raw Snapshot can be
- * integrity-read without modifying `packages/object-storage`.
+ * Integrity-read allowlist across both key families. Immutable pasted/upload
+ * writes remain restricted to `PASTED_UPLOAD_SNAPSHOT_CONTENT_TYPES`; the
+ * `public_url` entries exist only so an already-written, task-scoped Fetcher
+ * object can be verified before Source promotion.
  */
 export const SOURCE_SNAPSHOT_CONTENT_TYPES = [
   ...PASTED_UPLOAD_SNAPSHOT_CONTENT_TYPES,
@@ -86,7 +86,7 @@ export const UPLOAD_FILE_MAX_BYTES = 100_000;
 export const UPLOAD_EXTENSION_CONTENT_TYPES = {
   '.md': 'text/markdown; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',
-} as const satisfies Record<string, SourceSnapshotContentType>;
+} as const satisfies Record<string, PastedUploadSnapshotContentType>;
 export type UploadExtension = keyof typeof UPLOAD_EXTENSION_CONTENT_TYPES;
 
 export const MAX_SUPPORTING_SOURCES = 5;

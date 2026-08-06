@@ -564,10 +564,14 @@ replacement for the existing pasted/upload key.
    - no longer generically claim that every Source has a single
      `sources/...` key pattern.
 
-7. The current `S3ObjectStore.readForIntegrity` and `deleteForCompensation`
-   use the full key, so M2-SRC-003 does not require modifying
-   `packages/object-storage`. If the real implementation proves that package
-   must change, stop and re-review; do not self-expand the file range.
+7. Independent security review proved the existing
+   `S3ObjectStore.readForIntegrity` buffered the entire object before checking
+   its size, and the shared read allowlist indirectly widened the pasted/upload
+   write Port. The bounded correction therefore authorizes only
+   `packages/object-storage/src/s3-object-store.ts` and its focused unit test to
+   enforce a streaming 2 MiB integrity-read cap and separate read/write media
+   allowlists. No Fetcher writer, credential, provider, dependency, or public
+   network behavior is authorized.
 
 8. No new DEC is required: this is a reversible key-layout refinement within
    the accepted Object Storage/Fetcher boundary; it does not change
@@ -768,6 +772,9 @@ packages/core/src/source/source-service.test.ts
 packages/core/src/workflow/fetcher-gateway.ts
 packages/core/src/workflow/fetcher-gateway.test.ts
 
+packages/object-storage/src/s3-object-store.ts
+packages/object-storage/src/s3-object-store.test.ts
+
 packages/database/src/index.ts
 packages/database/src/runtime.ts
 packages/database/src/schema.ts
@@ -804,18 +811,22 @@ docs/implementation/work-packets/m2-src-003-url-capture-result-source-evidence.m
 docs/security/source-fetcher.md
 ```
 
-The following three files were added to the boundary by the bounded
+The following five files were added to the boundary by bounded
 independent-review Correction Packet for PR #82:
 `packages/testing/src/integration/postgres.test.ts`,
 `packages/contracts/src/api/source-contracts.ts`, and
-`packages/contracts/src/api/source-contracts.test.ts`. Added by the bounded
-independent-review Correction Packet for PR #82. No product, architecture,
-security, dependency, or Fetcher execution scope change is authorized.
+`packages/contracts/src/api/source-contracts.test.ts`, followed by
+`packages/object-storage/src/s3-object-store.ts` and
+`packages/object-storage/src/s3-object-store.test.ts` for the security
+hardening described in §9. Added by bounded independent-review Correction
+Packets for PR #82. No product, architecture, dependency, or Fetcher execution
+scope change is authorized.
 
 New files are allowed only:
 
 ```text
 packages/database/src/url-capture-result-repository.ts
+packages/object-storage/src/s3-object-store.test.ts
 packages/testing/src/integration/url-capture-result.test.ts
 the generated 0008 migration/meta
 ```

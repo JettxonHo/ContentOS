@@ -1076,6 +1076,14 @@ describe('Source protected API smoke', () => {
       bytes: new TextEncoder().encode('adapter conditional-write proof'),
       contentType: 'text/plain; charset=utf-8',
     };
+    await expect(
+      adapter.putImmutable({
+        ...immutableInput,
+        sourceId: randomUUID() as never,
+        snapshotId: randomUUID() as never,
+        contentType: 'text/html',
+      }),
+    ).rejects.toMatchObject({ reason: 'WRITE_FAILED' });
     const stored = await adapter.putImmutable(immutableInput);
     await expect(adapter.putImmutable(immutableInput)).rejects.toMatchObject({ reason: 'WRITE_FAILED' });
     expect(await adapter.readForIntegrity(stored)).toBe(true);

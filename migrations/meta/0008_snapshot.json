@@ -1,5 +1,5 @@
 {
-  "id": "52cd272e-e500-4930-8070-5e9a693ea49b",
+  "id": "8b9969d4-7c0d-42be-90c1-ae27e703231a",
   "prevId": "c48b047b-3aef-4cce-b8fa-4004a2d1c9a6",
   "version": "7",
   "dialect": "postgresql",
@@ -1276,6 +1276,16 @@
           "nullsNotDistinct": false,
           "columns": ["id", "content_package_id", "owner_user_id"]
         },
+        "url_capture_requests_id_reference_package_owner_unique": {
+          "name": "url_capture_requests_id_reference_package_owner_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id", "source_reference_id", "content_package_id", "owner_user_id"]
+        },
+        "url_capture_requests_id_node_instance_package_owner_unique": {
+          "name": "url_capture_requests_id_node_instance_package_owner_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id", "workflow_node_id", "workflow_instance_id", "content_package_id", "owner_user_id"]
+        },
         "url_capture_requests_source_reference_unique": {
           "name": "url_capture_requests_source_reference_unique",
           "nullsNotDistinct": false,
@@ -1460,8 +1470,8 @@
           "name": "url_capture_results_task_binding_fk",
           "tableFrom": "url_capture_results",
           "tableTo": "workflow_tasks",
-          "columnsFrom": ["task_id", "content_package_id", "owner_user_id"],
-          "columnsTo": ["id", "content_package_id", "owner_user_id"],
+          "columnsFrom": ["task_id", "url_capture_request_id", "content_package_id", "owner_user_id"],
+          "columnsTo": ["id", "url_capture_request_id", "content_package_id", "owner_user_id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1469,8 +1479,8 @@
           "name": "url_capture_results_request_binding_fk",
           "tableFrom": "url_capture_results",
           "tableTo": "url_capture_requests",
-          "columnsFrom": ["url_capture_request_id", "content_package_id", "owner_user_id"],
-          "columnsTo": ["id", "content_package_id", "owner_user_id"],
+          "columnsFrom": ["url_capture_request_id", "source_reference_id", "content_package_id", "owner_user_id"],
+          "columnsTo": ["id", "source_reference_id", "content_package_id", "owner_user_id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2472,6 +2482,21 @@
           "columnsTo": ["id", "content_package_id", "owner_user_id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
+        },
+        "workflow_tasks_request_graph_binding_fk": {
+          "name": "workflow_tasks_request_graph_binding_fk",
+          "tableFrom": "workflow_tasks",
+          "tableTo": "url_capture_requests",
+          "columnsFrom": [
+            "url_capture_request_id",
+            "workflow_node_id",
+            "workflow_instance_id",
+            "content_package_id",
+            "owner_user_id"
+          ],
+          "columnsTo": ["id", "workflow_node_id", "workflow_instance_id", "content_package_id", "owner_user_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2480,6 +2505,11 @@
           "name": "workflow_tasks_id_package_owner_unique",
           "nullsNotDistinct": false,
           "columns": ["id", "content_package_id", "owner_user_id"]
+        },
+        "workflow_tasks_id_request_package_owner_unique": {
+          "name": "workflow_tasks_id_request_package_owner_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id", "url_capture_request_id", "content_package_id", "owner_user_id"]
         },
         "workflow_tasks_request_unique": {
           "name": "workflow_tasks_request_unique",

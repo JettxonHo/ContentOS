@@ -198,12 +198,40 @@ async function cleanup(commandBoundary: UrlCaptureRepositoryTestBoundary, packag
   await commandBoundary.query('DELETE FROM workflow_tasks WHERE content_package_id = $1', [packageId]);
   await commandBoundary.query('DELETE FROM url_capture_requests WHERE content_package_id = $1', [packageId]);
   await commandBoundary.query('DELETE FROM url_source_references WHERE content_package_id = $1', [packageId]);
-  await commandBoundary.query('ALTER TABLE workflow_events DISABLE TRIGGER workflow_events_immutable_trigger');
-  await commandBoundary.query('DELETE FROM workflow_events WHERE content_package_id = $1', [packageId]);
-  await commandBoundary.query('ALTER TABLE workflow_events ENABLE TRIGGER workflow_events_immutable_trigger');
+  await withWorkflowEventsUnlocked(commandBoundary, async () => {
+    await commandBoundary.query('DELETE FROM workflow_events WHERE content_package_id = $1', [packageId]);
+  });
   await commandBoundary.query('DELETE FROM workflow_nodes WHERE content_package_id = $1', [packageId]);
   await commandBoundary.query('DELETE FROM workflow_instances WHERE content_package_id = $1', [packageId]);
   await commandBoundary.query('DELETE FROM content_packages WHERE id = $1', [packageId]);
+}
+
+async function withWorkflowEventsUnlocked(
+  boundary: UrlCaptureRepositoryTestBoundary,
+  fn: () => Promise<void>,
+): Promise<void> {
+  await boundary.query('ALTER TABLE workflow_events DISABLE TRIGGER workflow_events_immutable_trigger');
+  try {
+    await fn();
+  } finally {
+    await boundary.query('ALTER TABLE workflow_events ENABLE TRIGGER workflow_events_immutable_trigger');
+  }
+}
+
+async function waitForResultPackageLock(boundary: UrlCaptureRepositoryTestBoundary): Promise<void> {
+  for (let attempt = 0; attempt < 1_000; attempt += 1) {
+    const [waiting] = await boundary.query<{ waiting: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM pg_stat_activity
+         WHERE datname = current_database()
+           AND wait_event_type = 'Lock'
+           AND query LIKE 'SELECT lifecycle FROM content_packages%FOR UPDATE%'
+       ) AS waiting`,
+    );
+    if (waiting?.waiting) return;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error('result_package_lock_wait_not_observed');
 }
 
 describe('M2-SRC-003 PostgreSQL url_capture_results repository', () => {
@@ -390,6 +418,74 @@ describe('M2-SRC-003 PostgreSQL url_capture_results repository', () => {
     }
   });
 
+  it('rejects a Task whose Node binding does not match its URL Capture Request', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const [task] = await commandBoundary.query<{
+        workflow_instance_id: string;
+        content_package_id: string;
+        owner_user_id: string;
+      }>(
+        `SELECT workflow_instance_id, content_package_id, owner_user_id
+         FROM workflow_tasks WHERE id = $1`,
+        [fixture.taskId],
+      );
+      const mismatchedNodeId = randomUUID();
+      await commandBoundary.query(
+        `INSERT INTO workflow_nodes
+           (id, workflow_instance_id, content_package_id, owner_user_id, template_id, template_version,
+            template_node_key, state, revision, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'content-package-dual-output', 'v1',
+                 'source_review', 'awaiting_human', 1, now(), now())`,
+        [mismatchedNodeId, task?.workflow_instance_id, task?.content_package_id, task?.owner_user_id],
+      );
+      await commandBoundary.query('ALTER TABLE workflow_tasks DISABLE TRIGGER ALL');
+      try {
+        await commandBoundary.query('UPDATE workflow_tasks SET workflow_node_id = $2 WHERE id = $1', [
+          fixture.taskId,
+          mismatchedNodeId,
+        ]);
+      } finally {
+        await commandBoundary.query('ALTER TABLE workflow_tasks ENABLE TRIGGER ALL');
+      }
+
+      const command = successCommand(fixture);
+      await expect(
+        resultBoundary.repository.prepareResult({
+          taskId: fixture.taskId as never,
+          claimHash: fixture.claimHash,
+          attemptNumber: fixture.attemptNumber,
+          submittedPayloadSha256: command.submittedPayloadSha256,
+          acceptedAt: new Date(),
+        }),
+      ).resolves.toEqual({ kind: 'unavailable' });
+      await expect(resultBoundary.repository.recordResult(command)).resolves.toEqual({ kind: 'unavailable' });
+      await expect(
+        resultBoundary.repository.reconcileResult({
+          taskId: fixture.taskId as never,
+          claimHash: fixture.claimHash,
+          attemptNumber: fixture.attemptNumber,
+          submittedPayloadSha256: command.submittedPayloadSha256,
+        }),
+      ).resolves.toEqual({ outcome: 'UNKNOWN' });
+
+      expect(
+        (await commandBoundary.query('SELECT id FROM url_capture_results WHERE task_id = $1', [fixture.taskId])).length,
+      ).toBe(0);
+      expect(
+        (await commandBoundary.query('SELECT id FROM sources WHERE content_package_id = $1', [fixture.packageId]))
+          .length,
+      ).toBe(0);
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
   it('records server-derived integrity, archive, and capacity failures without a source', async () => {
     const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
     const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
@@ -460,6 +556,92 @@ describe('M2-SRC-003 PostgreSQL url_capture_results repository', () => {
       }
     } finally {
       if (capacityFixture) await cleanup(commandBoundary, capacityFixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('serializes a concurrent Package archive before Result promotion', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    const lockClient = await resultBoundary.pool.connect();
+    let recording: ReturnType<UrlCaptureResultRepository['recordResult']> | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      await lockClient.query('BEGIN');
+      await lockClient.query('SELECT id FROM content_packages WHERE id = $1 FOR UPDATE', [fixture.packageId]);
+      await lockClient.query(
+        `UPDATE content_packages
+         SET lifecycle = 'archived', archived_at = now(), updated_at = now()
+         WHERE id = $1`,
+        [fixture.packageId],
+      );
+
+      recording = resultBoundary.repository.recordResult(successCommand(fixture));
+      await waitForResultPackageLock(commandBoundary);
+      await lockClient.query('COMMIT');
+
+      const outcome = await recording;
+      expect(outcome.kind).toBe('recorded');
+      if (outcome.kind === 'recorded') {
+        expect(outcome.result).toMatchObject({
+          recordedOutcome: 'failed',
+          recordedCategory: 'package_archived',
+          safeCode: 'PACKAGE_ARCHIVED',
+          sourceId: null,
+        });
+      }
+    } finally {
+      await lockClient.query('ROLLBACK').catch(() => undefined);
+      lockClient.release();
+      if (recording) await recording.catch(() => undefined);
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('serializes a concurrent Source capacity fill before Result promotion', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    const lockClient = await resultBoundary.pool.connect();
+    let recording: ReturnType<UrlCaptureResultRepository['recordResult']> | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      await lockClient.query('BEGIN');
+      await lockClient.query('SELECT id FROM content_packages WHERE id = $1 FOR UPDATE', [fixture.packageId]);
+      await lockClient.query(
+        `INSERT INTO sources
+           (id, content_package_id, owner_user_id, source_type, role, label, capture_type, created_at)
+         VALUES ($1, $2, $3, 'pasted_text', 'primary', NULL, 'pasted_text', now())`,
+        [randomUUID(), fixture.packageId, fixture.ownerUserId],
+      );
+
+      recording = resultBoundary.repository.recordResult(successCommand(fixture));
+      await waitForResultPackageLock(commandBoundary);
+      await lockClient.query('COMMIT');
+
+      const outcome = await recording;
+      expect(outcome.kind).toBe('recorded');
+      if (outcome.kind === 'recorded') {
+        expect(outcome.result).toMatchObject({
+          recordedOutcome: 'failed',
+          recordedCategory: 'source_role_limit',
+          safeCode: 'SOURCE_ROLE_LIMIT',
+          sourceId: null,
+        });
+      }
+      expect(
+        (await commandBoundary.query('SELECT id FROM sources WHERE content_package_id = $1', [fixture.packageId]))
+          .length,
+      ).toBe(1);
+    } finally {
+      await lockClient.query('ROLLBACK').catch(() => undefined);
+      lockClient.release();
+      if (recording) await recording.catch(() => undefined);
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
       await commandBoundary.close();
       await resultBoundary.close();
     }
@@ -975,6 +1157,67 @@ describe('M2-SRC-003 url_capture_results database constraints (direct SQL)', () 
     } finally {
       await cleanup(commandBoundary, fixture.packageId);
       await cleanup(commandBoundary, fixture2.packageId);
+      await commandBoundary.close();
+    }
+  });
+
+  it('rejects cross-bound Task/Request and Request/Reference Result rows', async () => {
+    const { commandBoundary, fixture, baseFailure } = await setup();
+    try {
+      const [task] = await commandBoundary.query<{ workflow_instance_id: string }>(
+        'SELECT workflow_instance_id FROM workflow_tasks WHERE id = $1',
+        [fixture.taskId],
+      );
+      const alternateNodeId = randomUUID();
+      const alternateReferenceId = randomUUID();
+      const alternateRequestId = randomUUID();
+      await commandBoundary.query(
+        `INSERT INTO workflow_nodes
+           (id, workflow_instance_id, content_package_id, owner_user_id, template_id, template_version,
+            template_node_key, state, revision, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'content-package-dual-output', 'v1',
+                 'source_review', 'awaiting_human', 1, now(), now())`,
+        [alternateNodeId, task?.workflow_instance_id, fixture.packageId, fixture.ownerUserId],
+      );
+      await commandBoundary.query(
+        `INSERT INTO url_source_references
+           (id, content_package_id, owner_user_id, role, submitted_url, created_at)
+         VALUES ($1, $2, $3, 'supporting', 'https://example.com/alternate', now())`,
+        [alternateReferenceId, fixture.packageId, fixture.ownerUserId],
+      );
+      await commandBoundary.query(
+        `INSERT INTO url_capture_requests
+           (id, source_reference_id, workflow_instance_id, workflow_node_id, content_package_id, owner_user_id,
+            expected_package_revision, command_kind, idempotency_key, request_fingerprint, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, 1, 'url_capture_request', $7, $8, now())`,
+        [
+          alternateRequestId,
+          alternateReferenceId,
+          task?.workflow_instance_id,
+          alternateNodeId,
+          fixture.packageId,
+          fixture.ownerUserId,
+          randomUUID().replaceAll('-', '').slice(0, 16),
+          'b'.repeat(64),
+        ],
+      );
+
+      const taskRequestMismatch = await tryInsertResult(commandBoundary, {
+        ...baseFailure,
+        id: randomUUID(),
+        requestId: alternateRequestId,
+        sourceReferenceId: alternateReferenceId,
+      });
+      expect(taskRequestMismatch).toEqual({ ok: false, constraint: 'url_capture_results_task_binding_fk' });
+
+      const requestReferenceMismatch = await tryInsertResult(commandBoundary, {
+        ...baseFailure,
+        id: randomUUID(),
+        sourceReferenceId: alternateReferenceId,
+      });
+      expect(requestReferenceMismatch).toEqual({ ok: false, constraint: 'url_capture_results_request_binding_fk' });
+    } finally {
+      await cleanup(commandBoundary, fixture.packageId);
       await commandBoundary.close();
     }
   });
@@ -2282,6 +2525,55 @@ describe('M2-SRC-003 full identity reconciliation (COMMIT_UNKNOWN)', () => {
     }
   });
 
+  it('returns UNKNOWN when a committed success graph also has a failure terminal Event', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitSuccess(resultBoundary, fixture);
+      const instanceId = await taskInstanceId(commandBoundary, fixture.taskId);
+      const [event] = await commandBoundary.query<{
+        content_package_id: string;
+        owner_user_id: string;
+        sequence: number;
+        workflow_node_id: string;
+      }>(
+        `SELECT content_package_id, owner_user_id, sequence, workflow_node_id
+         FROM workflow_events WHERE workflow_instance_id = $1 AND event_type = 'url_capture_succeeded.v1'`,
+        [instanceId],
+      );
+      await withEventsUnlocked(commandBoundary, async () => {
+        await commandBoundary.query(
+          `INSERT INTO workflow_events
+             (id, workflow_instance_id, content_package_id, owner_user_id, sequence, event_type, payload, occurred_at, workflow_node_id)
+           VALUES ($1, $2, $3, $4, $5, 'url_capture_failed.v1', $6::jsonb, now(), $7)`,
+          [
+            randomUUID(),
+            instanceId,
+            event?.content_package_id,
+            event?.owner_user_id,
+            (event?.sequence ?? 1) + 1,
+            JSON.stringify({
+              taskId: fixture?.taskId,
+              sourceReferenceId: fixture?.sourceReferenceId,
+              attemptNumber: fixture?.attemptNumber,
+              category: 'fetch_failed',
+              code: 'FETCH_FAILED',
+            }),
+            event?.workflow_node_id,
+          ],
+        );
+      });
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
   it('returns UNKNOWN when a success graph has a Source Version', async () => {
     const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
     const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
@@ -2388,6 +2680,55 @@ describe('M2-SRC-003 full identity reconciliation (COMMIT_UNKNOWN)', () => {
         await commandBoundary.query(
           `DELETE FROM workflow_events WHERE workflow_instance_id = $1 AND event_type = 'url_capture_failed.v1'`,
           [instanceId],
+        );
+      });
+      const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));
+      expect(reconciliation.outcome).toBe('UNKNOWN');
+    } finally {
+      if (fixture) await cleanup(commandBoundary, fixture.packageId);
+      await commandBoundary.close();
+      await resultBoundary.close();
+    }
+  });
+
+  it('returns UNKNOWN when a committed failure graph also has a success terminal Event', async () => {
+    const commandBoundary = createUrlCaptureRepositoryTestBoundary(databaseUrl());
+    const resultBoundary = createUrlCaptureResultRepositoryTestBoundary(databaseUrl());
+    let fixture: LeasedTask | undefined;
+    try {
+      fixture = await createLeasedTask(commandBoundary);
+      const { payloadSha } = await commitFailure(resultBoundary, fixture);
+      const instanceId = await taskInstanceId(commandBoundary, fixture.taskId);
+      const [event] = await commandBoundary.query<{
+        content_package_id: string;
+        owner_user_id: string;
+        sequence: number;
+        workflow_node_id: string;
+      }>(
+        `SELECT content_package_id, owner_user_id, sequence, workflow_node_id
+         FROM workflow_events WHERE workflow_instance_id = $1 AND event_type = 'url_capture_failed.v1'`,
+        [instanceId],
+      );
+      await withEventsUnlocked(commandBoundary, async () => {
+        await commandBoundary.query(
+          `INSERT INTO workflow_events
+             (id, workflow_instance_id, content_package_id, owner_user_id, sequence, event_type, payload, occurred_at, workflow_node_id)
+           VALUES ($1, $2, $3, $4, $5, 'url_capture_succeeded.v1', $6::jsonb, now(), $7)`,
+          [
+            randomUUID(),
+            instanceId,
+            event?.content_package_id,
+            event?.owner_user_id,
+            (event?.sequence ?? 1) + 1,
+            JSON.stringify({
+              taskId: fixture?.taskId,
+              sourceReferenceId: fixture?.sourceReferenceId,
+              sourceId: fixture?.sourceReferenceId,
+              snapshotId: randomUUID(),
+              attemptNumber: fixture?.attemptNumber,
+            }),
+            event?.workflow_node_id,
+          ],
         );
       });
       const reconciliation = await resultBoundary.repository.reconcileResult(reconcileInput(fixture, payloadSha));

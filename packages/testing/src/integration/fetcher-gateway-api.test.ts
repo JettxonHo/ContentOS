@@ -726,10 +726,24 @@ describe('M2-SRC-003 private Fetcher Result API', () => {
       for (const response of await Promise.all([
         gatewayRequest(state, path, { 'content-type': 'application/json' }, body),
         gatewayRequest(state, path, { [SECRET_HEADER]: 'wrong-secret', 'content-type': 'application/json' }, body),
+        gatewayRequest(state, path, { cookie: fixture.cookie, 'content-type': 'application/json' }, body),
       ])) {
         expect(response.status).toBe(401);
         expect(await response.text()).toContain('FETCHER_GATEWAY_UNAUTHENTICATED');
       }
+      const duplicateSecret = await rawHttpPost(
+        state,
+        path,
+        [
+          [SECRET_HEADER, gatewaySecret],
+          [SECRET_HEADER, gatewaySecret],
+          [CLAIM_HEADER, claimed.claim],
+          ['content-type', 'application/json'],
+        ],
+        body,
+      );
+      expect(duplicateSecret.status).toBe(401);
+      expect(duplicateSecret.body).toContain('FETCHER_GATEWAY_UNAUTHENTICATED');
 
       // Missing / malformed Claim → INVALID_GATEWAY_REQUEST.
       await expectRejectedWithoutEffects(
@@ -737,6 +751,24 @@ describe('M2-SRC-003 private Fetcher Result API', () => {
         fixture,
         before,
         gatewayRequest(state, path, { [SECRET_HEADER]: gatewaySecret, 'content-type': 'application/json' }, body),
+        422,
+        'INVALID_GATEWAY_REQUEST',
+      );
+      await expectRejectedWithoutEffects(
+        state,
+        fixture,
+        before,
+        rawHttpPost(
+          state,
+          path,
+          [
+            [SECRET_HEADER, gatewaySecret],
+            [CLAIM_HEADER, claimed.claim],
+            [CLAIM_HEADER, claimed.claim],
+            ['content-type', 'application/json'],
+          ],
+          body,
+        ),
         422,
         'INVALID_GATEWAY_REQUEST',
       );

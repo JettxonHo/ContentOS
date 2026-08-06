@@ -84,7 +84,11 @@ JOIN workflow_instances i
   ON i.id = c.workflow_instance_id
  AND i.content_package_id = c.content_package_id
  AND i.owner_user_id = c.owner_user_id
-WHERE c.id = $1 AND c.content_package_id = $2 AND c.owner_user_id = $3`;
+WHERE c.id = $1
+  AND c.content_package_id = $2
+  AND c.owner_user_id = $3
+  AND c.workflow_instance_id = $4
+  AND c.workflow_node_id = $5`;
 
 function toTimestamp(value: Date | string): Date {
   const date = value instanceof Date ? value : new Date(value);
@@ -306,6 +310,8 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
         task.url_capture_request_id,
         task.content_package_id,
         task.owner_user_id,
+        task.workflow_instance_id,
+        task.workflow_node_id,
       ]);
       if (!bindingEligible(bindingResult.rows[0])) {
         await client.query('ROLLBACK');
@@ -396,6 +402,8 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
         task.url_capture_request_id,
         task.content_package_id,
         task.owner_user_id,
+        task.workflow_instance_id,
+        task.workflow_node_id,
       ]);
       const binding = bindingResult.rows[0];
       if (!bindingEligible(binding)) {
@@ -754,8 +762,18 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
   private async lookupSourceReferenceId(client: PoolClient, task: ReconcileTaskRow): Promise<string | null> {
     const rows = await client.query<{ source_reference_id: string }>(
       `SELECT source_reference_id FROM url_capture_requests
-       WHERE id = $1 AND content_package_id = $2 AND owner_user_id = $3`,
-      [task.url_capture_request_id, task.content_package_id, task.owner_user_id],
+       WHERE id = $1
+         AND content_package_id = $2
+         AND owner_user_id = $3
+         AND workflow_instance_id = $4
+         AND workflow_node_id = $5`,
+      [
+        task.url_capture_request_id,
+        task.content_package_id,
+        task.owner_user_id,
+        task.workflow_instance_id,
+        task.workflow_node_id,
+      ],
     );
     return rows.rows[0]?.source_reference_id ?? null;
   }
@@ -927,12 +945,16 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
     if (!reviewNode || reviewNode.state !== 'awaiting_human') return false;
 
     // Event: exactly one url_capture_succeeded.v1 with a matching payload.
-    const eventRows = await client.query<{ payload: Record<string, unknown> }>(
-      `SELECT payload FROM workflow_events WHERE workflow_instance_id = $1 AND event_type = $2`,
-      [task.workflow_instance_id, URL_CAPTURE_SUCCEEDED_EVENT_TYPE],
+    const eventRows = await client.query<{ event_type: string; payload: Record<string, unknown> }>(
+      `SELECT event_type, payload FROM workflow_events
+       WHERE workflow_instance_id = $1 AND event_type IN ($2, $3)`,
+      [task.workflow_instance_id, URL_CAPTURE_SUCCEEDED_EVENT_TYPE, URL_CAPTURE_FAILED_EVENT_TYPE],
     );
-    const payload = eventRows.rows[0]?.payload;
-    if (!payload || eventRows.rows.length !== 1) return false;
+    const terminalEvent = eventRows.rows[0];
+    const payload = terminalEvent?.payload;
+    if (!payload || eventRows.rows.length !== 1 || terminalEvent.event_type !== URL_CAPTURE_SUCCEEDED_EVENT_TYPE) {
+      return false;
+    }
     if (
       payload.taskId !== task.id ||
       payload.sourceReferenceId !== sourceReferenceId ||
@@ -1018,12 +1040,16 @@ export class DrizzleUrlCaptureResultRepository implements UrlCaptureResultReposi
     if (reviewCount !== 0) return false;
 
     // Event: exactly one url_capture_failed.v1 with a matching payload.
-    const eventRows = await client.query<{ payload: Record<string, unknown> }>(
-      `SELECT payload FROM workflow_events WHERE workflow_instance_id = $1 AND event_type = $2`,
-      [task.workflow_instance_id, URL_CAPTURE_FAILED_EVENT_TYPE],
+    const eventRows = await client.query<{ event_type: string; payload: Record<string, unknown> }>(
+      `SELECT event_type, payload FROM workflow_events
+       WHERE workflow_instance_id = $1 AND event_type IN ($2, $3)`,
+      [task.workflow_instance_id, URL_CAPTURE_SUCCEEDED_EVENT_TYPE, URL_CAPTURE_FAILED_EVENT_TYPE],
     );
-    const payload = eventRows.rows[0]?.payload;
-    if (!payload || eventRows.rows.length !== 1) return false;
+    const terminalEvent = eventRows.rows[0];
+    const payload = terminalEvent?.payload;
+    if (!payload || eventRows.rows.length !== 1 || terminalEvent.event_type !== URL_CAPTURE_FAILED_EVENT_TYPE) {
+      return false;
+    }
     return (
       payload.taskId === task.id &&
       payload.sourceReferenceId === sourceReferenceId &&
