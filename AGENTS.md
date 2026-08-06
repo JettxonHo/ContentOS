@@ -91,6 +91,13 @@ Do not select packages, versions, providers, images, or CI products unless a Rea
 - A Critical Failure is not offset by average scores. Do not silence or skip a failing required test to obtain a pass.
 - Use the applicable test layers, recovery tests, security tests, and render checks from the [Test Strategy](docs/quality/test-strategy.md).
 
+Keep review and defensive design proportional to credible product risk:
+
+- Do not turn ordinary implementation review into a security-paper exercise or add controls for merely imaginable cases with no realistic path or material impact.
+- Do not introduce a new hash or SHA-256 mechanism unless an existing Accepted contract requires it or a concrete major risk threatens a core product function. This rule does not silently remove an already accepted integrity or credential contract.
+- Cover accepted invariants and plausible failure paths without repeatedly defending against effectively unreachable variants.
+- Use rubrics to support engineering judgment, not as mechanical checklists that override context, risk, or product value.
+
 ## 11. Work Item contract
 
 Every Work Item must state: Task ID, Goal, In Scope, Out of Scope, Relevant DEC, Relevant Documents, Acceptance Criteria, Tests, and Documentation Updates. Use the [Work Item template](docs/implementation/work-item-template.md); it also defines Contracts, file boundaries, security review, migration review, and observability requirements.
