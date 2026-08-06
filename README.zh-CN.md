@@ -12,7 +12,7 @@ Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Rend
 
 ## 当前状态
 
-仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001` 和 `M2-WF-002` 已完成。`M2-WF-003A`（Transactional Outbox Dispatcher）已通过 PR #69 squash merge，合并提交为 `3211c29ef8e6a934e6473a4f92caf36d8593abc3`；`M2-WF-003B`（Fetcher Gateway Claim and Bounded Lease）已通过 PR #73 合并，合并提交为 `c9c92b70a0ccd99be944107120f03dd3a1776da3`（`feat: add fetcher gateway claim lease (#73)`）。`M2-WF-003C`（Lease and Delivery Reconciliation）已通过 PR #77 完成，合并提交为 `ed428b1c12eb6e2ce01d964d56c05a09a3ba87d1`；`M2-SRC-003`（URL-capture Result Contract and Source Evidence Boundary）已通过 PR #82 完成，合并提交为 `6b6e4a0f2c180093db6e76090ab14b831e5631f6`。`M2-FETCH-001A`（Public Transport and Resource Policy）处于 In Review；`M2-FETCH-001B` 和 `M2-FETCH-001C` 尚未启动，`M2-FETCH-001` 仍未完成，Fetcher URL execution 仍不可用。
+仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001`、`M2-SRC-002`、`M2-WF-001` 和 `M2-WF-002` 已完成。`M2-WF-003A`（Transactional Outbox Dispatcher）已通过 PR #69 squash merge，合并提交为 `3211c29ef8e6a934e6473a4f92caf36d8593abc3`；`M2-WF-003B`（Fetcher Gateway Claim and Bounded Lease）已通过 PR #73 合并，合并提交为 `c9c92b70a0ccd99be944107120f03dd3a1776da3`（`feat: add fetcher gateway claim lease (#73)`）。`M2-WF-003C`（Lease and Delivery Reconciliation）已通过 PR #77 完成，合并提交为 `ed428b1c12eb6e2ce01d964d56c05a09a3ba87d1`；`M2-SRC-003`（URL-capture Result Contract and Source Evidence Boundary）已通过 PR #82 完成，合并提交为 `6b6e4a0f2c180093db6e76090ab14b831e5631f6`。`M2-FETCH-001A`（Public Transport and Resource Policy）已通过 PR #92 完成，squash merge 提交为 `551217c130f6717f4b8891ce76de1fa124bf8ee0`（`feat: add public URL transport policy (#92)`）；`M2-FETCH-001B` 和 `M2-FETCH-001C` 尚未启动，`M2-FETCH-001` 仍未完成，Fetcher URL execution 仍不可用。
 
 当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 到 BullMQ 投递边界，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat/Result 边界。Worker 仍只将 PostgreSQL Outbox 投递为固定的最小 BullMQ envelope，需要 `CONTENTOS_ENV`、`DATABASE_URL` 和 `REDIS_URL`。M2-WF-003C 已完成 Worker 侧有界 lease/delivery reconciliation；M2-SRC-003 已完成成功 Result 后的已验证 URL Source evidence 绑定。PostgreSQL 仍是唯一状态真相。当前仍不存在 Fetcher Queue consumer、URL execution、公网请求（DNS/TCP/TLS/HTTP）或 Fetcher Object Storage writer，也不提供 Source UI、Agent、Render、发布行为、部署或开发服务器。
 
@@ -130,7 +130,7 @@ corepack pnpm test:integration
 
 ## 下一步实施工作
 
-1. M2 — 来源与工作流基础 — 正在进行。`M2-WF-003B` 已通过 PR #73 合并，合并提交为 `c9c92b70a0ccd99be944107120f03dd3a1776da3`；`M2-WF-003C` 已通过 PR #77 完成，合并提交为 `ed428b1c12eb6e2ce01d964d56c05a09a3ba87d1`；`M2-SRC-003` 已通过 PR #82 完成，合并提交为 `6b6e4a0f2c180093db6e76090ab14b831e5631f6`；`M2-FETCH-001A` 处于 In Review，而 `M2-FETCH-001B` 和 `M2-FETCH-001C` 尚未启动。Fetcher execution 仍不可用，直到未完成的 `M2-FETCH-001` 被接受。
+1. M2 — 来源与工作流基础 — 正在进行。`M2-WF-003B` 已通过 PR #73 合并，合并提交为 `c9c92b70a0ccd99be944107120f03dd3a1776da3`；`M2-WF-003C` 已通过 PR #77 完成，合并提交为 `ed428b1c12eb6e2ce01d964d56c05a09a3ba87d1`；`M2-SRC-003` 已通过 PR #82 完成，合并提交为 `6b6e4a0f2c180093db6e76090ab14b831e5631f6`；`M2-FETCH-001A` 已通过 PR #92 完成，squash merge 提交为 `551217c130f6717f4b8891ce76de1fa124bf8ee0`（`feat: add public URL transport policy (#92)`），而 `M2-FETCH-001B` 和 `M2-FETCH-001C` 尚未启动。Fetcher execution 仍不可用，直到未完成的 `M2-FETCH-001` 被接受。
 2. 不要从当前阶段推断 M2 范围，也不要开始 Agent、Research 或发布路径。
 
 本仓库不承诺完成日期。
