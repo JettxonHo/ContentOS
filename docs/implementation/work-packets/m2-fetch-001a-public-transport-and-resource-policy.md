@@ -1,8 +1,12 @@
 # M2-FETCH-001A — Public Transport and Resource Policy
 
-**Status:** In Review
+**Status:** Completed
 
 **Issue:** [#91](https://github.com/JettxonHo/ContentOS/issues/91)
+
+**PR:** [#92](https://github.com/JettxonHo/ContentOS/pull/92)
+
+**Completion merge:** `551217c130f6717f4b8891ce76de1fa124bf8ee0` (`feat: add public URL transport policy (#92)`)
 
 **Branch:** `codex/m2-fetch-001a-public-transport`
 
@@ -362,3 +366,8 @@ tests started; the unchanged process-capable harness passed. During the first
 implementation round, one final DNS-normalization refinement briefly failed
 Fetcher typecheck because Node's numeric family result needed explicit narrowing;
 the minimal type correction and all subsequent focused and full gates passed.
+Independent review passed, and the work item was completed through PR #92 as
+squash merge `551217c130f6717f4b8891ce76de1fa124bf8ee0` (`feat: add public URL
+transport policy (#92)`). M2 remains In Progress, `M2-FETCH-001` remains
+incomplete, `M2-FETCH-001B` and `M2-FETCH-001C` remain Not Started, and real
+Fetcher execution remains unavailable.
