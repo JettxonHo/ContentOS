@@ -4,7 +4,7 @@
 
 **Scope:** MVP Secret representation, provisioning, process access, runtime use, rotation, revocation, audit, and incident boundaries
 
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-06
 
 This document defines how ContentOS handles Secrets without placing Secret values in Domain data, application content, source control, logs, Queue payloads, Prompts, or Exports. It defines policy and lifecycle semantics, not a local Secret tool, production Secret Store, Credential Reference format, cloud product, or implementation code.
 
@@ -69,13 +69,13 @@ Future OAuth refresh tokens, webhook signing Secrets, or third-party integration
 
 ## 4. Process-specific Secret Access
 
-| Process    | Minimum required Secret access                                                                                                              | Explicitly prohibited or not held by default                                                                                            |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `web`      | None; browser-visible configuration is non-secret                                                                                           | All server Secrets, database/Redis/Object Storage Credentials, Provider keys, signing and encryption keys                               |
-| `api`      | Only API-owned database/session/signing/encryption and scoped Object access required by its use cases; Fetcher Gateway service Secret       | Provider Credentials exposed to Browser; Fetcher or Renderer identity; universal storage administration                                 |
-| `worker`   | Scoped database/Queue/Object access and only approved Provider Credential References required for assigned Agent work                       | Universal Object Storage administration; Fetcher or Renderer identity; unrelated Provider keys; automatic Approval or publish authority |
-| `fetcher`  | Fetcher Gateway service Secret and the explicitly approved Gateway API origin; no Queue/state or storage Credential in the current skeleton | Model or Image Provider keys; Human Opinion access; general database Credential; signing or export Credentials                          |
-| `renderer` | Only its Queue/state path and scoped approved-input/render-output Object Storage Credential                                                 | Model or Image Provider keys; public-fetch Credential; Raw Human Opinion; general database or storage administration                    |
+| Process    | Minimum required Secret access                                                                                                                                                                         | Explicitly prohibited or not held by default                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `web`      | None; browser-visible configuration is non-secret                                                                                                                                                      | All server Secrets, database/Redis/Object Storage Credentials, Provider keys, signing and encryption keys                               |
+| `api`      | Only API-owned database/session/signing/encryption and scoped Object access required by its use cases; Fetcher Gateway service Secret                                                                  | Provider Credentials exposed to Browser; Fetcher or Renderer identity; universal storage administration                                 |
+| `worker`   | Scoped database/Queue/Object access and only approved Provider Credential References required for assigned Agent work                                                                                  | Universal Object Storage administration; Fetcher or Renderer identity; unrelated Provider keys; automatic Approval or publish authority |
+| `fetcher`  | Fetcher Gateway service Secret and the explicitly approved Gateway API origin; its unregistered M2-FETCH-001B preparation boundary has a separate scoped Object Storage identity for later runtime use | Model or Image Provider keys; Human Opinion access; general database Credential; signing or export Credentials                          |
+| `renderer` | Only its Queue/state path and scoped approved-input/render-output Object Storage Credential                                                                                                            | Model or Image Provider keys; public-fetch Credential; Raw Human Opinion; general database or storage administration                    |
 
 Each process resolves only the Secrets declared by its typed startup configuration. API never returns a Provider Credential to the Browser. Worker access to a Provider key does not give the Agent or model access to that key; only the Adapter uses the value for the intended request.
 
@@ -116,6 +116,12 @@ No production Secret Manager is selected here.
   the opaque claim is sent only in the private Heartbeat header and only its
   hash is persisted. `CONTENTOS_FETCHER_GATEWAY_API_ORIGIN` is non-secret and
   is restricted to the approved loopback HTTP(S) origin.
+- The Fetcher Object Storage identity, when its later runtime registration is
+  accepted, uses only `CONTENTOS_FETCHER_OBJECT_STORAGE_ACCESS_KEY` and
+  `CONTENTOS_FETCHER_OBJECT_STORAGE_SECRET_KEY` with the matching Fetcher-only
+  endpoint, region, bucket, and path-style settings. It never falls back to
+  API Object Storage credentials and is not loaded by the current lifecycle
+  skeleton.
 - A signed URL is temporary credential material: it is short-lived, scoped, excluded from ordinary logs, and never a permanent Object Reference.
 
 ## 8. Rotation and Revocation
