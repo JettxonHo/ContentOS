@@ -25,6 +25,7 @@ import {
   FetcherGatewayService,
   type FetcherGatewayClaimGenerator,
   FetcherResultService,
+  type WorkflowQueryPort,
   type FetcherResultIds,
 } from '@contentos/core';
 import type { UserId } from '@contentos/core';
@@ -40,6 +41,7 @@ import { TrustedOriginGuard } from './http/trusted-origin.guard';
 import { SourceController } from './source/source.controller';
 import { UrlCaptureController } from './url-capture/url-capture.controller';
 import { FetcherGatewayController } from './fetcher-gateway/fetcher-gateway.controller';
+import { WorkflowController } from './workflow/workflow.controller';
 import { FetcherGatewaySecretGuard } from './fetcher-gateway/fetcher-gateway.guard';
 import { AjvNormalizedBodyValidator } from './source/ajv-body-validator';
 import {
@@ -52,6 +54,7 @@ import {
   URL_CAPTURE_SERVICE,
   FETCHER_GATEWAY_SERVICE,
   FETCHER_RESULT_SERVICE,
+  WORKFLOW_QUERY,
 } from './runtime.tokens';
 
 @Module({})
@@ -66,6 +69,7 @@ export class AppModule {
         SourceController,
         UrlCaptureController,
         FetcherGatewayController,
+        WorkflowController,
       ],
       providers: [
         { provide: API_CONFIG, useValue: config },
@@ -175,6 +179,11 @@ export class AppModule {
               } satisfies FetcherResultIds,
               { now: () => new Date() },
             ),
+        },
+        {
+          provide: WORKFLOW_QUERY,
+          inject: [DatabaseService],
+          useFactory: (database: DatabaseService): WorkflowQueryPort => database.workflowQuery,
         },
         { provide: APP_GUARD, useClass: TrustedOriginGuard },
         { provide: APP_FILTER, useClass: ApiExceptionFilter },

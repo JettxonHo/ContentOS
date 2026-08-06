@@ -1,6 +1,6 @@
 # M2-WF-004A — Workflow Projection and Timeline Query
 
-**Status:** Ready
+**Status:** In Review
 
 **Issue:** [#106](https://github.com/JettxonHo/ContentOS/issues/106)
 
@@ -10,7 +10,7 @@
 
 **Planning / Definition-of-Ready base:** `4bf60095de0e2ddc3d9c47f5b32e26deb8033942`
 
-**Implementation base:** pending the Ready Work Packet merge
+**Implementation base:** `d3322d130d517ef73f3f93961f4623d59b4b7383`
 
 ## Identification
 
@@ -218,13 +218,21 @@ interface WorkflowNodeProjectionResource {
   readonly task: UrlCaptureTaskProjectionResource | null;
 }
 
-interface UrlCaptureTaskProjectionResource {
+interface UrlCaptureTaskProjectionResourceBase {
   readonly kind: 'url_capture';
-  readonly state: 'queued' | 'running' | 'succeeded' | 'failed';
   readonly attemptNumber: number;
   readonly updatedAt: string;
-  readonly failure: WorkflowFailureResource | null;
 }
+
+type UrlCaptureTaskProjectionResource =
+  | (UrlCaptureTaskProjectionResourceBase & {
+      readonly state: 'queued' | 'running' | 'succeeded';
+      readonly failure: null;
+    })
+  | (UrlCaptureTaskProjectionResourceBase & {
+      readonly state: 'failed';
+      readonly failure: WorkflowFailureResource;
+    });
 
 type WorkflowFailureResource =
   | { readonly category: 'fetch_failed'; readonly code: 'FETCH_FAILED' }
@@ -248,8 +256,8 @@ Rules:
   most recent Claim attempt, including a re-queued Task after lease expiry.
 - Terminal failure category/code come only from the existing terminal Result's
   `FetcherResultRecordedCategory` / `FetcherResultSafeCode` finite mapping shown
-  above. The mapper must preserve a valid pair. Non-failed states have
-  `failure: null`.
+  above. A failed Task without that exact existing pair fails closed through the
+  sanitized internal-error path. Non-failed states always have `failure: null`.
 - `latestSequence` is `0` when the Instance has no Event and otherwise is the
   maximum append-only Event sequence.
 - The response omits URL, Source/Task/Outbox/Claim/lease/internal IDs, Snapshot,
@@ -617,3 +625,70 @@ uses the existing finite failure mapping with explicit attempt sources. The
 independent re-review confirmed that the Goal, contracts, existing database
 feasibility, allowlist, tests, security, migration, and documentation boundaries
 are sufficient for implementation.
+
+## Implementation handoff
+
+**Status:** In Review
+
+- Logical Role: `IMPLEMENTATION_AGENT`
+- Requested Model / Reasoning: `gpt-5.6-terra` / XHigh
+- Actual Model / Runtime Model Status: `UNVERIFIED_RUNTIME_MODEL`
+- Thread: `/root/wf004a_implementation`
+- Implementation Base: `d3322d130d517ef73f3f93961f4623d59b4b7383`
+
+The implementation adds the one Core read Port, exact REST schemas, explicit
+PostgreSQL projection, dedicated API token/controller, and real integration
+fixtures. It adds no schema, migration, dependency, process, Queue, SSE, UI,
+or write path. Completion and publication evidence remain pending independent
+review and required checks.
+
+At implementation handoff, frozen installation, workspace resolution,
+`pnpm check`, documentation/repository/Secret checks, two no-diff
+`db:generate` runs, and the full isolated integration Harness passed. The
+host Harness retained only the existing `pg@9` deprecation warning. A sandbox
+Harness setup attempt was blocked by its process/Docker restrictions and
+cleaned up; the same required command was rerun successfully on the host.
+
+### Review correction round 1
+
+The bounded review correction now binds both PostgreSQL projections to exact
+`content-package-dual-output/v1`, makes the Task response a true discriminated
+contract, adds exact Timeline query metadata to OpenAPI, and expands real
+adapter/controller evidence for task states, fixed-template isolation, safe
+Timeline pagination, owner/archive authorization, read-only behavior, strict
+response schemas, and API-log redaction.
+
+The first correction typecheck exposed a controller mapper that had not yet
+preserved the new Task discrimination. The first focused Integration run then
+exposed an invalid cleanup-fixture assumption about Source child-table columns.
+Both were corrected at their roots; the focused rerun passed 8 tests. Final
+`pnpm check` passed 46 files / 422 tests, and the tracked full Integration
+Harness passed 24 files / 176 tests with owned cleanup complete. No schema,
+migration, dependency, lockfile, configuration, or new hash mechanism was
+introduced. Status remains In Review pending Git publication, required CI, and
+merge.
+
+## Independent implementation review
+
+**Verdict:** PASS after Review Correction Round 1
+
+Three independent `gpt-5.6-sol` XHigh review axes inspected the real diff and
+performed no repository or Git writes:
+
+- Persistence / correctness / state consistency —
+  `/root/wf004a_review_persistence`;
+- API / authorization / security / contract —
+  `/root/wf004a_review_api_security`; and
+- Test quality / failure paths / documentation / governance —
+  `/root/wf004a_review_quality_governance`.
+
+For every reviewer, Actual Model / Runtime Model Status remained
+`UNVERIFIED_RUNTIME_MODEL`; the reviewed implementation base was
+`d3322d130d517ef73f3f93961f4623d59b4b7383`.
+
+The first review found exact-v1 isolation, Task state/failure discrimination,
+OpenAPI query metadata, and integration-evidence gaps. Correction Round 1 fixed
+the root causes and expanded focused evidence without changing the Work Item
+scope. All three independent re-reviews returned `PASS`; no new P1/P2 defect,
+Blocking Design Question, possible DEC, migration, dependency, or high-risk
+escalation remains.
