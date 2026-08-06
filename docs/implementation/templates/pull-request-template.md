@@ -8,9 +8,13 @@
 
 ## Goal
 
+## Implementation approach
+
 ## In Scope
 
 ## Out of Scope
+
+## Explicitly not changed
 
 ## Relevant DEC
 
@@ -30,6 +34,12 @@
 
 ## Verification
 
+## Acceptance Criteria evidence
+
+| Criterion | Evidence | Result |
+| --------- | -------- | ------ |
+|           |          |        |
+
 ### Tests
 
 ### Manual demo
@@ -37,6 +47,10 @@
 ## Documentation
 
 ## Known limitations
+
+## Rollback
+
+## Review focus
 
 ## Possible new DEC
 

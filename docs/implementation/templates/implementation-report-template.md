@@ -16,7 +16,12 @@ The report is an evidence index. The Review Agent must inspect the actual reposi
 - Branch:
 - Base Commit:
 - Execution Profile:
-- Actual Model / Runtime Configuration: # Report only when verified; otherwise state `Not verified`.
+- Logical Role:
+- Actual Model: # Report only when observable; otherwise `UNVERIFIED_RUNTIME_MODEL`.
+- Reasoning:
+- Thread:
+- Runtime Model Status: VERIFIED | UNVERIFIED_RUNTIME_MODEL
+- Runtime Configuration: # Report only verified facts.
 
 ## Implementation Summary
 
@@ -59,6 +64,9 @@ The report is an evidence index. The Review Agent must inspect the actual reposi
 ## Incomplete Items
 
 ## Final Git Status
+
+State whether an authorized commit, push, or draft Pull Request was created.
+Publication evidence does not count as independent approval or merge authority.
 
 ## DEC Required
 
