@@ -6,6 +6,7 @@ import type {
   ContentPackageResponse,
   CreateContentPackageRequest,
   UpdateContentPackageRequest,
+  WorkflowProjectionResponse,
   ApiErrorCode,
 } from '@contentos/contracts';
 
@@ -63,6 +64,10 @@ export class ContentOsApiClient {
       method: 'POST',
       body: JSON.stringify(input),
     });
+  }
+
+  workflow(id: string, signal?: AbortSignal): Promise<WorkflowProjectionResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(id)}/workflow`, signal ? { signal } : {});
   }
 
   private async request<T>(path: string, init: RequestInit = {}, empty = false): Promise<T> {

@@ -1,5 +1,18 @@
-import { Controller, Get, Inject, Param, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Head,
+  HttpCode,
+  Inject,
+  Param,
+  Query,
+  Req,
+  Sse,
+  UseGuards,
+  type MessageEvent,
+} from '@nestjs/common';
+import { ApiCookieAuth, ApiExcludeEndpoint, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { Observable } from 'rxjs';
 
 import {
   apiErrorSchema,
@@ -7,23 +20,15 @@ import {
   workflowProjectionResponseSchema,
   workflowTimelinePageResponseSchema,
   type WorkflowProjectionResponse,
-  type WorkflowProjectionResource,
-  type WorkflowTaskProjectionResource,
   type WorkflowTimelineItemResource,
   type WorkflowTimelinePageResponse,
 } from '@contentos/contracts';
-import type {
-  ContentPackageId,
-  ContentPackageOwnerId,
-  WorkflowProjection,
-  WorkflowQueryPort,
-  WorkflowTaskProjection,
-  WorkflowTimelineItem,
-} from '@contentos/core';
+import type { ContentPackageId, ContentPackageOwnerId, WorkflowQueryPort, WorkflowTimelineItem } from '@contentos/core';
 
 import { AuthenticationGuard, type AuthenticatedRequest } from '../auth/authentication.guard.js';
 import { ApiHttpError } from '../http/api-http-error.js';
 import { WORKFLOW_QUERY } from '../runtime.tokens.js';
+import { WorkflowNotificationStream, toWorkflowProjectionResource } from './workflow-notification-stream.js';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -36,38 +41,6 @@ function requirePackageId(value: string): ContentPackageId {
 
 function owner(request: AuthenticatedRequest): ContentPackageOwnerId {
   return request.currentSession.principal.userId;
-}
-
-function taskResource(value: WorkflowTaskProjection): WorkflowTaskProjectionResource {
-  const base = {
-    kind: value.kind,
-    attemptNumber: value.attemptNumber,
-    updatedAt: value.updatedAt.toISOString(),
-  };
-  return value.state === 'failed'
-    ? { ...base, state: value.state, failure: value.failure }
-    : { ...base, state: value.state, failure: null };
-}
-
-function projectionResource(value: WorkflowProjection): WorkflowProjectionResource {
-  return {
-    instanceId: value.instanceId,
-    templateId: value.templateId,
-    templateVersion: value.templateVersion,
-    lifecycle: value.lifecycle,
-    revision: value.revision,
-    latestSequence: value.latestSequence,
-    nodes: value.nodes.map((node) => ({
-      key: node.key,
-      ordinal: node.ordinal,
-      kind: node.kind,
-      requiresHumanGate: node.requiresHumanGate,
-      state: node.state,
-      revision: node.revision,
-      updatedAt: node.updatedAt.toISOString(),
-      task: node.task === null ? null : taskResource(node.task),
-    })),
-  };
 }
 
 function timelineResource(value: WorkflowTimelineItem): WorkflowTimelineItemResource {
@@ -91,7 +64,11 @@ function timelineResource(value: WorkflowTimelineItem): WorkflowTimelineItemReso
 @UseGuards(AuthenticationGuard)
 @Controller('v1/content-packages/:packageId/workflow')
 export class WorkflowController {
-  constructor(@Inject(WORKFLOW_QUERY) private readonly workflowQuery: WorkflowQueryPort) {}
+  constructor(
+    @Inject(WORKFLOW_QUERY) private readonly workflowQuery: WorkflowQueryPort,
+    @Inject(WorkflowNotificationStream)
+    private readonly notificationStream: WorkflowNotificationStream,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Read the owner-scoped authoritative Workflow projection' })
@@ -108,7 +85,36 @@ export class WorkflowController {
       contentPackageId: requirePackageId(packageId),
       ownerUserId: owner(request),
     });
-    return { data: { workflow: workflow === null ? null : projectionResource(workflow) } };
+    return { data: { workflow: workflow === null ? null : toWorkflowProjectionResource(workflow) } };
+  }
+
+  @Head('stream')
+  @HttpCode(204)
+  @ApiExcludeEndpoint()
+  async streamHead(@Req() request: AuthenticatedRequest, @Param('packageId') packageId: string): Promise<void> {
+    await this.notificationStream.preflight({ packageId: requirePackageId(packageId), ownerUserId: owner(request) });
+  }
+
+  @Sse('stream')
+  @ApiOperation({ summary: 'Subscribe to bounded Workflow projection change notifications' })
+  @ApiResponse({
+    status: 200,
+    description: 'A private notification-only server-sent event stream',
+    content: { 'text/event-stream': { schema: { type: 'string' } } },
+  })
+  @ApiResponse({ status: 401, schema: apiErrorSchema })
+  @ApiResponse({ status: 404, schema: apiErrorSchema })
+  @ApiResponse({ status: 422, schema: apiErrorSchema })
+  @ApiResponse({ status: 500, schema: apiErrorSchema })
+  stream(
+    @Req() request: AuthenticatedRequest,
+    @Param('packageId') packageId: string,
+  ): Promise<Observable<MessageEvent>> {
+    return this.notificationStream.open({
+      packageId: requirePackageId(packageId),
+      ownerUserId: owner(request),
+      expiresAt: request.currentSession.expiresAt,
+    });
   }
 
   @Get('events')

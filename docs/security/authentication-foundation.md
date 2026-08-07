@@ -2,7 +2,7 @@
 
 **Status:** Implementation Baseline
 **Scope:** M1 single-user owner authentication, server-side Sessions, API protection, configuration, and operational boundaries
-**Last Updated:** 2026-07-28
+**Last Updated:** 2026-08-07
 
 This document records the bounded authentication foundation introduced by `M1-SEC-001`. It implements no registration, password reset, role administration, external identity provider, JWT, Content Package behavior, or Web login screen.
 
@@ -31,6 +31,12 @@ The API exposes:
 The cookie is `HttpOnly`, `SameSite=Strict`, and scoped to `/`. `Secure` is mandatory in production and intentionally disabled only in local/test HTTP mode. Unsafe requests must carry the exact configured Web Origin. Credentialed wildcard CORS is not used.
 
 All failures use API error envelope version `1`, include a correlation identifier, and omit stacks, SQL, exception text, passwords, cookies, hashes, and database URLs.
+
+The Workflow notification stream authenticates and owner-scopes once before
+committing its private SSE response. It retains neither the cookie credential
+nor a periodic Session lookup: the authenticated Session expiry bounds the
+stream lifetime, and the browser closes it on disposal. A stream completion is
+not a state response; recovery reads the owner-scoped REST Workflow projection.
 
 ## 3. Configuration and Secrets
 

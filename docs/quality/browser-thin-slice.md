@@ -2,9 +2,9 @@
 
 **Status:** Implementation Baseline
 **Scope:** The bounded M1 owner-browser scenario, pinned runtime, isolation, security assertions, cleanup, and explicit exclusions
-**Last Updated:** 2026-07-29
+**Last Updated:** 2026-08-07
 
-This document records the browser scenario introduced by `M1-WEB-001`. It verifies the first private UI → API → Domain → PostgreSQL → UI loop; it is not a broad product E2E suite and does not authorize M2 behavior.
+This document records the browser scenario introduced by `M1-WEB-001` and its in-review `M2-WF-004B` companion. It verifies the first private UI → API → Domain → PostgreSQL → UI loop plus native credentialed EventSource delivery; it is not a broad product E2E suite and does not compose M2 Workflow UI.
 
 Related documents: [Integration Smoke Harness](integration-smoke-harness.md), [CI Skeleton](ci-skeleton.md), [Test Strategy](test-strategy.md), [Content Package Foundation](../architecture/content-package-foundation.md), [Authentication Foundation](../security/authentication-foundation.md), and the [Roadmap](../implementation/roadmap.md).
 
@@ -37,6 +37,13 @@ The single deterministic scenario proves:
 - logout revokes the session and a protected Workspace route returns to Login.
 
 The typed Web client always uses `credentials: include`, maps the common API error envelope, and stores no token, password, or API response in browser storage.
+
+The M2-WF-004B companion signs in through the existing owner flow, creates an
+isolated Package fixture, receives the exact initial
+`workflow-notification/v1` Event through native Chromium `EventSource` with
+credentials, then closes the connection. It deliberately does not instantiate
+the reusable recovery controller in the M1 Workspace or add visible Workflow
+status UI.
 
 ## 3. Isolation and cleanup
 

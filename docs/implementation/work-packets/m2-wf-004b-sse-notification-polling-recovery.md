@@ -1,6 +1,6 @@
 # M2-WF-004B — SSE Notification and Polling Recovery
 
-**Status:** Ready
+**Status:** In Review
 
 **Issue:** [#110](https://github.com/JettxonHo/ContentOS/issues/110)
 
@@ -372,8 +372,10 @@ Implementation may modify only these product/test paths when required:
 - `apps/web/lib/api-client.test.ts`
 - `apps/web/lib/workflow-recovery.ts`
 - `apps/web/lib/workflow-recovery.test.ts`
+- `apps/web/tsconfig.json`
 - `packages/testing/src/integration/workflow-notification-api.test.ts`
 - `packages/testing/src/integration/api.test.ts`
+- `packages/testing/src/integration/run-concurrent-smoke.ts`
 - `packages/testing/src/browser/workflow-sse-recovery.spec.ts`
 
 Documentation may modify only:
@@ -395,7 +397,10 @@ Explicitly prohibited without a correction packet or new Decision Review:
 - `apps/web/components/**` or other visible UI;
 - `packages/core/**` and `packages/database/**`;
 - Schema, migrations, Drizzle metadata, dependencies, manifests, lockfile,
-  configuration, Compose, and CI;
+  configuration other than the exact `apps/web/tsconfig.json` production-lib
+  include correction, Compose, and CI;
+- Integration harness changes other than the exact
+  `run-concurrent-smoke.ts` completion-timeout correction recorded below;
 - Worker, Fetcher, Renderer, Object Storage, Queue, or write repositories;
 - Accepted Decisions and Session files.
 
@@ -448,6 +453,10 @@ Explicitly prohibited without a correction packet or new Decision Review:
   `onModuleDestroy` shutdown, disconnect/finalize, late-result suppression, and
   sanitized error completion. Expiry evidence includes the configured 30-day
   maximum and the Node maximum-timer boundary.
+- Stream service unit tests prove that abort/disconnect prevents further
+  observation from starting and suppresses every late read result; they also
+  cover destroy-before-deferred-preflight resolution and expiry races at
+  subscription, observation start, observation completion, and keepalive.
 - Browser controller initial REST read, credentialed EventSource options,
   exact notification parsing, exact projection/terminal listener values,
   coalesced single-flight refresh, every initial/notification/Poll REST failure
@@ -464,6 +473,10 @@ Explicitly prohibited without a correction packet or new Decision Review:
   OpenAPI content types.
 - State snapshots before/after reads prove zero writes.
 - Abort every reader in `finally`; verify no post-abort observation continues.
+- Real HTTP Integration proves reader abort, continued API responsiveness, and
+  zero owned stream/process residue. A dedicated owned fixture invalidates its
+  Package after stream commitment to force a real repository post-connect read
+  failure and proves silent EOF plus API-log redaction.
 - API log/redaction checks use seeded private markers without printing them in
   the completion report.
 
@@ -570,6 +583,203 @@ complete. The diff contains only allowed files, no required test is skipped or
 misreported, no Secret/private marker or runtime artifact remains, independent
 split-axis review passes, required CI is green, and the change is reviewable and
 reversible as one Pull Request.
+
+## Implementation status
+
+The implementation is in review on
+`codex/m2-wf-004b-sse-notification-polling-recovery`. It adds the exact
+notification parser, protected notification-only API stream, explicit bounded
+HEAD route, process-local public-projection observation, and reusable Web
+recovery controller. The controller is deliberately not composed into
+`WorkspaceClient` or visible UI. The implementation has no schema, migration,
+dependency, Queue, Worker, Fetcher, Renderer, or Domain-Core change; M2 remains
+In Progress and later M2 Work Items remain not started. Independent review and
+the complete required command evidence remain the review gate.
+
+## Independent Review Correction Round 1
+
+**Status:** Superseded by Correction Rounds 2 and 3 — independent re-review did
+not pass
+
+Independent implementation review found bounded lifecycle, expiry, browser
+recovery deadline, production typecheck reachability, and real-transport
+evidence gaps. This correction preserves every accepted behavior and adds no
+visible UI, product test hook, dependency, Schema, migration, Queue, Agent, or
+new authority.
+
+- `WorkflowNotificationStream` gains a permanent destroyed latch, checks it
+  after deferred preflight and at subscription, removes timer temporal-dead-zone
+  risk, and rechecks Session expiry before/after every observation and before
+  keepalive emission.
+- Browser recovery measures its first Poll deadline from the stream failure,
+  aborts the current authoritative refresh through the existing API-client
+  request boundary, preserves the due time when a dependency ignores abort, and
+  disposes every request/timer/EventSource without late callbacks.
+- `apps/web/tsconfig.json` is the sole newly authorized product path. Its
+  bounded purpose is to include uncomposed production `lib/**/*.ts` modules in
+  the existing Web typecheck while excluding `lib/**/*.test.ts`; it does not
+  compose the recovery controller into UI.
+- Unit tests remain the seam for destroy/disconnect scheduling and late-result
+  suppression. Real HTTP Integration remains the seam for reader abort,
+  post-connect repository failure, API responsiveness, redaction, and absence
+  of owned stream/process residue.
+- The full Integration gate passed 25 files and 179 tests in 112.04 seconds.
+  Under concurrent resource competition, the existing 120-second child
+  completion bound then hit consecutively while each run still reported exact
+  owned cleanup. The sole Gate-stability correction authorizes
+  `packages/testing/src/integration/run-concurrent-smoke.ts` to raise only
+  `COMPLETION_TIMEOUT_MS` from `120_000` to `240_000`. Discovery, termination,
+  kill, ownership, cleanup, and diagnostic semantics remain unchanged. This is
+  not a product-behavior, security, architecture, or hashing change.
+
+M2-WF-004B remains **In Review**, M2 remains **In Progress**, and Workspace UI
+composition remains deferred.
+
+### Correction Round 1 evidence
+
+- The focused lifecycle/recovery suite passed 25 tests; the concurrent-smoke
+  ownership and cleanup suite passed 12 tests.
+- The complete local gate passed 49 files and 447 tests plus formatting, lint,
+  strict typecheck, and all five application builds.
+- The full Integration gate passed 25 files and 179 tests in 112.04 seconds.
+  The single authorized concurrent Integration run then completed within the
+  corrected 240-second bound with exact owned cleanup; it was not retried.
+- Chromium passed both the existing M1 owner loop and the native credentialed
+  EventSource companion without visible Workspace composition.
+- Both Schema-generation runs reported no change. Documentation, Decision,
+  Secret, diff, allowed-file, dependency/lockfile, local-path,
+  generated-artifact, current-run process/container/open-stream/timer, and
+  temporary-resource checks passed.
+- No Commit, push, Pull Request, dependency, migration, Schema, hash, visible
+  UI, product behavior, security boundary, or architecture change was created.
+
+## Independent Review Correction Round 2
+
+**Status:** Superseded by Correction Round 3 — independent re-review did not
+pass
+
+Two independent-review rounds identified the same browser-recovery root cause:
+when the fixed Poll deadline elapsed while an abort-ignoring authoritative
+refresh remained in flight, the controller could repeatedly schedule zero-delay
+timers. Root-cause review fixes the recovery state-machine invariant instead of
+adding another timing workaround:
+
+```text
+pollDue === true
+  → do not schedule a Poll timer
+  → wait while a request is in flight
+  → after it settles, start exactly one due Poll immediately
+  → establish the next five-second deadline only after that Poll settles
+```
+
+The correction changes only `apps/web/lib/workflow-recovery.ts`, its focused
+test, and this Work Packet. `schedulePoll()` now fails closed while a Poll is
+due; `resumePolling()` starts the one due Poll only when no request is in
+flight. The regression keeps an abort-ignoring refresh pending beyond the
+deadline, advances further fake time to prove there is no extra request or
+timer busy loop, then proves exactly one immediate Poll, no stale adjacent
+Poll, a new five-second cadence measured after that Poll settles, and zero
+timers after disposal.
+
+- Logical Role: `IMPLEMENTATION_AGENT`
+- Actual Model: `UNVERIFIED_RUNTIME_MODEL`
+- Runtime Model Status: `UNVERIFIED_RUNTIME_MODEL`
+- New DEC, architecture, public interface, dependency, hash, Schema, migration,
+  visible UI, Queue, Worker, Fetcher, and Renderer changes: none.
+
+M2-WF-004B remains **In Review** and M2 remains **In Progress**.
+
+## Independent Review Correction Round 3
+
+**Status:** Passed / Complete
+
+The Round 2 regression covered only the timer-first ordering. A second
+root-cause review found that an abort-ignoring refresh can instead settle after
+wall-clock time reaches the deadline but before the pending timer callback
+runs. The redundant `pollDue` boolean is therefore removed. `pollDueAt` is the
+single deadline fact; the timer is only a wake-up mechanism.
+
+```text
+deadline not reached → retain one timer for that deadline
+deadline reached     → cancel any stale timer
+                      → wait for an in-flight refresh, if any
+                      → otherwise run exactly one Poll
+Poll settles         → establish the next deadline five seconds later
+```
+
+`schedulePoll()` only installs one wake-up while recovery is active, in Poll
+mode, has a deadline, and has no timer. `resumePolling()` checks the deadline
+directly: it retains that wake-up before the deadline, or clears it and waits
+for the current request after the deadline. `runPoll()` clears its deadline
+before starting, then creates the next deadline only after its non-terminal
+request settles. This covers timer-first and refresh-first ordering without a
+zero-delay loop, stale timer, adjacent Poll, stall, or overlap.
+
+The correction changes only `apps/web/lib/workflow-recovery.ts`, its focused
+test, and this Work Packet. Focused tests cover the two credible orderings:
+
+- timer-first: the deadline callback occurs before an abort-ignoring refresh
+  settles; recovery performs one due Poll and then resumes a strict five-second
+  cadence;
+- refresh-first: fake wall-clock time reaches the deadline before the pending
+  timer runs; refresh settlement cancels that stale timer, performs one
+  immediate Poll, has no adjacent Poll through 4,999ms, and runs once at the
+  next millisecond boundary. Disposal leaves no timer.
+
+All actual fourth and later mock Poll responses are valid projections. No new
+DEC, public interface, dependency, hash, Schema, migration, visible UI, Queue,
+Worker, Fetcher, Renderer, or architecture change is introduced.
+
+- Logical Role: `IMPLEMENTATION_AGENT`
+- Actual Model: `UNVERIFIED_RUNTIME_MODEL`
+- Runtime Model Status: `UNVERIFIED_RUNTIME_MODEL`
+
+### Correction Round 3 independent re-review
+
+**Verdict:** PASS
+
+The independent re-review found no remaining correctness, state-consistency,
+test, failure-path, documentation, or governance finding in Correction Round 3.
+It confirmed that `pollDueAt` is the single deadline fact, the timer is only a
+wake-up, and both credible callback orderings preserve single-flight Polling and
+the five-second post-settlement cadence.
+
+- Correctness and state consistency:
+  - Logical Role: `INDEPENDENT_CORRECTNESS_REVIEWER`
+  - Requested Model: `gpt-5.6-sol`
+  - Requested Reasoning: XHigh
+  - Actual Model / Runtime Model Status: `UNVERIFIED_RUNTIME_MODEL`
+  - Thread: `/root/wf004b_correctness_review`
+  - Findings: none
+- Tests, failure paths, documentation, and governance:
+  - Logical Role: `INDEPENDENT_TESTS_GOVERNANCE_REVIEWER`
+  - Requested Model: `gpt-5.6-sol`
+  - Requested Reasoning: XHigh
+  - Actual Model / Runtime Model Status: `UNVERIFIED_RUNTIME_MODEL`
+  - Thread: `/root/wf004b_tests_docs_review`
+  - Findings: none
+- Possible new DEC: none
+
+### Final local verification
+
+- Node.js `v24.18.0` and Corepack pnpm `11.17.0` were used.
+- Frozen-lockfile installation and the exact Workspace resolution check passed.
+- The complete local gate passed 49 files and 448 tests, plus formatting, lint,
+  strict typecheck, package builds, and all five application builds.
+- The first Integration run had one failure in an existing Fetcher timing
+  assertion. The focused seven-test Fetcher suite then passed, and the single
+  full Integration re-run passed 25 files and 179 tests.
+- The concurrent Integration command completed once with exit code zero under
+  the authorized 240-second completion bound and exact owned cleanup.
+- Chromium passed both browser tests.
+- Both Schema-generation runs reported no change.
+- Documentation, repository-integrity, Secret, diff, allowed-file,
+  dependency/lockfile, local-path, and generated-artifact checks passed.
+- Current-run Docker, process, stream, timer, and temporary-resource ownership
+  cleanup passed. Older API and Chromium processes predated the current run,
+  were not claimed as current-run resources, and were not touched.
+
+M2-WF-004B remains **In Review** and M2 remains **In Progress**.
 
 ## Independent Definition-of-Ready Review
 
