@@ -32,6 +32,8 @@ interface Props {
   readonly stale: boolean;
   readonly onRefresh: () => Promise<readonly UrlCaptureIntakeResource[] | undefined>;
   readonly onTerminal: (cause: unknown) => boolean;
+  readonly onReview: (sourceId: string) => void;
+  readonly reviewNavigationBlocked: boolean;
 }
 
 function defaultRole(view: ReturnType<typeof sourceIntakeView>): SourceIntakeRole {
@@ -47,6 +49,8 @@ export function SourceIntakePanel({
   stale,
   onRefresh,
   onTerminal,
+  onReview,
+  reviewNavigationBlocked,
 }: Props) {
   const archived = contentPackage.lifecycle === 'archived';
   const view = useMemo(() => sourceIntakeView(archived ? null : sources, intakes ?? []), [archived, sources, intakes]);
@@ -250,6 +254,17 @@ export function SourceIntakePanel({
               </small>
             </div>
             <time dateTime={source.createdAt}>{new Date(source.createdAt).toLocaleString()}</time>
+            {!archived ? (
+              <button
+                className="secondary-button source-review-button"
+                type="button"
+                aria-label={`Review Source ${source.label ?? sourceTypeLabel(source)}`}
+                disabled={reviewNavigationBlocked}
+                onClick={() => onReview(source.id)}
+              >
+                Review Source
+              </button>
+            ) : null}
           </article>
         ))}
         {view.showIntakeActivity ? (

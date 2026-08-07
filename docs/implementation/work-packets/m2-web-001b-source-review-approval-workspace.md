@@ -1,6 +1,6 @@
 # M2-WEB-001B — Source Review and Approval Workspace
 
-**Status:** Ready
+**Status:** In Review
 
 **Issue:** [#120](https://github.com/JettxonHo/ContentOS/issues/120)
 
@@ -130,12 +130,12 @@ Source Approval currently updates the Source Approval record and approved Head;
 it does not complete the Workflow `source_review` Node or append a Workflow
 Timeline Event. This Work Item must preserve and state that boundary.
 
-The Web client does not yet wrap the Source review/version/approval routes or
-the Timeline route. The Working Copy response exposes `revision` but not the
-already persisted `checkpointedRevision`, so a refreshed browser cannot know
-whether the current revision is eligible to create another Version. There is no
-public Approval-history read; `approvedVersionId` truthfully identifies only
-the current approved Head.
+The in-review Web implementation now wraps the Source review/version/approval
+routes and the Timeline route. Its additive Working Copy response exposes the
+already persisted `checkpointedRevision`, so a refreshed browser can distinguish
+an eligible revision from one already checkpointed. There is still no public
+Approval-history read; `approvedVersionId` truthfully identifies only the current
+approved Head.
 
 ## Design decisions fixed by this Work Item
 
@@ -640,6 +640,31 @@ Do not mark M2 Completed. Do not start M2-QUAL-001, M2-GOV-005, or M3.
 The Implementation Agent may adjust internal component factoring inside the
 allowlist, but not the public behavior, error contract, Source lifecycle, or
 security boundary.
+
+## In-review correction evidence
+
+- Recovery draft adoption is baseline-aware: a clean refresh adopts new
+  authoritative text only while the owner draft still equals the authoritative
+  text captured at request start. Dirty-at-start drafts and typing that begins
+  during the request are preserved. Focused Source/Timeline view tests cover
+  this behavior, session fencing, and Timeline stale retention with successful
+  retry.
+- Source review commands synchronously defer and coalesce notification-driven
+  recovery. The last handled refresh signal prevents duplicate reads, deferred
+  recovery starts once after the command ends with the then-current draft
+  baseline, and every successful Source/Head mutation invalidates a late
+  recovery load before applying its response. Explicit command-owned reloads
+  remain available.
+- Real Chromium opens a stale Version 1 Approval confirmation, creates Version 2
+  through the authenticated Source API, then confirms Version 1 and observes safe
+  conflict copy, no false success, refreshed Head state, and the current Version 2
+  Review Candidate action.
+- Real Chromium follows a two-page Timeline `nextAfter` cursor through the actual
+  **Load more activity** control and proves ascending, deduplicated, safe labels.
+  The full browser gate passes 15 of 15 scenarios.
+- Primary orchestration evidence records the unchanged Docker integration suite
+  passing 26 files / 182 tests and the exact concurrent integration command
+  passing on immediate rerun.
 
 ## Git and collaboration authority
 

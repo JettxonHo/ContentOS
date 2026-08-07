@@ -203,6 +203,118 @@ a {
     box-shadow 0.15s ease,
     background 0.15s ease;
 }
+
+.source-review-button {
+  min-height: 34px;
+  padding: 0 12px;
+}
+.source-review-panel,
+.workflow-timeline-panel {
+  margin-top: 22px;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fbfcfa;
+}
+.review-actions,
+.version-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.version-heading {
+  justify-content: space-between;
+  margin-top: 28px;
+}
+.version-heading h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.version-list,
+.timeline-list {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 14px 0;
+  list-style: none;
+}
+.version-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+.version-row time,
+.timeline-list time {
+  color: var(--muted);
+  font-size: 12px;
+}
+.version-detail {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 10px;
+  background: white;
+  border: 1px solid var(--line);
+}
+.version-detail pre {
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--paper);
+  font:
+    14px/1.55 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+.head-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: var(--green-dark);
+  background: var(--green-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+.timeline-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.dialog-backdrop {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(18 37 29 / 42%);
+}
+.confirmation-dialog {
+  width: min(440px, 100%);
+  padding: 24px;
+  border-radius: 14px;
+  background: white;
+  box-shadow: var(--shadow);
+}
+.confirmation-dialog h3 {
+  margin-top: 0;
+}
 .primary-button {
   color: white;
   background: var(--green);

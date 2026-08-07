@@ -219,7 +219,9 @@ test('M2 Source intake: queued URL refreshes to safe failure and keeps fallback 
   await expect(page.getByLabel('Pasted text')).toBeFocused();
   failBackgroundRead = false;
   await page.getByRole('button', { name: 'Reload Source status' }).click();
-  await expect(page.getByText('Capture failed')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('.source-intake-panel').getByText('Capture failed', { exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
   await page.unroute('**/url-capture-requests');
   await page.getByRole('button', { name: 'Use pasted text instead' }).click();
   await expect(page.getByLabel('Pasted text')).toBeFocused();
@@ -228,10 +230,10 @@ test('M2 Source intake: queued URL refreshes to safe failure and keeps fallback 
   await expect(page.getByText('Source added to this package.')).toBeVisible();
   await expect(page.getByText('Primary 1/1 · Supporting 0/5')).toBeVisible();
   await expect(page.getByText('Pasted text · primary')).toBeVisible();
-  await expect(page.getByText('Capture failed')).toBeVisible();
+  await expect(page.locator('.source-intake-panel').getByText('Capture failed', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Public URL' })).toBeDisabled();
   await page.reload();
-  await expect(page.getByText('Capture failed')).toBeVisible();
+  await expect(page.locator('.source-intake-panel').getByText('Capture failed', { exact: true })).toBeVisible();
   await expect(page.getByText('Primary 1/1 · Supporting 0/5')).toBeVisible();
   await expect(page.getByText('Pasted text · primary')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Public URL' })).toBeDisabled();
@@ -239,6 +241,7 @@ test('M2 Source intake: queued URL refreshes to safe failure and keeps fallback 
 
 test('M2 Source intake: archived package shows owned intake history but disables commands', async ({ page }) => {
   const value = state();
+  await page.route('**/workflow/stream', async (route) => route.abort('connectionfailed'));
   await signInAndCreatePackage(page, value);
   await page.getByRole('button', { name: 'Public URL' }).click();
   await page.getByLabel('Public URL').fill('https://example.test/archived-owner-url');
@@ -253,6 +256,13 @@ test('M2 Source intake: archived package shows owned intake history but disables
   await expect(page.locator('article.source-card').filter({ hasText: 'Public URL · primary' })).toBeVisible({
     timeout: 10_000,
   });
+  await expect(page.locator('.workflow-timeline-panel').getByText('URL Source captured', { exact: true })).toBeVisible({
+    timeout: 12_000,
+  });
+  await page.getByRole('button', { name: 'Review Source Public URL' }).click();
+  await expect(page.getByLabel(/Normalized Working Copy/)).toHaveValue('archived success candidate');
+  await expect(page.getByText('<html><body>archived success history</body></html>', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Close review' }).click();
   await expect(page.getByText('Captured', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: /Package metadata/ }).click();
   await page.getByRole('button', { name: 'Archive package' }).click();
@@ -338,8 +348,21 @@ test('M2 Source intake: read failures recover, ambiguous URL stays locked, and c
   await page.getByRole('button', { name: 'Paste text' }).click();
   await page.getByRole('radio', { name: /Supporting/ }).check();
   await page.getByLabel('Pasted text').fill('session expires before this command');
+  let sessionExpired = false;
+  await page.route('**/v1/auth/session', async (route) => {
+    if (sessionExpired) {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: '{"error":{"code":"UNAUTHENTICATED","message":"Authentication required"}}',
+      });
+      return;
+    }
+    await route.continue();
+  });
   await page.route('**/sources', async (route) => {
     if (route.request().method() === 'POST') {
+      sessionExpired = true;
       await route.fulfill({
         status: 401,
         contentType: 'application/json',
