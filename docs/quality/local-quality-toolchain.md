@@ -16,17 +16,17 @@ corepack pnpm install --frozen-lockfile
 
 ## 2. Commands
 
-| Command                          | Purpose                                                                                                               |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `corepack pnpm format`           | Formats the active repository baseline.                                                                               |
-| `corepack pnpm format:check`     | Checks formatting without modifying files.                                                                            |
-| `corepack pnpm lint`             | Lints TypeScript, JavaScript, and the relevant configuration files.                                                   |
-| `corepack pnpm typecheck`        | Builds shared declarations, then runs strict TypeScript checks across the workspace.                                  |
-| `corepack pnpm test`             | Runs deterministic local unit tests through Vitest.                                                                   |
-| `corepack pnpm test:integration` | Runs the Docker-dependent integration smoke harness. See [Integration Smoke Harness](integration-smoke-harness.md).   |
-| `corepack pnpm test:browser`     | Runs the Docker-dependent M1 browser scenario in pinned Chromium. See [M1 Browser Thin Slice](browser-thin-slice.md). |
-| `corepack pnpm build`            | Builds the four runtime shared packages and five application entry points.                                            |
-| `corepack pnpm check`            | Runs `format:check`, `lint`, `typecheck`, `test`, and `build` in order.                                               |
+| Command                          | Purpose                                                                                                                                                                     |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `corepack pnpm format`           | Formats the active repository baseline.                                                                                                                                     |
+| `corepack pnpm format:check`     | Checks formatting without modifying files.                                                                                                                                  |
+| `corepack pnpm lint`             | Lints TypeScript, JavaScript, and the relevant configuration files.                                                                                                         |
+| `corepack pnpm typecheck`        | Builds shared declarations, then runs strict TypeScript checks across the workspace.                                                                                        |
+| `corepack pnpm test`             | Runs deterministic local unit tests through Vitest.                                                                                                                         |
+| `corepack pnpm test:integration` | Runs the Docker-dependent integration smoke harness. See [Integration Smoke Harness](integration-smoke-harness.md).                                                         |
+| `corepack pnpm test:browser`     | Runs the Docker-dependent M1/M2 browser suite in pinned Chromium. See [M1 Browser Thin Slice](browser-thin-slice.md) and [M2 Acceptance Harness](m2-acceptance-harness.md). |
+| `corepack pnpm build`            | Builds the four runtime shared packages and five application entry points.                                                                                                  |
+| `corepack pnpm check`            | Runs `format:check`, `lint`, `typecheck`, `test`, and `build` in order.                                                                                                     |
 
 Run `corepack pnpm check` before a commit. It has no Docker, database, Redis, Object Storage, browser, network, API key, Secret, or cloud-service dependency. `test:integration` and `test:browser` are Docker-dependent, intentionally excluded from `check`, and documented separately. The repository-integrity commands (`check:docs`, `check:decisions`, `check:secrets`, `repository:check`) are also Docker-independent and are documented in [CI Skeleton](ci-skeleton.md); they are not part of `check`.
 

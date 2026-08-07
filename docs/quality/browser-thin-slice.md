@@ -43,7 +43,12 @@ The M2 companions additionally prove native credentialed
 Copy save and revision-conflict recovery, immutable Version history, exact
 human Approval confirmation, safe Timeline labels, dirty-navigation guards,
 keyboard dialog behavior, stale-session suppression, and SSE-disconnect
-recovery through authoritative Polling reads.
+recovery through authoritative Polling reads. `M2-QUAL-001` adds one bounded
+milestone journey: an owned real Worker dispatches the URL Job; the private
+Gateway records a safe failure; the owner uses Pasted Text plus `.md` and
+`.txt` Supporting Sources, saves and approves the exact Version, refreshes,
+and observes the authoritative Timeline through the five-second Polling
+fallback. It is evidence, not a second browser harness.
 
 ## 3. Isolation and cleanup
 

@@ -302,7 +302,7 @@ Ordinary logs must not contain complete Source bodies, Cookies, Credentials, aut
 The connection mechanism, standard ports, fixed User-Agent, resource limits,
 redirect bound, content-type allowlist, no-automatic-retry policy, and
 deterministic extraction choice are accepted first-release policy.
-`M2-FETCH-001C` is in review; it activates the existing bounded composition
+`M2-FETCH-001C` is completed; it activates the existing bounded composition
 without becoming a policy override. The future strategy for JavaScript-heavy
 pages remains open and requires a separate review if proposed.
 

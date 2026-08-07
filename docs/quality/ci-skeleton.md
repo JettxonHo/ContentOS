@@ -1,10 +1,10 @@
 # ContentOS CI Skeleton
 
 **Status:** Implementation Baseline
-**Scope:** The bounded GitHub Actions workflow, its jobs, permissions, runtime, repository-integrity checks, integration smoke, and M1 browser extension
+**Scope:** The bounded GitHub Actions workflow, its jobs, permissions, runtime, repository-integrity checks, integration smoke, and M1/M2 browser extension
 **Last Updated:** 2026-07-28
 
-This document records the executable continuous-integration baseline introduced by `M0-CI-001` and its bounded M1 browser-test extension. It is the CI companion to the [Local Quality Toolchain](local-quality-toolchain.md), [Integration Smoke Harness](integration-smoke-harness.md), and [M1 Browser Thin Slice](browser-thin-slice.md). It does not create a release platform, deployment, or full release gate.
+This document records the executable continuous-integration baseline introduced by `M0-CI-001` and its bounded M1/M2 browser-test extension. It is the CI companion to the [Local Quality Toolchain](local-quality-toolchain.md), [Integration Smoke Harness](integration-smoke-harness.md), [M1 Browser Thin Slice](browser-thin-slice.md), and [M2 Acceptance Harness](m2-acceptance-harness.md). It does not create a release platform, deployment, or full release gate.
 
 Related documents: [Local Quality Toolchain](local-quality-toolchain.md), [Integration Smoke Harness](integration-smoke-harness.md), [Test Strategy](test-strategy.md), [Release Gates](release-gates.md), [Secret Management](../security/secret-management.md), and the [Roadmap](../implementation/roadmap.md).
 
@@ -48,10 +48,10 @@ The workflow defines three independent jobs. Any required job failure makes the 
 
 1. `corepack pnpm test:integration` — the existing isolated smoke harness (see [Integration Smoke Harness](integration-smoke-harness.md)). Cleanup behavior is owned entirely by the existing harness; the workflow adds no cleanup step.
 
-### M1 browser job (`browser-smoke`)
+### M1/M2 browser job (`browser-smoke`)
 
 1. Install only the Chromium browser and required Linux system libraries through the exact root Playwright pin.
-2. `corepack pnpm test:browser` — the complete M1 owner loop against a fresh isolated runtime (see [M1 Browser Thin Slice](browser-thin-slice.md)).
+2. `corepack pnpm test:browser` — the complete M1/M2 owner-browser suite against a fresh isolated runtime (see [M1 Browser Thin Slice](browser-thin-slice.md) and [M2 Acceptance Harness](m2-acceptance-harness.md)).
 
 The job uploads no screenshot, trace, video, HTML report, credential file, or other artifact.
 

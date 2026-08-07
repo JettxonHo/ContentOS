@@ -1,6 +1,6 @@
 # M2-QUAL-001 — M2 Acceptance Harness and Evidence Matrix
 
-**Status:** Ready
+**Status:** In Review
 
 **Issue:** [#124](https://github.com/JettxonHo/ContentOS/issues/124)
 
@@ -15,14 +15,12 @@
 - Logical implementation role: `IMPLEMENTATION_AGENT`
 - Executor profile: `BACKEND_GENERAL_EXECUTOR`
 - Target implementation model: `gpt-5.6-terra`, High
-- Actual implementation model: `UNASSIGNED`
+- Actual implementation model: `UNVERIFIED_RUNTIME_MODEL`
 - Reasoning: High
-- Implementation thread: `UNASSIGNED`
+- Implementation thread: `/root/m2qual_implementation`
 - Runtime model status: `UNVERIFIED_RUNTIME_MODEL` unless exposed by the runtime
-- Implementation branch: create
-  `codex/m2-qual-001-m2-acceptance-harness` from the latest `origin/main`
-  immediately before the first implementation edit, then record the exact
-  branch and base SHA in this packet and the Completion Report
+- Implementation branch: `codex/m2-qual-001-m2-acceptance-harness` from
+  `15aecf99503c831962953bec6aeb426d022c2eb2` (the exact implementation base)
 - Owner: one Implementation Agent with exclusive repository-write ownership
 - Reviewer: independent `gpt-5.6-sol`, High review agents
 - Risk classification: milestone acceptance evidence over private Source content,
@@ -291,6 +289,7 @@ browser tests. Existing focused tests remain and must stay green.
 - `docs/quality/integration-smoke-harness.md`
 - `docs/quality/browser-thin-slice.md`
 - `docs/quality/ci-skeleton.md`
+- `docs/quality/local-quality-toolchain.md`
 - `docs/security/source-fetcher.md`
 - `.github/workflows/ci.yml` only to rename the stale browser display label;
   no command, trigger, permission, action, runner, environment, or topology
@@ -346,9 +345,11 @@ quality documentation; the later Acceptance Record is the immutable result.
 
 ### Error and logging contract
 
-Assertions and lifecycle output use stable safe categories only. They never
-emit the submitted URL, content body, Snapshot bytes, Object key, Secret,
+Assertions and process lifecycle output use stable safe categories only. They
+never emit the submitted URL, content body, Snapshot bytes, Object key, Secret,
 opaque claim, database/Redis/S3 URL, raw error, SQL, Queue payload, or stack.
+The owner-facing Source Intake record may display its submitted URL; the
+Timeline, error surfaces, ordinary logs, and process output must not expose it.
 
 ## Acceptance Criteria
 
@@ -382,8 +383,9 @@ opaque claim, database/Redis/S3 URL, raw error, SQL, Queue payload, or stack.
    the Approved state after refresh.
 10. With the Workflow SSE route forcibly disconnected, the existing five-second
     Polling fallback discovers authoritative Source/Timeline changes. The UI
-    displays safe fixed labels and never raw URL, body internals, Object key,
-    claim, Secret, or diagnostic data.
+    displays safe fixed labels and never body internals, Object key, claim,
+    Secret, or diagnostic data. The owner-facing Source Intake record may show
+    its submitted URL.
 11. The evidence matrix maps SSRF denial, Upload Quarantine, Raw/Safe
     separation, URL fallback, exact Approval, duplicate Queue protection,
     Outbox recovery, Redis-loss reconciliation, Lease recovery, SSE fallback,
@@ -465,8 +467,9 @@ process environment. It is not a product pass or failure.
   principal.
 - Owner Authorization remains server-side. Tests must not use direct database
   writes to fabricate the accepted user-level Source/Version/Approval path.
-- Raw Snapshot bytes, URL, Candidate body, Object key, Queue payload, claim,
-  and Secrets must not enter Timeline, browser UI, errors, or ordinary logs.
+- Raw Snapshot bytes, Candidate body, Object key, Queue payload, claim, and
+  Secrets must not enter Timeline, errors, ordinary logs, or the browser UI.
+  The owner-facing Source Intake record may show its submitted URL.
 - Cleanup is scoped by run identity and opaque fixture IDs; no global prune,
   volume deletion, image deletion, or unrelated process termination is
   permitted.
@@ -571,6 +574,63 @@ Exit Criterion has an evidence path, and Issue #124 matches this packet.
 
 - Blocking Design Question: None
 - Possible new DEC: None
+
+## Implementation and independent-review evidence
+
+Implementation completed on branch
+`codex/m2-qual-001-m2-acceptance-harness` from base
+`15aecf99503c831962953bec6aeb426d022c2eb2`. The implementation remained
+inside the final allowlist: two new acceptance tests, one new evidence matrix,
+bounded quality/security/status documentation, and CI display labels only.
+There is no product code, dependency, Lockfile, Schema, migration, Compose, or
+runtime-configuration change.
+
+The first formal integration run exposed a fixture-close race, an unclosed
+database runtime, incomplete cleanup evidence, and an incorrect foreign-key
+cleanup order. A later browser run passed 15 of 16 tests and exposed one
+missing post-refresh Version selection step. These failures were retained as
+review evidence; their run-owned processes, Compose projects, objects, and
+temporary capsules were cleaned before the corrected runs.
+
+Final local evidence on 2026-08-07:
+
+- `corepack pnpm install --frozen-lockfile`: PASS with Node `v24.18.0` and pnpm
+  `11.17.0`;
+- `corepack pnpm workspace:check`: PASS for the five applications and six
+  packages;
+- `corepack pnpm check`: PASS — 53 files and 485 unit tests, plus all five
+  application builds;
+- `corepack pnpm test:integration`: PASS — 27 files and 184 tests;
+- `corepack pnpm test:integration:concurrent`: PASS, exit 0;
+- `corepack pnpm test:browser`: PASS — 16 tests;
+- `check:docs`, `repository:check`, `check:secrets`, and `git diff --check`:
+  PASS;
+- two consecutive `corepack pnpm db:generate` runs: PASS with no Schema
+  changes; and
+- final residue and scope checks: no ContentOS smoke/browser project,
+  container, temporary capsule, local absolute path, tracked `.DS_Store`, or
+  forbidden-file diff.
+
+The existing PostgreSQL client deprecation warning remains visible during the
+integration suite and is not introduced by this Work Item. One initial frozen
+install attempt was blocked only because the restricted sandbox denied fnm's
+temporary multishell symlink; the same command passed immediately with the
+already-active required Node version.
+
+Independent final reviews:
+
+- `CORRECTNESS_TEST_EVIDENCE_REVIEWER`
+  - Target model: `gpt-5.6-sol`, High
+  - Actual runtime: `UNVERIFIED_RUNTIME_MODEL`
+  - Thread: `/root/m2qual_correctness_review`
+  - Verdict: PASS
+- `SECURITY_SCOPE_DOCUMENTATION_REVIEWER`
+  - Target model: `gpt-5.6-sol`, High
+  - Actual runtime: `UNVERIFIED_RUNTIME_MODEL`
+  - Thread: `/root/m2qual_harness_feasibility`
+  - Verdict: PASS
+
+No Blocking Design Question, scope escalation, or new DEC was found.
 
 ## Definition of Done
 
