@@ -1,6 +1,6 @@
 # M2-DOC-001 — Current-truth Runtime Status Normalization
 
-**Status:** In Review
+**Status:** Completed
 
 **Issue:** [#133](https://github.com/JettxonHo/ContentOS/issues/133)
 
@@ -191,6 +191,17 @@ change is required.
   task-generated artifacts. Existing ignored `.DS_Store` files predate and are
   outside this Work Item; they were not modified or claimed as task output.
 - M2 remains In Progress pending `M2-GOV-005`; M3 remains Not Started.
+
+## Post-merge status synchronization
+
+`M2-DOC-001` was completed through Issue #133 and PR #135, squash merge
+`9546010bd030b08e1ce56048c5dd151ec5b4e06c`
+(`docs: normalize M2 runtime status (#135)`). All three required GitHub CI jobs
+were green before merge: Docker-independent quality, Integration smoke
+(Docker), and M1/M2 browser smoke (Chromium).
+
+This documentation-only synchronization does not mark M2 Completed or Passed.
+M2 remains In Progress pending `M2-GOV-005`; M3 remains Not Started.
 
 ## Definition of Ready
 
