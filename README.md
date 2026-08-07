@@ -12,9 +12,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-`M2-WEB-001B — Source Review and Approval Workspace` is **Completed** through PR #122, squash merge `9af5f68b8846ab172bff7599657c9409faed85c4` (`feat: add Source review and approval workspace (#122)`). M2 remains in progress.
+`M2-QUAL-001 — M2 Acceptance Harness and Evidence Matrix` is **Completed** through PR #126, squash merge `4ee1911c69d9ad55bbb34a3729be3cd3d9625f23` (`test: add M2 acceptance harness (#126)`). M2 remains in progress.
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; its Source, Workflow, Fetcher, and active Workspace foundations through `M2-WEB-001B` are completed. `M2-QUAL-001` is In Review with the reproducible [M2 Acceptance Harness](docs/quality/m2-acceptance-harness.md); `M2-GOV-005` remains not started, so M2 remains incomplete.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; its Source, Workflow, Fetcher, and active Workspace foundations through `M2-WEB-001B` are completed. `M2-QUAL-001` is completed through PR #126, squash merge `4ee1911c69d9ad55bbb34a3729be3cd3d9625f23` (`test: add M2 acceptance harness (#126)`); `M2-GOV-005` remains not started, so M2 remains incomplete.
 
 This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package and URL-capture API boundaries, the M1 Web thin slice, Worker Outbox delivery and lease reconciliation, and the private API-owned Fetcher Gateway Claim/Heartbeat/Result boundary. `M2-FETCH-001C` registers the existing controlled public transport and Candidate/Snapshot preparation behind one `contentos-fetcher` BullMQ consumer: it validates a fixed current-generation Job, claims through the API, captures once, and submits the exact Result. PostgreSQL and the API remain authoritative for Task and Source state; the Fetcher has no database connection. The active Workspace offers Pasted Text, `.md`/`.txt` upload, durable URL-capture intake, explicit normalized Working Copy review and saving, immutable Version history, exact Review Candidate human Approval, and a bounded safe REST Workflow Timeline refreshed through the existing SSE/Polling recovery path. Source Approval does not transition `source_review` or append a Workflow Timeline Event, and archived Package review commands remain unavailable. It still does not provide Research, an Agent, Render, Export, publishing behavior, deployment, or a development server.
 
@@ -132,7 +132,7 @@ The workflow references no repository Secrets, persists no credentials, uploads 
 
 ## Next implementation steps
 
-1. M2 — Source and Workflow Foundation — is in progress. `M2-FETCH-001`, `M2-SRC-004`, `M2-WF-004A`, `M2-WF-004B`, and `M2-WEB-001A` through `M2-WEB-001B` are completed. `M2-QUAL-001` is In Review; `M2-GOV-005` remains not started.
+1. M2 — Source and Workflow Foundation — is in progress. `M2-FETCH-001`, `M2-SRC-004`, `M2-WF-004A`, `M2-WF-004B`, `M2-WEB-001A` through `M2-WEB-001B`, and `M2-QUAL-001` are completed. `M2-GOV-005` remains not started.
 2. Do not infer M2 scope or begin an Agent, Research, or publishing path from the current stage.
 
 No completion date is committed by this repository.
