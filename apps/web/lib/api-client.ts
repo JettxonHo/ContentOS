@@ -7,6 +7,12 @@ import type {
   CreateContentPackageRequest,
   UpdateContentPackageRequest,
   WorkflowProjectionResponse,
+  CreateSourceRequest,
+  SourceListResponse,
+  SourceResponse,
+  UrlCaptureIntakeCollectionResponse,
+  UrlCaptureRequest,
+  UrlCaptureRequestResponse,
   ApiErrorCode,
 } from '@contentos/contracts';
 
@@ -70,13 +76,47 @@ export class ContentOsApiClient {
     return this.request(`/v1/content-packages/${encodeURIComponent(id)}/workflow`, signal ? { signal } : {});
   }
 
+  listSources(id: string): Promise<SourceListResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(id)}/sources?limit=20`);
+  }
+
+  createSource(id: string, input: CreateSourceRequest): Promise<SourceResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(id)}/sources`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  uploadSource(id: string, form: FormData): Promise<SourceResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(id)}/sources/upload`, {
+      method: 'POST',
+      body: form,
+    });
+  }
+
+  submitUrlCapture(id: string, input: UrlCaptureRequest, idempotencyKey: string): Promise<UrlCaptureRequestResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(id)}/url-capture-requests`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+      headers: { 'idempotency-key': idempotencyKey },
+    });
+  }
+
+  listUrlCaptureIntakes(id: string): Promise<UrlCaptureIntakeCollectionResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(id)}/url-capture-requests`);
+  }
+
   private async request<T>(path: string, init: RequestInit = {}, empty = false): Promise<T> {
     let response: Response;
     try {
       response = await this.fetcher(`${this.origin}${path}`, {
         ...init,
         credentials: 'include',
-        headers: { accept: 'application/json', ...(init.body ? { 'content-type': 'application/json' } : {}) },
+        headers: {
+          accept: 'application/json',
+          ...(typeof init.body === 'string' ? { 'content-type': 'application/json' } : {}),
+          ...init.headers,
+        },
       });
     } catch {
       throw new WebApiError(0, 'NETWORK_ERROR');

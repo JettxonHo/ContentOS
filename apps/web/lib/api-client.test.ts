@@ -66,4 +66,35 @@ describe('ContentOsApiClient', () => {
       }),
     );
   });
+
+  it('preserves caller idempotency headers and leaves multipart boundaries to the browser', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockImplementation(
+        async () => new Response(JSON.stringify({ data: { urlCaptureRequest: {} } }), { status: 201 }),
+      );
+    const client = new ContentOsApiClient('http://127.0.0.1:3001', fetcher);
+    await client.submitUrlCapture(
+      '00000000-0000-4000-8000-000000000001',
+      { expectedPackageRevision: 1, role: 'primary', submittedUrl: 'https://example.test/article' },
+      'browser-generated-key',
+    );
+    expect(fetcher).toHaveBeenLastCalledWith(
+      'http://127.0.0.1:3001/v1/content-packages/00000000-0000-4000-8000-000000000001/url-capture-requests',
+      expect.objectContaining({
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'idempotency-key': 'browser-generated-key',
+        },
+      }),
+    );
+
+    const form = new FormData();
+    form.append('role', 'supporting');
+    form.append('file', new Blob(['text']), 'notes.md');
+    await client.uploadSource('00000000-0000-4000-8000-000000000001', form);
+    const options = fetcher.mock.calls.at(-1)?.[1] as RequestInit;
+    expect(options.headers).toEqual({ accept: 'application/json' });
+  });
 });

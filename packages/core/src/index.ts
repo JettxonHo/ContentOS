@@ -12,5 +12,6 @@ export * from './source/source.js';
 export * from './source/upload.js';
 export * from './workflow/workflow.js';
 export * from './workflow/url-capture.js';
+export * from './workflow/url-capture-intake.js';
 export * from './workflow/fetcher-gateway.js';
 export * from './workflow/workflow-query.js';

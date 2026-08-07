@@ -1,6 +1,6 @@
 # M2-WEB-001A — Source Intake Workspace
 
-**Status:** Ready
+**Status:** In Review
 
 **Issue:** [#116](https://github.com/JettxonHo/ContentOS/issues/116)
 
@@ -704,6 +704,75 @@ The first review required three bounded corrections: focused formatting; a
 fixed-v1 rule that any durable intake item disables all later URL submissions;
 and active/capacity-gated fallback semantics. The reviewer verified all three
 corrections and returned final `PASS`.
+
+## Implementation review corrections
+
+Two independent implementation reviews returned `NEEDS CHANGES` against the
+uncommitted implementation. Correction Round 1 remains within this packet and
+keeps the Work Item `In Review`:
+
+- successful intake activity is deduplicated only against its exact formal
+  Source ID; archived history never invents formal Source counts or an empty
+  formal collection;
+- an ambiguous URL POST and a successful POST followed by a failed
+  authoritative refresh both remain locked until the owner performs a
+  successful reconciliation read;
+- Source refreshes are serialized and coalesced, disposed completions cannot
+  commit state, terminal `401`/`404` reads and commands use the existing
+  Workspace terminal paths, and background refresh failure preserves the last
+  known view and form draft;
+- focus moves to the exact created Source card or the actionable failure, while
+  URL activity updates remain live status without stealing focus; and
+- browser and Integration evidence covers the accepted success, failure,
+  fallback, archived-history, owner-scope, sanitized-error, and zero-side-effect
+  boundaries without adding a dependency, Schema, migration, hash, or broader
+  defensive mechanism.
+
+Correction executor metadata remains `Logical Role: IMPLEMENTATION_AGENT`,
+`Actual Model: UNVERIFIED_RUNTIME_MODEL`, and `Runtime Model Status:
+UNVERIFIED_RUNTIME_MODEL`. Final gate evidence must be recorded only after the
+commands complete; this section does not change the packet status or authorize
+Git publication.
+
+Correction Round 1 final local evidence on 2026-08-07:
+
+- `pnpm check` passed in the environment that permits the existing managed
+  process-identity tests: 51 files and 456 unit tests, plus all five application
+  builds. The restricted sandbox run was separately recorded as an environment
+  failure because `ps` spawning returned `EPERM`; no test was skipped or
+  weakened.
+- `pnpm test:integration` passed 26 files and 182 tests;
+  `pnpm test:integration:concurrent` passed; and `pnpm test:browser` passed all
+  six Chromium scenarios.
+- frozen installation, Workspace resolution, documentation, repository,
+  Secret, formatting, lint, strict TypeScript, build, and diff checks passed.
+  Two consecutive `db:generate` runs reported no Schema changes.
+- The final browser evidence includes initial and background read failure,
+  preserved draft/focus, ambiguous submission, accepted-but-unconfirmed
+  submission, authoritative reconciliation, exact successful Source
+  deduplication, archived history, independent fallback, and terminal command
+  authentication handling.
+
+Correction Round 2 resolved two independent re-review blockers without changing
+the packet boundary:
+
+- URL confirmation status and its narrowly scoped warning now reconcile as one
+  state update. An authoritative empty intake collection returns the browser to
+  idle, while a durable item confirms the permanent fixed-v1 lock; both remove
+  only the associated confirmation warning and prompt.
+- Source read/command and recovery `404` paths now use one unavailable-Package
+  transition. It clears the mounted Package and stale Source projection so the
+  Sources effect disposes its coordinator and recovery subscription; `401`
+  continues to return to Login.
+
+Correction Round 2 focused evidence passed 10 unit tests, Web and Testing
+TypeScript checks, and all seven Chromium scenarios. The final repository gate
+passed 51 files and 456 unit tests, all application builds, documentation,
+repository, Secret, and diff checks. API/database code did not change after the
+immediately preceding 26-file/182-test Integration and concurrent-smoke passes,
+so those expensive suites were not repeated for this Web/test/documentation-only
+correction. The Work Item remains `In Review`, M2 remains `In Progress`, and
+the executor metadata remains `Actual Model: UNVERIFIED_RUNTIME_MODEL`.
 
 ## Completion report format
 

@@ -1,18 +1,26 @@
-import { Body, Controller, Inject, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiCookieAuth, ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import {
   apiErrorSchema,
   parseUrlCaptureRequest,
+  urlCaptureIntakeCollectionResponseSchema,
   urlCaptureRequestResponseSchema,
   urlCaptureRequestSchema,
   type UrlCaptureRequestResponse,
+  type UrlCaptureIntakeCollectionResponse,
 } from '@contentos/contracts';
-import type { ContentPackageId, ContentPackageOwnerId, UrlCaptureService } from '@contentos/core';
+import type {
+  ContentPackageId,
+  ContentPackageOwnerId,
+  UrlCaptureIntake,
+  UrlCaptureIntakeQueryPort,
+  UrlCaptureService,
+} from '@contentos/core';
 
 import { AuthenticationGuard, type AuthenticatedRequest } from '../auth/authentication.guard';
 import { ApiHttpError } from '../http/api-http-error';
-import { URL_CAPTURE_SERVICE } from '../runtime.tokens';
+import { URL_CAPTURE_INTAKE_QUERY, URL_CAPTURE_SERVICE } from '../runtime.tokens';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -42,7 +50,28 @@ function idempotencyKey(request: AuthenticatedRequest): string {
 @UseGuards(AuthenticationGuard)
 @Controller('v1/content-packages/:packageId/url-capture-requests')
 export class UrlCaptureController {
-  constructor(@Inject(URL_CAPTURE_SERVICE) private readonly urlCapture: UrlCaptureService) {}
+  constructor(
+    @Inject(URL_CAPTURE_SERVICE) private readonly urlCapture: UrlCaptureService,
+    @Inject(URL_CAPTURE_INTAKE_QUERY) private readonly intake: UrlCaptureIntakeQueryPort,
+  ) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Read the owner-visible durable URL capture intake for a Content Package' })
+  @ApiResponse({ status: 200, schema: urlCaptureIntakeCollectionResponseSchema })
+  @ApiResponse({ status: 401, schema: apiErrorSchema })
+  @ApiResponse({ status: 404, schema: apiErrorSchema })
+  @ApiResponse({ status: 422, schema: apiErrorSchema })
+  @ApiResponse({ status: 500, schema: apiErrorSchema })
+  async list(
+    @Req() request: AuthenticatedRequest,
+    @Param('packageId') packageId: string,
+  ): Promise<UrlCaptureIntakeCollectionResponse> {
+    const items = await this.intake.list({
+      contentPackageId: requireId(packageId),
+      ownerUserId: owner(request),
+    });
+    return { data: { items: items.map(toIntakeResource) } };
+  }
 
   @Post()
   @ApiOperation({ summary: 'Record one owner-scoped public URL capture request' })
@@ -87,4 +116,17 @@ export class UrlCaptureController {
       },
     };
   }
+}
+
+function toIntakeResource(value: UrlCaptureIntake): UrlCaptureIntakeCollectionResponse['data']['items'][number] {
+  const base = {
+    id: value.id,
+    role: value.role,
+    submittedUrl: value.submittedUrl,
+    createdAt: value.createdAt.toISOString(),
+    updatedAt: value.updatedAt.toISOString(),
+  };
+  if (value.status === 'failed') return { ...base, status: 'failed', failure: value.failure, sourceId: null };
+  if (value.status === 'succeeded') return { ...base, status: 'succeeded', failure: null, sourceId: value.sourceId };
+  return { ...base, status: value.status, failure: null, sourceId: null };
 }
