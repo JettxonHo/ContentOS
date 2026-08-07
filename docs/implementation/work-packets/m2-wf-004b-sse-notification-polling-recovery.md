@@ -1,6 +1,6 @@
 # M2-WF-004B — SSE Notification and Polling Recovery
 
-**Status:** In Review
+**Status:** Completed
 
 **Issue:** [#110](https://github.com/JettxonHo/ContentOS/issues/110)
 
@@ -9,10 +9,17 @@
 **Planning / Definition-of-Ready base:**
 `adcde58d4567db8eb91d874f5344c868ea4babc6`
 
+**Completion:** PR #112, squash merge
+`d9460747c530797dc11c341374183ad57e7fa85e`
+(`feat: add workflow SSE recovery (#112)`)
+
 ## Identification
 
 - Work Item: `M2-WF-004B`
 - Milestone: M2 — Source and Workflow Foundation
+- Status: Completed through PR #112, squash merge
+  `d9460747c530797dc11c341374183ad57e7fa85e`
+  (`feat: add workflow SSE recovery (#112)`)
 - Executor Profile: `BACKEND_GENERAL_EXECUTOR`
 - Target Execution Configuration: `gpt-5.6-terra`, XHigh
 - Logical Role: `IMPLEMENTATION_AGENT`
@@ -584,17 +591,18 @@ misreported, no Secret/private marker or runtime artifact remains, independent
 split-axis review passes, required CI is green, and the change is reviewable and
 reversible as one Pull Request.
 
-## Implementation status
+## Implementation and completion status
 
-The implementation is in review on
-`codex/m2-wf-004b-sse-notification-polling-recovery`. It adds the exact
+The implementation completed through PR #112, squash merge
+`d9460747c530797dc11c341374183ad57e7fa85e`
+(`feat: add workflow SSE recovery (#112)`). It adds the exact
 notification parser, protected notification-only API stream, explicit bounded
 HEAD route, process-local public-projection observation, and reusable Web
 recovery controller. The controller is deliberately not composed into
 `WorkspaceClient` or visible UI. The implementation has no schema, migration,
 dependency, Queue, Worker, Fetcher, Renderer, or Domain-Core change; M2 remains
 In Progress and later M2 Work Items remain not started. Independent review and
-the complete required command evidence remain the review gate.
+the complete required command evidence passed before merge.
 
 ## Independent Review Correction Round 1
 
