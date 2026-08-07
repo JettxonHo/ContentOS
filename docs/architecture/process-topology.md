@@ -4,7 +4,7 @@
 
 **Scope:** MVP deployable processes, runtime responsibilities, permissions, communication, and recovery boundaries
 
-**Last Updated:** 2026-08-06
+**Last Updated:** 2026-08-07
 
 This document defines the logical runtime topology for the ContentOS MVP. A process boundary provides workload and security isolation; it does not create a microservice, separate Domain model, separate database, or independent release.
 
@@ -34,7 +34,7 @@ The processes share one Repository, one authoritative Domain model, one primary 
 
 ### Current implementation boundary
 
-M0-ENG-002 created independently buildable and startable entry points. The current M2 boundary includes the API-owned URL-capture Command and Fetcher Gateway, Worker Outbox delivery and lease recovery, Fetcher orchestration, and the `M2-WF-004A` owner-scoped Workflow projection and Timeline REST reads now in review. The API reads those views from PostgreSQL; they are not SSE or a second Workflow store. The Fetcher consumes only the fixed Queue contract, obtains its authority through the private Gateway, uses controlled public HTTP/HTTPS and its scoped Object Storage identity, and submits an exact Result. It does not access PostgreSQL.
+M0-ENG-002 created independently buildable and startable entry points. The current M2 boundary includes the API-owned URL-capture Command and Fetcher Gateway, Worker Outbox delivery and lease recovery, Fetcher orchestration, and the completed `M2-WF-004A` owner-scoped Workflow projection and Timeline REST reads. `M2-WF-004B` is in review: the API performs process-local, one-second comparison of the existing public Workflow projection and sends a private SSE change notification only; browser recovery obtains state through the same REST projection and five-second Polling. This adds neither a second Workflow store nor visible Workspace composition. The Fetcher consumes only the fixed Queue contract, obtains its authority through the private Gateway, uses controlled public HTTP/HTTPS and its scoped Object Storage identity, and submits an exact Result. It does not access PostgreSQL.
 
 ## 2. Runtime Topology Diagram
 

@@ -42,6 +42,7 @@ import { SourceController } from './source/source.controller';
 import { UrlCaptureController } from './url-capture/url-capture.controller';
 import { FetcherGatewayController } from './fetcher-gateway/fetcher-gateway.controller';
 import { WorkflowController } from './workflow/workflow.controller';
+import { WorkflowNotificationStream } from './workflow/workflow-notification-stream';
 import { FetcherGatewaySecretGuard } from './fetcher-gateway/fetcher-gateway.guard';
 import { AjvNormalizedBodyValidator } from './source/ajv-body-validator';
 import {
@@ -76,6 +77,7 @@ export class AppModule {
         { provide: API_SECRETS, useValue: secrets },
         DatabaseService,
         FetcherGatewaySecretGuard,
+        WorkflowNotificationStream,
         LoginAttemptLimiter,
         {
           provide: AUTHENTICATION_SERVICE,

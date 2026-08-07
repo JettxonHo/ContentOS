@@ -30,13 +30,15 @@ describe('api smoke', () => {
         Record<
           string,
           {
-            responses?: Record<string, unknown>;
+            responses?: Record<string, { content?: Record<string, unknown> }>;
             parameters?: Array<{
               name?: string;
               in?: string;
               required?: boolean;
               schema?: { type?: string; default?: number; minimum?: number; maximum?: number };
             }>;
+            requestBody?: unknown;
+            security?: Array<Record<string, unknown>>;
           }
         >
       >;
@@ -59,6 +61,7 @@ describe('api smoke', () => {
         '/v1/content-packages/{packageId}/url-capture-requests',
         '/v1/content-packages/{packageId}/workflow',
         '/v1/content-packages/{packageId}/workflow/events',
+        '/v1/content-packages/{packageId}/workflow/stream',
       ]),
     );
     expect(document.components?.securitySchemes).toHaveProperty('contentos_session');
@@ -105,6 +108,18 @@ describe('api smoke', () => {
     ]) {
       const responses = sourcePaths[pathName]?.get?.responses ?? {};
       expect(Object.keys(responses).sort()).toEqual(['200', '401', '404', '422', '500']);
+    }
+    const stream = sourcePaths['/v1/content-packages/{packageId}/workflow/stream'];
+    expect(Object.keys(stream ?? {})).toEqual(['get']);
+    expect(Object.keys(stream?.get?.responses ?? {}).sort()).toEqual(['200', '401', '404', '422', '500']);
+    expect(stream?.get?.security).toEqual([{ contentos_session: [] }]);
+    expect(stream?.get?.requestBody).toBeUndefined();
+    expect(stream?.get?.parameters?.filter((parameter) => parameter.in === 'query') ?? []).toEqual([]);
+    expect(stream?.get?.responses?.['200']?.content).toEqual({
+      'text/event-stream': { schema: { type: 'string' } },
+    });
+    for (const status of ['401', '404', '422', '500']) {
+      expect(Object.keys(stream?.get?.responses?.[status]?.content ?? {})).toEqual(['application/json']);
     }
     const timelineParameters = sourcePaths['/v1/content-packages/{packageId}/workflow/events']?.get?.parameters ?? [];
     expect(timelineParameters).toEqual(

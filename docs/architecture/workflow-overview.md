@@ -4,7 +4,7 @@
 
 **Scope:** MVP workflow coordination, state boundaries, Commands, Human Gates, recovery, and execution invariants
 
-**Last Updated:** 2026-08-02
+**Last Updated:** 2026-08-07
 
 This document defines how ContentOS coordinates one Content Package through fixed, auditable, and recoverable Workflow behavior. It defines semantics and boundaries, not database tables, API endpoints, JSON Schemas, concrete enums, or implementation timing values.
 
@@ -90,8 +90,13 @@ does not dispatch a Queue Job, make a network request, create Source evidence,
 write Object Storage, or expose URL text through responses, Events, or Outbox
 payloads. M2-WF-004A adds the owner-scoped authoritative REST projection and
 bounded Timeline read paths: they return only materialized Nodes and safe
-public Event variants, while PostgreSQL remains the truth. SSE and later
-Workflow transitions remain inactive until their own Ready Work Items.
+public Event variants, while PostgreSQL remains the truth. `M2-WF-004B` is in
+review: its one private owner-scoped SSE route emits only bounded
+`workflow-notification/v1` change notifications and a transport keepalive.
+The browser refreshes the authoritative projection and falls back to Polling;
+the notification cannot reconstruct state and is not a Workflow store. The
+reusable recovery controller is not composed into the current Workspace.
+Later Workflow transitions remain inactive until their own Ready Work Items.
 
 M2-WF-003A adds the first delivery-only execution boundary. The Worker owns a
 bounded Dispatcher that moves the PostgreSQL Outbox record through
@@ -403,7 +408,9 @@ The Workflow experience and operations layer expose high-level, redacted informa
 - visible Warning, acknowledgement requirement, and Blocking Error;
 - branch progress and outdated propagation.
 
-These requirements do not select a metrics backend or exact SSE Event Contract. Read APIs remain authoritative when events are missing or delayed.
+These requirements do not select a metrics backend. The implemented bounded
+SSE notification Contract does not replace the authoritative reads, which
+remain authoritative when notifications are missing or delayed.
 
 ## 17. Workflow Invariants
 
@@ -444,7 +451,6 @@ Accepted Decisions do not yet fix:
 - the precise boundary of Pause for in-flight work;
 - Reconciliation frequency;
 - Workflow Projection implementation;
-- SSE Event Contract.
 
 These choices must preserve the semantics and invariants above. A change to Accepted Workflow, Human Gate, security, or MVP behavior requires Decision governance rather than silent implementation.
 

@@ -2,9 +2,9 @@
 
 **Status:** Implementation Baseline
 **Scope:** The API/process integration smoke command, its isolation design, what it verifies, and its boundary against other quality entry points
-**Last Updated:** 2026-07-29
+**Last Updated:** 2026-08-07
 
-This document records the executable integration smoke baseline introduced by `M0-QUAL-002`, extended by `M1-SEC-001` for authentication, extended by `M1-CP-001` for the bounded Content Package API, and extended by `M2-SRC-001` for the Pasted-text Source Capture and Approval API. It is a Docker-dependent companion to the [Local Quality Toolchain](local-quality-toolchain.md). It does not itself collect browser tests; `M1-WEB-001` reuses its isolated runtime through the separate [M1 Browser Thin Slice](browser-thin-slice.md).
+This document records the executable integration smoke baseline introduced by `M0-QUAL-002`, extended by `M1-SEC-001` for authentication, extended by `M1-CP-001` for the bounded Content Package API, extended by `M2-SRC-001` for the Pasted-text Source Capture and Approval API, and extended in-review by `M2-WF-004B` for private Workflow SSE notifications. It is a Docker-dependent companion to the [Local Quality Toolchain](local-quality-toolchain.md). It does not itself collect browser tests; `M1-WEB-001` and the notification browser check reuse its isolated runtime through the separate [M1 Browser Thin Slice](browser-thin-slice.md).
 
 Related documents: [Local Quality Toolchain](local-quality-toolchain.md), [CI Skeleton](ci-skeleton.md), [Test Strategy](test-strategy.md), [Release Gates](release-gates.md), [Repository Structure](../architecture/repository-structure.md), and the [Roadmap](../implementation/roadmap.md).
 
@@ -57,6 +57,7 @@ A Vitest `globalSetup` performs, once per run: a Docker availability check, a bu
 - **redis:** healthy, loopback-reachable, returns `PONG` for the correct credential, rejects a wrong credential, and holds no key.
 - **object storage:** healthy, loopback-reachable, accepts a correct AWS SigV4 signature, rejects a wrong signature, rejects anonymous access, proves the real adapter's conditional-put collision behavior, verifies bytes/hash/size/content type and metadata, and leaves no probe bucket or object after the run.
 - **Source database safety:** exact JSON/schema/UTF-8 bounds, complete owner/package/source composite constraints, rollback of capture/Version/Approval units, concurrent role limits, duplicate-checkpoint and Approval serialization, archived-Package reads/writes, and deterministic archive/write races.
+- **Workflow notification:** exact owner-scoped SSE preflight, immediate no-Instance and instantiated notifications, cache/CORS headers, explicit bounded `HEAD`, Event-backed and same-sequence Task-only changes, and no state write from stream reads.
 
 `corepack pnpm test:integration:concurrent` starts two complete smoke commands at the same time through this real harness. Before either spawn, the parent persists two exact claims and empty managed-process controls under its unique root. Authenticated ready-state and hashed credential-isolation evidence are retained as each child publishes them, so the two ready-state files do not need to coexist. Child exit competes with discovery: an exit before that child's state is captured fails promptly with a bounded classification-only diagnostic. A remaining exact child receives bounded `SIGTERM`/`SIGKILL`; the parent then validates only the pre-created claim/control records to stop exact detached API/Web groups, bring down exact Compose projects, remove exact child roots, and finally remove its empty parent root. It never scans or changes unrelated temporary roots, processes, or projects. The gate asserts distinct run directories, ready-state files, Compose projects, ports, temporary credentials, and cleanup sentinels, then requires both commands to succeed with no owned residue.
 

@@ -32,7 +32,7 @@ import { run } from './process.ts';
 import { stopManagedProcess, type ManagedProcessIdentity } from './process-identity.ts';
 
 const DISCOVERY_TIMEOUT_MS = 240_000;
-const COMPLETION_TIMEOUT_MS = 120_000;
+const COMPLETION_TIMEOUT_MS = 240_000;
 const TERMINATION_GRACE_MS = 75_000;
 const KILL_GRACE_MS = 10_000;
 const MAX_CAPTURED_OUTPUT = 8_192;

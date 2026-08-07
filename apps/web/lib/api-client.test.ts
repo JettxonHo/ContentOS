@@ -44,4 +44,26 @@ describe('ContentOsApiClient', () => {
       expect.objectContaining<WebApiError>({ status: 0, code: 'NETWORK_ERROR' }),
     );
   });
+
+  it('reads the authoritative Workflow projection through the same credentialed client boundary', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ data: { workflow: null } }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const client = new ContentOsApiClient('http://127.0.0.1:3001', fetcher);
+    const abort = new AbortController();
+    await expect(client.workflow('00000000-0000-4000-8000-000000000001', abort.signal)).resolves.toEqual({
+      data: { workflow: null },
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      'http://127.0.0.1:3001/v1/content-packages/00000000-0000-4000-8000-000000000001/workflow',
+      expect.objectContaining({
+        credentials: 'include',
+        headers: { accept: 'application/json' },
+        signal: abort.signal,
+      }),
+    );
+  });
 });
