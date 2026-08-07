@@ -212,6 +212,8 @@ The first Agent is not implemented in M2. It consumes only Approved Source Versi
 
 | `M2-QUAL-002 — Source Status Recovery Browser Stability` | Stabilize the Source-status recovery browser evidence around an accepted background-refresh/reload-affordance race. | `M2-QUAL-001` completed | **In Review.** [Work Packet](work-packets/m2-qual-002-source-status-recovery-browser-stability.md), Issue #129. Test-only single-DOM-evaluation repair scoped to the detached `Reload Source status` race; no product/runtime, timeout, retry, dependency, Schema, migration, or behavior change. |
 
+| `M2-MAINT-001 — Inherited Dependency Audit Remediation` | Remove the inherited Critical/High dependency-audit blocker with the smallest compatible patched transitive versions. | `M2-QUAL-001` completed | **In Review.** [Work Packet](work-packets/m2-maint-001-inherited-dependency-audit-remediation.md), Issue #95. Exact transitive remediation resolves the official-registry High advisories without direct-dependency or product changes. M2 remains In Progress pending a new `M2-GOV-005` review. |
+
 ## 10. M3 — Research
 
 M3 introduces the first formal Agent Vertical Slice:

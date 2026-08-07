@@ -50,7 +50,7 @@ describe('ESLint brace-expansion compatibility', () => {
       const braceExpansion = context.require('brace-expansion') as BraceExpansion;
 
       expect(minimatchPackage.version, context.name).toBe(context.version);
-      expect(braceExpansionPackage.version, context.name).toBe('5.0.8');
+      expect(braceExpansionPackage.version, context.name).toBe('5.0.9');
       expect(context.require.resolve('brace-expansion/package.json'), context.name).toContain(
         '/node_modules/brace-expansion/package.json',
       );
