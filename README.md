@@ -14,7 +14,7 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 `M2-WEB-001B — Source Review and Approval Workspace` is **Completed** through PR #122, squash merge `9af5f68b8846ab172bff7599657c9409faed85c4` (`feat: add Source review and approval workspace (#122)`). M2 remains in progress.
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; `M2-SRC-001` through `M2-SRC-004`, `M2-WF-001` through `M2-WF-004B`, `M2-FETCH-001A` through `M2-FETCH-001C`, and `M2-WEB-001A` through `M2-WEB-001B` are completed. `M2-FETCH-001` is completed through PR #100, squash merge `4fe20a48a02b83ec68886bae68b86f5e65ba3895` (`feat: add queue-to-gateway Fetcher orchestration (#100)`). `M2-WF-004A` is completed through PR #108, squash merge `acdb971ffd8a1c8898666182ac017817f095e1b7` (`feat: add workflow projection and timeline queries (#108)`). `M2-WF-004B` is completed through PR #112, squash merge `d9460747c530797dc11c341374183ad57e7fa85e` (`feat: add workflow SSE recovery (#112)`). `M2-WEB-001A` is completed through PR #118, squash merge `58d2e8ca1f80d0ea03ef991aa22f40c3b058c25c` (`feat: add Source intake workspace (#118)`). `M2-QUAL-001` and `M2-GOV-005` remain not started, so M2 remains incomplete.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. M2 — Source and Workflow Foundation — is in progress; its Source, Workflow, Fetcher, and active Workspace foundations through `M2-WEB-001B` are completed. `M2-QUAL-001` is In Review with the reproducible [M2 Acceptance Harness](docs/quality/m2-acceptance-harness.md); `M2-GOV-005` remains not started, so M2 remains incomplete.
 
 This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package and URL-capture API boundaries, the M1 Web thin slice, Worker Outbox delivery and lease reconciliation, and the private API-owned Fetcher Gateway Claim/Heartbeat/Result boundary. `M2-FETCH-001C` registers the existing controlled public transport and Candidate/Snapshot preparation behind one `contentos-fetcher` BullMQ consumer: it validates a fixed current-generation Job, claims through the API, captures once, and submits the exact Result. PostgreSQL and the API remain authoritative for Task and Source state; the Fetcher has no database connection. The active Workspace offers Pasted Text, `.md`/`.txt` upload, durable URL-capture intake, explicit normalized Working Copy review and saving, immutable Version history, exact Review Candidate human Approval, and a bounded safe REST Workflow Timeline refreshed through the existing SSE/Polling recovery path. Source Approval does not transition `source_review` or append a Workflow Timeline Event, and archived Package review commands remain unavailable. It still does not provide Research, an Agent, Render, Export, publishing behavior, deployment, or a development server.
 
@@ -39,7 +39,7 @@ The current workspace contains five applications and six packages. `M1-SEC-001` 
 - Product: [definition](docs/product/product-definition.md), [users and jobs](docs/product/user-and-jobs.md), [MVP scope](docs/product/mvp-scope.md)
 - Architecture: [domain overview](docs/architecture/domain-overview.md), [Content Package foundation](docs/architecture/content-package-foundation.md), [Source foundation](docs/architecture/source-foundation.md), [technical architecture](docs/architecture/technical-architecture.md), [repository structure](docs/architecture/repository-structure.md), [workflow overview](docs/architecture/workflow-overview.md)
 - Security: [security baseline](docs/security/security-baseline.md), [authentication foundation](docs/security/authentication-foundation.md)
-- Quality: [test strategy](docs/quality/test-strategy.md), [release gates](docs/quality/release-gates.md), [local quality toolchain](docs/quality/local-quality-toolchain.md), [integration smoke harness](docs/quality/integration-smoke-harness.md), [M1 browser thin slice](docs/quality/browser-thin-slice.md), [CI skeleton](docs/quality/ci-skeleton.md)
+- Quality: [test strategy](docs/quality/test-strategy.md), [release gates](docs/quality/release-gates.md), [local quality toolchain](docs/quality/local-quality-toolchain.md), [integration smoke harness](docs/quality/integration-smoke-harness.md), [M1 browser thin slice](docs/quality/browser-thin-slice.md), [M2 acceptance harness](docs/quality/m2-acceptance-harness.md), [CI skeleton](docs/quality/ci-skeleton.md)
 - Implementation: [roadmap](docs/implementation/roadmap.md), [exit criteria](docs/implementation/milestone-exit-criteria.md), [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md), [Work Item template](docs/implementation/work-item-template.md), and [agent collaboration workflow](docs/implementation/agent-collaboration-workflow.md)
 - [Decision Register](docs/decisions/decisions.md)
 - [Contribution guide](CONTRIBUTING.md)
@@ -116,7 +116,7 @@ This starts an isolated `contentos-smoke-*` Compose project that replaces persis
 
 Run `corepack pnpm test:integration:concurrent` to launch two complete token-owned smoke runs concurrently and verify that their directories, state, Compose projects, ports, credentials, and cleanup remain isolated from each other and from unrelated harness runs.
 
-After installing the pinned Chromium revision with `corepack pnpm exec playwright install chromium`, run `corepack pnpm test:browser` to exercise the complete M1 owner loop. Read [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md) for its security, cleanup, and scope boundaries.
+After installing the pinned Chromium revision with `corepack pnpm exec playwright install chromium`, run `corepack pnpm test:browser` to exercise the M1/M2 owner-browser suite. Read [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md) and [M2 Acceptance Harness](docs/quality/m2-acceptance-harness.md) for its security, cleanup, and scope boundaries.
 
 These commands remain a bounded M1 foundation plus the active M2 Source, delivery, Fetcher execution, and Source-evidence slices. There is no `dev`, broad product E2E suite, Workflow Engine beyond the current durable request/delivery/lease/recovery/result boundary, Agent, Render, or publishing-content feature yet.
 
@@ -126,13 +126,13 @@ A bounded GitHub Actions workflow at [.github/workflows/ci.yml](.github/workflow
 
 - a Docker-independent job: workspace resolution, `corepack pnpm check`, and `corepack pnpm repository:check` (Markdown local-link, Canonical Decision register, and Secret checks);
 - a Docker-dependent job: `corepack pnpm test:integration` through the existing isolated smoke harness.
-- an M1 browser job: pinned Playwright Chromium runs `corepack pnpm test:browser` against an isolated runtime.
+- an M1/M2 browser job: pinned Playwright Chromium runs `corepack pnpm test:browser` against an isolated runtime.
 
 The workflow references no repository Secrets, persists no credentials, uploads no artifacts, and performs no deployment or release. It is a bounded baseline, not a full release gate. All three jobs must pass before a change can merge. Read [CI Skeleton](docs/quality/ci-skeleton.md) for the full scope.
 
 ## Next implementation steps
 
-1. M2 — Source and Workflow Foundation — is in progress. `M2-FETCH-001`, `M2-SRC-004`, `M2-WF-004A`, `M2-WF-004B`, and `M2-WEB-001A` through `M2-WEB-001B` are completed. `M2-QUAL-001` and `M2-GOV-005` remain not started.
+1. M2 — Source and Workflow Foundation — is in progress. `M2-FETCH-001`, `M2-SRC-004`, `M2-WF-004A`, `M2-WF-004B`, and `M2-WEB-001A` through `M2-WEB-001B` are completed. `M2-QUAL-001` is In Review; `M2-GOV-005` remains not started.
 2. Do not infer M2 scope or begin an Agent, Research, or publishing path from the current stage.
 
 No completion date is committed by this repository.

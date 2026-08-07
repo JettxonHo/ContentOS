@@ -79,7 +79,7 @@ jobs:
         run: corepack pnpm test:integration
 
   browser-smoke:
-    name: M1 browser thin slice (Chromium)
+    name: M1/M2 browser smoke (Chromium)
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -98,5 +98,5 @@ jobs:
         run: corepack pnpm install --frozen-lockfile
       - name: Install pinned Chromium and system dependencies
         run: corepack pnpm exec playwright install --with-deps chromium
-      - name: M1 browser scenario
+      - name: M1/M2 browser scenario
         run: corepack pnpm test:browser
