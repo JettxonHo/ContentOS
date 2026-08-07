@@ -7,9 +7,18 @@ import type {
   CreateContentPackageRequest,
   UpdateContentPackageRequest,
   WorkflowProjectionResponse,
+  WorkflowTimelinePageResponse,
   CreateSourceRequest,
+  EditSourceWorkingCopyRequest,
+  CreateSourceVersionRequest,
+  ApproveSourceVersionRequest,
   SourceListResponse,
   SourceResponse,
+  SourceWorkingCopyResponse,
+  SourceVersionResponse,
+  SourceVersionListResponse,
+  SourceVersionDetailResponse,
+  SourceApprovalResponse,
   UrlCaptureIntakeCollectionResponse,
   UrlCaptureRequest,
   UrlCaptureRequestResponse,
@@ -80,6 +89,61 @@ export class ContentOsApiClient {
     return this.request(`/v1/content-packages/${encodeURIComponent(id)}/sources?limit=20`);
   }
 
+  getSource(packageId: string, sourceId: string): Promise<SourceResponse> {
+    return this.request(`${this.sourcePath(packageId, sourceId)}`);
+  }
+
+  getWorkingCopy(packageId: string, sourceId: string): Promise<SourceWorkingCopyResponse> {
+    return this.request(`${this.sourcePath(packageId, sourceId)}/working-copy`);
+  }
+
+  editWorkingCopy(
+    packageId: string,
+    sourceId: string,
+    input: EditSourceWorkingCopyRequest,
+  ): Promise<SourceWorkingCopyResponse> {
+    return this.request(`${this.sourcePath(packageId, sourceId)}/working-copy`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
+  }
+
+  createVersion(
+    packageId: string,
+    sourceId: string,
+    input: CreateSourceVersionRequest,
+  ): Promise<SourceVersionResponse> {
+    return this.request(`${this.sourcePath(packageId, sourceId)}/versions`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  listVersions(packageId: string, sourceId: string): Promise<SourceVersionListResponse> {
+    return this.request(`${this.sourcePath(packageId, sourceId)}/versions`);
+  }
+
+  getVersion(packageId: string, sourceId: string, versionId: string): Promise<SourceVersionDetailResponse> {
+    return this.request(`${this.sourcePath(packageId, sourceId)}/versions/${encodeURIComponent(versionId)}`);
+  }
+
+  approveVersion(
+    packageId: string,
+    sourceId: string,
+    input: ApproveSourceVersionRequest,
+  ): Promise<SourceApprovalResponse> {
+    return this.request(`${this.sourcePath(packageId, sourceId)}/approval`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  workflowTimeline(packageId: string, after: number): Promise<WorkflowTimelinePageResponse> {
+    return this.request(
+      `/v1/content-packages/${encodeURIComponent(packageId)}/workflow/events?after=${encodeURIComponent(String(after))}&limit=20`,
+    );
+  }
+
   createSource(id: string, input: CreateSourceRequest): Promise<SourceResponse> {
     return this.request(`/v1/content-packages/${encodeURIComponent(id)}/sources`, {
       method: 'POST',
@@ -104,6 +168,10 @@ export class ContentOsApiClient {
 
   listUrlCaptureIntakes(id: string): Promise<UrlCaptureIntakeCollectionResponse> {
     return this.request(`/v1/content-packages/${encodeURIComponent(id)}/url-capture-requests`);
+  }
+
+  private sourcePath(packageId: string, sourceId: string): string {
+    return `/v1/content-packages/${encodeURIComponent(packageId)}/sources/${encodeURIComponent(sourceId)}`;
   }
 
   private async request<T>(path: string, init: RequestInit = {}, empty = false): Promise<T> {

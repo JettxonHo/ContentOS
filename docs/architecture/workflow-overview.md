@@ -90,13 +90,14 @@ does not dispatch a Queue Job, make a network request, create Source evidence,
 write Object Storage, or expose URL text through responses, Events, or Outbox
 payloads. M2-WF-004A adds the owner-scoped authoritative REST projection and
 bounded Timeline read paths: they return only materialized Nodes and safe
-public Event variants, while PostgreSQL remains the truth. `M2-WF-004B` is in
-review: its one private owner-scoped SSE route emits only bounded
-`workflow-notification/v1` change notifications and a transport keepalive.
-The browser refreshes the authoritative projection and falls back to Polling;
-the notification cannot reconstruct state and is not a Workflow store. The
-reusable recovery controller is not composed into the current Workspace.
-Later Workflow transitions remain inactive until their own Ready Work Items.
+public Event variants, while PostgreSQL remains the truth. `M2-WF-004B` is
+Completed: its one private owner-scoped SSE route emits only bounded
+`workflow-notification/v1` change notifications and a transport keepalive, and
+its reusable browser controller refreshes authoritative REST state with Polling
+fallback. `M2-WEB-001B` is In Review and composes that controller into the active
+Workspace for Source, URL-intake, and bounded Timeline REST reads. The SSE
+notification cannot reconstruct state and is not a Workflow store. Later
+Workflow transitions remain inactive until their own Ready Work Items.
 
 M2-WF-003A adds the first delivery-only execution boundary. The Worker owns a
 bounded Dispatcher that moves the PostgreSQL Outbox record through
@@ -235,7 +236,7 @@ Workflow completion is derived from the fixed Template's required branch and Gat
 
 ## 6. Current Action
 
-The active Workspace Source Intake surface uses existing notification/polling recovery only to refresh its authoritative Source and URL-intake REST reads. SSE remains notification-only; it is not Workflow state and does not create a Timeline UI.
+The active Workspace uses the existing notification/polling recovery only to schedule authoritative Source, URL-intake, and bounded Timeline REST reads. The Timeline maps only safe public Event variants and remains independent from Source review state. SSE remains notification-only; it is not Workflow state. Source Approval updates its Source Approval record and Head only; it does not transition `source_review` or append a Workflow Timeline Event.
 
 Current Action is a derived, user-facing recommendation based on:
 

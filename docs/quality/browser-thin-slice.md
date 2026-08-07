@@ -4,7 +4,7 @@
 **Scope:** The bounded M1 owner-browser scenario, pinned runtime, isolation, security assertions, cleanup, and explicit exclusions
 **Last Updated:** 2026-08-07
 
-This document records the browser scenario introduced by `M1-WEB-001` and its in-review `M2-WF-004B` companion. It verifies the first private UI → API → Domain → PostgreSQL → UI loop plus native credentialed EventSource delivery; it is not a broad product E2E suite and does not compose M2 Workflow UI.
+This document records the browser scenario introduced by `M1-WEB-001` and its M2 Source intake, Source review/Approval, Timeline, and recovery companions. It verifies the private UI → API → Domain → PostgreSQL → UI loop plus native credentialed EventSource and Polling recovery; it remains a bounded milestone suite rather than broad product E2E coverage.
 
 Related documents: [Integration Smoke Harness](integration-smoke-harness.md), [CI Skeleton](ci-skeleton.md), [Test Strategy](test-strategy.md), [Content Package Foundation](../architecture/content-package-foundation.md), [Authentication Foundation](../security/authentication-foundation.md), and the [Roadmap](../implementation/roadmap.md).
 
@@ -23,14 +23,14 @@ The command is Docker-dependent and intentionally excluded from `corepack pnpm c
 
 ## 2. Scenario
 
-The single deterministic scenario proves:
+The deterministic browser suite proves:
 
 - an unauthenticated owner is redirected to Login;
 - an incorrect password produces one generic error, clears the password field, and restores focus;
 - a correct password creates an HttpOnly, SameSite=Strict session through exact-Origin CORS;
 - Dashboard shows the empty state and keeps unavailable Settings visibly disabled;
 - a package can be created once even when submission is triggered twice;
-- Workspace shows truthful stages, including active Package Source Intake for Paste, `.md`/`.txt` upload, and one URL-capture record; Source review/Approval and Workflow Timeline UI remain unavailable;
+- Workspace shows truthful stages, including active Package Source Intake for Paste, `.md`/`.txt` upload, and one URL-capture record; active-only Source review provides explicit Working Copy save, immutable Version inspection, exact Review Candidate confirmation, and a safe REST Workflow Timeline through the existing recovery path;
 - metadata edits persist across a browser refresh;
 - a stale revision is rejected and the owner can reload the authoritative revision;
 - Archive requires explicit confirmation, preserves one archived package, and is not Delete; and
@@ -38,12 +38,12 @@ The single deterministic scenario proves:
 
 The typed Web client always uses `credentials: include`, maps the common API error envelope, and stores no token, password, or API response in browser storage.
 
-The M2-WF-004B companion signs in through the existing owner flow, creates an
-isolated Package fixture, receives the exact initial
-`workflow-notification/v1` Event through native Chromium `EventSource` with
-credentials, then closes the connection. It deliberately does not instantiate
-the reusable recovery controller in the M1 Workspace or add visible Workflow
-status UI.
+The M2 companions additionally prove native credentialed
+`workflow-notification/v1` delivery, durable Source intake, explicit Working
+Copy save and revision-conflict recovery, immutable Version history, exact
+human Approval confirmation, safe Timeline labels, dirty-navigation guards,
+keyboard dialog behavior, stale-session suppression, and SSE-disconnect
+recovery through authoritative Polling reads.
 
 ## 3. Isolation and cleanup
 
@@ -73,11 +73,11 @@ Neither switch changes product behavior or emits a credential.
 
 The scenario checks the browser/API Origin boundary and cookie flags. Runtime configuration accepts only an IPv4-loopback API origin outside production and requires HTTPS in production. `CONTENTOS_API_ORIGIN` is public browser configuration and must never contain a Secret.
 
-The M1 UI uses explicit labels, semantic headings, keyboard-focus indicators, live error/status regions, and disabled-state semantics. React text rendering remains the escaping boundary for owner-supplied metadata; the Web client never uses raw HTML injection.
+The UI uses explicit labels, semantic headings, keyboard-focus indicators, live error/status regions, disabled-state semantics, and a focus-contained Approval dialog. React text rendering remains the escaping boundary for owner-supplied metadata and normalized Source bodies; the Web client never uses raw HTML injection.
 
 ## 6. Explicit exclusions
 
-This baseline does not test or implement Source capture, Workflow execution, Queue behavior, Agent Runtime, Research, content generation, Render, Export, publishing, multi-user behavior, deployment, or production browsers. It does not create tables, migrations, Domain semantics, or a second data-access path.
+This baseline does not test or implement Workflow write commands, Agent Runtime, Research, content generation, Render, Export, publishing, multi-user behavior, deployment, or production browsers. It does not create tables, migrations, Domain semantics, or a second data-access path.
 
 ## 7. Decision traceability
 

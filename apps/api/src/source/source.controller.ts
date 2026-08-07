@@ -299,6 +299,7 @@ export class SourceController {
       data: {
         workingCopy: {
           revision: result.workingCopy.revision,
+          checkpointedRevision: result.workingCopy.checkpointedRevision,
           schemaVersion: result.workingCopy.schemaVersion,
           body: result.workingCopy.body,
           updatedAt: result.workingCopy.updatedAt.toISOString(),
@@ -346,6 +347,7 @@ export class SourceController {
       data: {
         workingCopy: {
           revision: result.workingCopy.revision,
+          checkpointedRevision: result.workingCopy.checkpointedRevision,
           schemaVersion: result.workingCopy.schemaVersion,
           body: result.workingCopy.body,
           updatedAt: result.workingCopy.updatedAt.toISOString(),

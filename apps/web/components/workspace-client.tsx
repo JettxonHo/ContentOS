@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type {
   ContentPackageModeDto,
@@ -17,6 +17,8 @@ import { SourceRefreshCoordinator } from '../lib/source-intake-view';
 import { WorkflowRecoveryController } from '../lib/workflow-recovery';
 import { AppShell, StatusMessage } from './app-shell';
 import { SourceIntakePanel } from './source-intake-panel';
+import { SourceReviewPanel } from './source-review-panel';
+import { WorkflowTimelinePanel } from './workflow-timeline-panel';
 
 export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: string; contentPackageId: string }) {
   const api = useMemo(() => new ContentOsApiClient(apiOrigin), [apiOrigin]);
@@ -38,12 +40,23 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
   const [sourceLoading, setSourceLoading] = useState(false);
   const [sourceStale, setSourceStale] = useState(false);
   const [sourceError, setSourceError] = useState('');
+  const [sourceNotice, setSourceNotice] = useState('');
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [reviewDirty, setReviewDirty] = useState(false);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewRefreshSignal, setReviewRefreshSignal] = useState(0);
+  const [workflowLatestSequence, setWorkflowLatestSequence] = useState<number | null>(null);
   const sourceRefreshRef = useRef<
     SourceRefreshCoordinator<{
       readonly intakes: readonly UrlCaptureIntakeResource[];
       readonly sources: readonly SourceListItemResource[] | null;
     }>
   >(null);
+  const selectedSourceIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    selectedSourceIdRef.current = selectedSourceId;
+  }, [selectedSourceId]);
 
   function apply(value: ContentPackageResource): void {
     setContentPackage(value);
@@ -61,6 +74,10 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     setSourceLoading(false);
     setSourceStale(false);
     setSourceError('');
+    setSourceNotice('');
+    setSelectedSourceId(null);
+    setReviewDirty(false);
+    setReviewBusy(false);
     setError('This Content Package is unavailable.');
   }, []);
 
@@ -70,7 +87,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
         router.replace('/login');
         return true;
       }
-      if (cause instanceof WebApiError && cause.status === 404) {
+      if (cause instanceof WebApiError && cause.status === 404 && cause.code === 'CONTENT_PACKAGE_NOT_FOUND') {
         showPackageUnavailable();
         return true;
       }
@@ -153,9 +170,19 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
         return { intakes: intakeResponse.data.items, sources: sourceResponse?.data.items ?? null };
       },
       (result) => {
+        const selectedSourceMissing =
+          selectedSourceIdRef.current !== null &&
+          result.sources?.some((source) => source.id === selectedSourceIdRef.current) === false;
         setIntakes(result.intakes);
         setSources(result.sources);
-        setSourceError('');
+        if (selectedSourceMissing) {
+          setSelectedSourceId(null);
+          setReviewDirty(false);
+          setReviewBusy(false);
+          setSourceNotice('This Source is unavailable. The Source collection was refreshed.');
+        } else {
+          setSourceError('');
+        }
         setSourceStale(false);
       },
     );
@@ -177,7 +204,11 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     });
     const recovery = contentPackage.lifecycle === 'active' ? new WorkflowRecoveryController(api, apiOrigin) : null;
     const unsubscribe = recovery?.subscribe(contentPackageId, (notice) => {
-      if (notice.kind === 'projection') void refreshSources(true);
+      if (notice.kind === 'projection') {
+        setWorkflowLatestSequence(notice.response.data.workflow?.latestSequence ?? 0);
+        setReviewRefreshSignal((current) => current + 1);
+        void refreshSources(true);
+      }
       if (notice.kind === 'terminal' && notice.status === 401) router.replace('/login');
       if (notice.kind === 'terminal' && notice.status === 404) showPackageUnavailable();
     });
@@ -200,6 +231,10 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
   ]);
 
   async function logout(): Promise<void> {
+    if (reviewDirty) {
+      setSourceError('Save or discard the unsaved Source draft before leaving this workspace.');
+      return;
+    }
     try {
       await api.logout();
       router.replace('/login');
@@ -216,6 +251,14 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     setOutputs((current) =>
       current.includes(output) ? current.filter((item) => item !== output) : [...current, output],
     );
+  }
+
+  function chooseSection(next: 'sources' | 'details'): void {
+    if ((reviewDirty || reviewBusy) && next !== section) {
+      setSourceError('Save or discard the unsaved Source draft before leaving Sources.');
+      return;
+    }
+    setSection(next);
   }
 
   async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -252,7 +295,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
   }
 
   async function archive(): Promise<void> {
-    if (!contentPackage || saving) return;
+    if (!contentPackage || saving || reviewDirty || reviewBusy) return;
     setSaving(true);
     setError('');
     try {
@@ -268,214 +311,282 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     }
   }
 
+  const blockDirtyLinkNavigation = (event: MouseEvent<HTMLDivElement>): void => {
+    if (!reviewDirty) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const link = target.closest('a');
+    const href = link?.getAttribute('href');
+    if (href !== '/' && href?.startsWith('/?') !== true) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setSourceError('Save or discard the unsaved Source draft before leaving this workspace.');
+  };
+
+  const closeUnavailableSource = (): void => {
+    setSelectedSourceId(null);
+    setReviewDirty(false);
+    setReviewBusy(false);
+    setSourceNotice('This Source is unavailable. The Source collection was refreshed.');
+    void refreshSources(true);
+  };
+
   return (
-    <AppShell active="workspace" onLogout={() => void logout()}>
-      <header className="workspace-header">
-        <div>
-          <Link className="back-link" href="/">
-            ← Dashboard
-          </Link>
-          <p className="eyebrow">Content Package workspace</p>
-          <h1>{contentPackage?.title ?? 'Workspace'}</h1>
-        </div>
-        {contentPackage ? <div className="revision-badge">Revision {contentPackage.revision}</div> : null}
-      </header>
+    <div onClickCapture={blockDirtyLinkNavigation}>
+      <AppShell active="workspace" onLogout={() => void logout()}>
+        <header className="workspace-header">
+          <div>
+            <Link className="back-link" href="/">
+              ← Dashboard
+            </Link>
+            <p className="eyebrow">Content Package workspace</p>
+            <h1>{contentPackage?.title ?? 'Workspace'}</h1>
+          </div>
+          {contentPackage ? <div className="revision-badge">Revision {contentPackage.revision}</div> : null}
+        </header>
 
-      {loading ? (
-        <div className="loading-state" role="status">
-          <span /> Loading workspace…
-        </div>
-      ) : null}
-      {error ? <StatusMessage>{error}</StatusMessage> : null}
-      {conflict ? (
-        <StatusMessage>
-          <strong>Revision conflict.</strong> A newer authoritative revision exists. Your changes were not applied.{' '}
-          <button className="inline-button" type="button" onClick={() => void load()}>
-            Reload latest
-          </button>
-        </StatusMessage>
-      ) : null}
+        {loading ? (
+          <div className="loading-state" role="status">
+            <span /> Loading workspace…
+          </div>
+        ) : null}
+        {error ? <StatusMessage>{error}</StatusMessage> : null}
+        {conflict ? (
+          <StatusMessage>
+            <strong>Revision conflict.</strong> A newer authoritative revision exists. Your changes were not applied.{' '}
+            <button className="inline-button" type="button" onClick={() => void load()}>
+              Reload latest
+            </button>
+          </StatusMessage>
+        ) : null}
 
-      {contentPackage && !loading ? (
-        <div className="workspace-layout">
-          <section
-            className="workspace-main"
-            aria-labelledby={section === 'sources' ? 'sources-title' : 'metadata-title'}
-          >
-            {section === 'sources' ? (
-              <>
-                {sourceError ? (
-                  <StatusMessage>
-                    {sourceError}{' '}
-                    <button className="inline-button" type="button" onClick={() => void refreshSources()}>
-                      Reload Source status
-                    </button>
-                  </StatusMessage>
-                ) : null}
-                <SourceIntakePanel
-                  api={api}
-                  contentPackage={contentPackage}
-                  sources={sources}
-                  intakes={intakes}
-                  busy={sourceLoading}
-                  stale={sourceStale}
-                  onRefresh={() => refreshSources()}
-                  onTerminal={handleSourceTerminal}
-                />
-              </>
-            ) : (
-              <>
-                <div className="section-heading">
-                  <div>
-                    <p className="eyebrow">Current foundation</p>
-                    <h2 id="metadata-title">Package metadata</h2>
-                  </div>
-                  <span className={`lifecycle ${contentPackage.lifecycle}`}>{contentPackage.lifecycle}</span>
-                </div>
-                <form className="form-grid" onSubmit={save}>
-                  <div className="field full-span">
-                    <label htmlFor="workspace-title">Title</label>
-                    <input
-                      id="workspace-title"
-                      maxLength={200}
-                      value={title}
-                      onChange={(event) => setTitle(event.target.value)}
-                      disabled={contentPackage.lifecycle === 'archived'}
-                      required
-                    />
-                  </div>
-                  <div className="field full-span">
-                    <label htmlFor="workspace-description">
-                      Description <span>Optional</span>
-                    </label>
-                    <textarea
-                      id="workspace-description"
-                      maxLength={2000}
-                      rows={4}
-                      value={description}
-                      onChange={(event) => setDescription(event.target.value)}
-                      disabled={contentPackage.lifecycle === 'archived'}
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="workspace-mode">Content mode</label>
-                    <select
-                      id="workspace-mode"
-                      value={contentMode}
-                      onChange={(event) => setContentMode(event.target.value as ContentPackageModeDto)}
-                      disabled={contentPackage.lifecycle === 'archived'}
-                    >
-                      <option value="deferred">Decide later</option>
-                      <option value="creator_led">Creator-led</option>
-                      <option value="research_based">Research-based</option>
-                    </select>
-                  </div>
-                  <fieldset className="field output-field" disabled={contentPackage.lifecycle === 'archived'}>
-                    <legend>Requested outputs</legend>
-                    <label className="check-label">
-                      <input type="checkbox" checked={outputs.includes('blog')} onChange={() => toggleOutput('blog')} />{' '}
-                      Blog
-                    </label>
-                    <label className="check-label">
-                      <input
-                        type="checkbox"
-                        checked={outputs.includes('xiaohongshu')}
-                        onChange={() => toggleOutput('xiaohongshu')}
-                      />{' '}
-                      Xiaohongshu
-                    </label>
-                  </fieldset>
-                  {outputs.length === 0 ? (
-                    <p className="field-error full-span" role="alert">
-                      Choose at least one output.
-                    </p>
+        {contentPackage && !loading ? (
+          <div className="workspace-layout">
+            <section
+              className="workspace-main"
+              aria-labelledby={section === 'sources' ? 'sources-title' : 'metadata-title'}
+            >
+              {section === 'sources' ? (
+                <>
+                  {sourceError ? (
+                    <StatusMessage>
+                      {sourceError}{' '}
+                      <button className="inline-button" type="button" onClick={() => void refreshSources()}>
+                        Reload Source status
+                      </button>
+                    </StatusMessage>
                   ) : null}
-                  {notice ? (
-                    <p className="save-notice full-span" role="status">
-                      {notice}
-                    </p>
+                  {sourceNotice ? <StatusMessage>{sourceNotice}</StatusMessage> : null}
+                  <SourceIntakePanel
+                    api={api}
+                    contentPackage={contentPackage}
+                    sources={sources}
+                    intakes={intakes}
+                    busy={sourceLoading}
+                    stale={sourceStale}
+                    onRefresh={() => refreshSources()}
+                    onTerminal={handleSourceTerminal}
+                    onReview={(sourceId) => {
+                      setSourceError('');
+                      setSourceNotice('');
+                      setSelectedSourceId(sourceId);
+                    }}
+                    reviewNavigationBlocked={reviewDirty || reviewBusy}
+                  />
+                  {contentPackage.lifecycle === 'active' && selectedSourceId ? (
+                    <SourceReviewPanel
+                      key={selectedSourceId}
+                      api={api}
+                      contentPackageId={contentPackage.id}
+                      sourceId={selectedSourceId}
+                      refreshSignal={reviewRefreshSignal}
+                      onClose={() => setSelectedSourceId(null)}
+                      onDirtyChange={setReviewDirty}
+                      onBusyChange={setReviewBusy}
+                      onUnavailable={handleSourceTerminal}
+                      onSourceUnavailable={closeUnavailableSource}
+                    />
                   ) : null}
                   {contentPackage.lifecycle === 'active' ? (
-                    <div className="form-actions full-span">
-                      <button
-                        className="primary-button"
-                        type="submit"
-                        disabled={saving || title.trim() === '' || outputs.length === 0}
-                      >
-                        {saving ? 'Saving…' : 'Save changes'}
-                      </button>
-                    </div>
+                    <WorkflowTimelinePanel
+                      api={api}
+                      contentPackageId={contentPackage.id}
+                      latestSequence={workflowLatestSequence}
+                      onTerminal={handleSourceTerminal}
+                    />
                   ) : null}
-                </form>
-              </>
-            )}
-          </section>
+                </>
+              ) : (
+                <>
+                  <div className="section-heading">
+                    <div>
+                      <p className="eyebrow">Current foundation</p>
+                      <h2 id="metadata-title">Package metadata</h2>
+                    </div>
+                    <span className={`lifecycle ${contentPackage.lifecycle}`}>{contentPackage.lifecycle}</span>
+                  </div>
+                  <form className="form-grid" onSubmit={save}>
+                    <div className="field full-span">
+                      <label htmlFor="workspace-title">Title</label>
+                      <input
+                        id="workspace-title"
+                        maxLength={200}
+                        value={title}
+                        onChange={(event) => setTitle(event.target.value)}
+                        disabled={contentPackage.lifecycle === 'archived'}
+                        required
+                      />
+                    </div>
+                    <div className="field full-span">
+                      <label htmlFor="workspace-description">
+                        Description <span>Optional</span>
+                      </label>
+                      <textarea
+                        id="workspace-description"
+                        maxLength={2000}
+                        rows={4}
+                        value={description}
+                        onChange={(event) => setDescription(event.target.value)}
+                        disabled={contentPackage.lifecycle === 'archived'}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="workspace-mode">Content mode</label>
+                      <select
+                        id="workspace-mode"
+                        value={contentMode}
+                        onChange={(event) => setContentMode(event.target.value as ContentPackageModeDto)}
+                        disabled={contentPackage.lifecycle === 'archived'}
+                      >
+                        <option value="deferred">Decide later</option>
+                        <option value="creator_led">Creator-led</option>
+                        <option value="research_based">Research-based</option>
+                      </select>
+                    </div>
+                    <fieldset className="field output-field" disabled={contentPackage.lifecycle === 'archived'}>
+                      <legend>Requested outputs</legend>
+                      <label className="check-label">
+                        <input
+                          type="checkbox"
+                          checked={outputs.includes('blog')}
+                          onChange={() => toggleOutput('blog')}
+                        />{' '}
+                        Blog
+                      </label>
+                      <label className="check-label">
+                        <input
+                          type="checkbox"
+                          checked={outputs.includes('xiaohongshu')}
+                          onChange={() => toggleOutput('xiaohongshu')}
+                        />{' '}
+                        Xiaohongshu
+                      </label>
+                    </fieldset>
+                    {outputs.length === 0 ? (
+                      <p className="field-error full-span" role="alert">
+                        Choose at least one output.
+                      </p>
+                    ) : null}
+                    {notice ? (
+                      <p className="save-notice full-span" role="status">
+                        {notice}
+                      </p>
+                    ) : null}
+                    {contentPackage.lifecycle === 'active' ? (
+                      <div className="form-actions full-span">
+                        <button
+                          className="primary-button"
+                          type="submit"
+                          disabled={saving || title.trim() === '' || outputs.length === 0}
+                        >
+                          {saving ? 'Saving…' : 'Save changes'}
+                        </button>
+                      </div>
+                    ) : null}
+                  </form>
+                </>
+              )}
+            </section>
 
-          <aside className="stage-panel" aria-labelledby="stage-title">
-            <p className="eyebrow">Workspace</p>
-            <h2 id="stage-title">Foundation</h2>
-            <button
-              className={section === 'details' ? 'stage-current stage-button' : 'stage-future stage-button'}
-              type="button"
-              aria-pressed={section === 'details'}
-              onClick={() => setSection('details')}
-            >
-              <span>01</span>
-              <div>
-                <strong>Package metadata</strong>
-                <small>Available</small>
-              </div>
-            </button>
-            <button
-              className={section === 'sources' ? 'stage-current stage-button' : 'stage-future stage-button'}
-              type="button"
-              aria-pressed={section === 'sources'}
-              onClick={() => setSection('sources')}
-            >
-              <span>02</span>
-              <div>
-                <strong>Sources</strong>
-                <small>{contentPackage.lifecycle === 'archived' ? 'History only' : 'Available'}</small>
-              </div>
-            </button>
-            <div className="stage-future">
-              <span>03</span>
-              <div>
-                <strong>Research & creation</strong>
-                <small>Not implemented</small>
-              </div>
-            </div>
-            <p className="stage-note">
-              This shell does not start a Workflow or Agent. It preserves the honest boundary of the current milestone.
-            </p>
-            {contentPackage.lifecycle === 'active' ? (
-              <button className="danger-text-button" type="button" onClick={() => setConfirmArchive(true)}>
-                Archive package
+            <aside className="stage-panel" aria-labelledby="stage-title">
+              <p className="eyebrow">Workspace</p>
+              <h2 id="stage-title">Foundation</h2>
+              <button
+                className={section === 'details' ? 'stage-current stage-button' : 'stage-future stage-button'}
+                type="button"
+                aria-pressed={section === 'details'}
+                onClick={() => chooseSection('details')}
+                disabled={(reviewDirty || reviewBusy) && section !== 'details'}
+              >
+                <span>01</span>
+                <div>
+                  <strong>Package metadata</strong>
+                  <small>Available</small>
+                </div>
               </button>
-            ) : (
-              <p className="archived-note">This package is preserved as archived and is read-only.</p>
-            )}
-          </aside>
-        </div>
-      ) : null}
+              <button
+                className={section === 'sources' ? 'stage-current stage-button' : 'stage-future stage-button'}
+                type="button"
+                aria-pressed={section === 'sources'}
+                onClick={() => chooseSection('sources')}
+                disabled={(reviewDirty || reviewBusy) && section !== 'sources'}
+              >
+                <span>02</span>
+                <div>
+                  <strong>Sources</strong>
+                  <small>{contentPackage.lifecycle === 'archived' ? 'History only' : 'Available'}</small>
+                </div>
+              </button>
+              <div className="stage-future">
+                <span>03</span>
+                <div>
+                  <strong>Research & creation</strong>
+                  <small>Not implemented</small>
+                </div>
+              </div>
+              <p className="stage-note">
+                This shell does not start a Workflow or Agent. It preserves the honest boundary of the current
+                milestone.
+              </p>
+              {contentPackage.lifecycle === 'active' ? (
+                <button
+                  className="danger-text-button"
+                  type="button"
+                  onClick={() => {
+                    if (reviewDirty || reviewBusy) {
+                      setSourceError('Save or discard the unsaved Source draft before archiving this package.');
+                      return;
+                    }
+                    setConfirmArchive(true);
+                  }}
+                >
+                  Archive package
+                </button>
+              ) : (
+                <p className="archived-note">This package is preserved as archived and is read-only.</p>
+              )}
+            </aside>
+          </div>
+        ) : null}
 
-      {confirmArchive ? (
-        <div className="dialog-backdrop" role="presentation">
-          <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="archive-title">
-            <p className="eyebrow">Preserve, don’t delete</p>
-            <h2 id="archive-title">Archive this package?</h2>
-            <p>It will leave the active Dashboard but remain available in Archived.</p>
-            <div className="form-actions">
-              <button className="secondary-button" type="button" onClick={() => setConfirmArchive(false)} autoFocus>
-                Cancel
-              </button>
-              <button className="danger-button" type="button" onClick={() => void archive()} disabled={saving}>
-                {saving ? 'Archiving…' : 'Archive package'}
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
-    </AppShell>
+        {confirmArchive ? (
+          <div className="dialog-backdrop" role="presentation">
+            <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="archive-title">
+              <p className="eyebrow">Preserve, don’t delete</p>
+              <h2 id="archive-title">Archive this package?</h2>
+              <p>It will leave the active Dashboard but remain available in Archived.</p>
+              <div className="form-actions">
+                <button className="secondary-button" type="button" onClick={() => setConfirmArchive(false)} autoFocus>
+                  Cancel
+                </button>
+                <button className="danger-button" type="button" onClick={() => void archive()} disabled={saving}>
+                  {saving ? 'Archiving…' : 'Archive package'}
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+      </AppShell>
+    </div>
   );
 }

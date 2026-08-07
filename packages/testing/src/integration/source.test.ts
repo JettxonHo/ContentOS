@@ -671,12 +671,13 @@ describe('Source protected API smoke', () => {
     expect(wc.status).toBe(200);
     const wcBody = (await wc.json()) as {
       data: {
-        workingCopy: { revision: number; body: { text: string } };
+        workingCopy: { revision: number; checkpointedRevision: number | null; body: { text: string } };
         rawSnapshot: { sha256: string; contentType: string };
       };
     };
     expect(validateWorkingCopyResponse(wcBody), JSON.stringify(validateWorkingCopyResponse.errors)).toBe(true);
     expect(wcBody.data.workingCopy.revision).toBe(1);
+    expect(wcBody.data.workingCopy.checkpointedRevision).toBeNull();
     expect(wcBody.data.workingCopy.body.text).toBe('Initial source text');
     expect(wcBody.data.rawSnapshot.contentType).toBe('text/plain; charset=utf-8');
 
@@ -688,10 +689,11 @@ describe('Source protected API smoke', () => {
     });
     expect(edit.status).toBe(200);
     const editBody = (await edit.json()) as {
-      data: { workingCopy: { revision: number; body: { text: string } } };
+      data: { workingCopy: { revision: number; checkpointedRevision: number | null; body: { text: string } } };
     };
     expect(validateWorkingCopyResponse(editBody), JSON.stringify(validateWorkingCopyResponse.errors)).toBe(true);
     expect(editBody.data.workingCopy.revision).toBe(2);
+    expect(editBody.data.workingCopy.checkpointedRevision).toBeNull();
 
     // Stale revision must be rejected
     const stale = await fetch(`${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/${source.id}/working-copy`, {
@@ -714,6 +716,18 @@ describe('Source protected API smoke', () => {
     expect(versionBody.data.version.versionNumber).toBe(1);
     expect(versionBody.data.version.parentVersionId).toBeNull();
     expect(versionBody.data.version.contentHash).toMatch(/^[0-9a-f]{64}$/);
+
+    const checkpointed = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/${source.id}/working-copy`,
+      {
+        headers: { cookie },
+      },
+    );
+    expect(checkpointed.status).toBe(200);
+    const checkpointedBody = (await checkpointed.json()) as {
+      data: { workingCopy: { revision: number; checkpointedRevision: number | null } };
+    };
+    expect(checkpointedBody.data.workingCopy).toMatchObject({ revision: 2, checkpointedRevision: 2 });
 
     const duplicateCheckpoint = await fetch(
       `${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/${source.id}/versions`,
@@ -799,6 +813,19 @@ describe('Source protected API smoke', () => {
       body: JSON.stringify({ expectedRevision: 2, body: { text: 'Second edit for version 2' } }),
     });
     expect(edit2.status).toBe(200);
+
+    const editedAfterCheckpoint = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/${source.id}/working-copy`,
+      { headers: { cookie } },
+    );
+    expect(editedAfterCheckpoint.status).toBe(200);
+    expect(
+      (
+        (await editedAfterCheckpoint.json()) as {
+          data: { workingCopy: { revision: number; checkpointedRevision: number | null } };
+        }
+      ).data.workingCopy,
+    ).toMatchObject({ revision: 3, checkpointedRevision: 2 });
 
     const version2 = await fetch(`${state.apiOrigin}/v1/content-packages/${pkg.id}/sources/${source.id}/versions`, {
       method: 'POST',

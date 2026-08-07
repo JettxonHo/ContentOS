@@ -335,3 +335,36 @@ describe('public_url Source compatibility (M2-SRC-003 correction)', () => {
     expect(parseCreateSourceRequest({ sourceType: 'public_url', role: 'primary', text: 'x' }).ok).toBe(false);
   });
 });
+
+describe('Working Copy response checkpoint contract (M2-WEB-001B)', () => {
+  it('requires the persisted checkpoint revision while allowing a fresh Working Copy', () => {
+    const ajv = new Ajv2020({ allErrors: true, strict: true });
+    const validate = ajv.compile(sourceWorkingCopyResponseSchema);
+    const base = {
+      data: {
+        workingCopy: {
+          revision: 2,
+          schemaVersion: 'source/normalized/v1',
+          body: { text: 'Review text' },
+          updatedAt: '2026-08-07T00:00:00.000Z',
+        },
+        rawSnapshot: {
+          sha256: 'c'.repeat(64),
+          byteSize: 11,
+          contentType: 'text/plain; charset=utf-8',
+          capturedAt: '2026-08-07T00:00:00.000Z',
+        },
+      },
+    };
+    expect(validate(base)).toBe(false);
+    expect(
+      validate({
+        ...base,
+        data: { ...base.data, workingCopy: { ...base.data.workingCopy, checkpointedRevision: null } },
+      }),
+    ).toBe(true);
+    expect(
+      validate({ ...base, data: { ...base.data, workingCopy: { ...base.data.workingCopy, checkpointedRevision: 2 } } }),
+    ).toBe(true);
+  });
+});

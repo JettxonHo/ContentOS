@@ -59,6 +59,7 @@ export interface RawSnapshotResource {
 
 export interface SourceWorkingCopyResource {
   readonly revision: number;
+  readonly checkpointedRevision: number | null;
   readonly schemaVersion: string;
   readonly body: { readonly text: string };
   readonly updatedAt: string;
@@ -334,9 +335,10 @@ export const sourceWorkingCopyResponseSchema: PortableJsonSchema = {
         workingCopy: {
           type: 'object',
           additionalProperties: false,
-          required: ['revision', 'schemaVersion', 'body', 'updatedAt'],
+          required: ['revision', 'checkpointedRevision', 'schemaVersion', 'body', 'updatedAt'],
           properties: {
             revision: { type: 'integer', minimum: 1 },
+            checkpointedRevision: { anyOf: [{ type: 'integer', minimum: 1 }, { type: 'null' }] },
             schemaVersion: { type: 'string' },
             body: {
               type: 'object',

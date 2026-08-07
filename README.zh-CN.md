@@ -12,9 +12,13 @@ Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Rend
 
 ## 当前状态
 
-仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001` 至 `M2-SRC-004`、`M2-WF-001` 至 `M2-WF-004B`、`M2-FETCH-001A` 至 `M2-FETCH-001C` 以及 `M2-WEB-001A` 已完成。`M2-FETCH-001` 已通过 PR #100 完成，squash merge 为 `4fe20a48a02b83ec68886bae68b86f5e65ba3895`（`feat: add queue-to-gateway Fetcher orchestration (#100)`）。`M2-WF-004A` 已通过 PR #108 完成，squash merge 为 `acdb971ffd8a1c8898666182ac017817f095e1b7`（`feat: add workflow projection and timeline queries (#108)）。`M2-WF-004B`已通过 PR #112 完成，squash merge 为`d9460747c530797dc11c341374183ad57e7fa85e`（`feat: add workflow SSE recovery (#112)`）：提供仅通知的私有 SSE 路由和可复用的浏览器恢复控制器，但尚未接入当前 Workspace 的 Workflow UI。`M2-WEB-001A`已通过 PR #118 完成，squash merge 为`58d2e8ca1f80d0ea03ef991aa22f40c3b058c25c`（`feat: add Source intake workspace (#118)`）。M2 仍未完成，须等待其余 M2 工作项和 Exit Criteria 通过。
+`M2-WEB-001B — Source Review and Approval Workspace` 正在**审核**。它提供仅用于活动 Package 的显式 Working Copy 保存、不可变 Version 审核、仅对当前准确 Review Candidate 的人工 Approval，以及通过既有恢复控制器呈现的安全 REST Timeline；M2 尚未完成。
 
-当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 投递与 lease reconciliation，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat/Result 边界。`M2-FETCH-001C` 已将既有受控 transport 和 Candidate/Snapshot preparation 注册到一个 `contentos-fetcher` BullMQ consumer：它校验固定的当前 generation Job、经 API Claim、执行一次抓取并提交精确 Result。PostgreSQL 与 API 仍是 Task/Source 状态权威；Fetcher 不连接数据库。活动 Workspace 现在提供粘贴文本、`.md`/`.txt` 上传，以及一条可持久恢复、对 Owner 可见进度或安全失败的 URL capture intake。仓库仍不提供 Source 编辑、Version/Approval 审核 UI、Agent、Render、发布、部署或开发服务器。
+仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001` 至 `M2-SRC-004`、`M2-WF-001` 至 `M2-WF-004B`、`M2-FETCH-001A` 至 `M2-FETCH-001C` 以及 `M2-WEB-001A` 已完成。`M2-FETCH-001` 已通过 PR #100 完成，squash merge 为 `4fe20a48a02b83ec68886bae68b86f5e65ba3895`（`feat: add queue-to-gateway Fetcher orchestration (#100)`）。`M2-WF-004A` 已通过 PR #108 完成，squash merge 为 `acdb971ffd8a1c8898666182ac017817f095e1b7`（`feat: add workflow projection and timeline queries (#108)）。`M2-WF-004B`已通过 PR #112 完成，squash merge 为`d9460747c530797dc11c341374183ad57e7fa85e`（`feat: add workflow SSE recovery (#112)`）：提供仅通知的私有 SSE 路由和可复用的浏览器恢复控制器。正在审核的 `M2-WEB-001B` 已将该控制器接入活动 Workspace，以权威 REST 读取刷新 Source、URL intake 和安全 Timeline；SSE 仍只负责通知。`M2-WEB-001A`已通过 PR #118 完成，squash merge 为`58d2e8ca1f80d0ea03ef991aa22f40c3b058c25c`（`feat: add Source intake workspace (#118)`）。M2 仍未完成，须等待其余 M2 工作项和 Exit Criteria 通过。
+
+当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 投递与 lease reconciliation，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat/Result 边界。`M2-FETCH-001C` 已将既有受控 transport 和 Candidate/Snapshot preparation 注册到一个 `contentos-fetcher` BullMQ consumer：它校验固定的当前 generation Job、经 API Claim、执行一次抓取并提交精确 Result。PostgreSQL 与 API 仍是 Task/Source 状态权威；Fetcher 不连接数据库。活动 Workspace 现在提供粘贴文本、`.md`/`.txt` 上传、可持久恢复的 URL capture intake、Source Working Copy 编辑、Version/Approval 审核和安全 Timeline。仓库仍不提供 Agent、Render、发布、部署或开发服务器。
+
+`M2-WEB-001B` 现在已接入活动 Workspace：它允许显式保存标准化 Working Copy、审核不可变 Version、确认当前准确 Review Candidate 的人工 Approval，并通过既有 SSE/Polling 恢复控制器显示有界安全 REST Timeline。Source Approval 不会推进 `source_review`，也不会追加 Workflow Timeline Event；归档 Package 仍不提供这些命令。
 
 ## MVP 边界
 
@@ -80,7 +84,7 @@ corepack pnpm repository:check
 
 在 Commit 前运行 `corepack pnpm check`。它会按顺序执行 `format:check`、`lint`、`typecheck`、`test` 和 `build`，不会启动 Docker 服务、访问网络或读取 Secrets。依赖 Docker 的 `test:integration`、`test:integration:concurrent` 和 `test:browser` 不属于 `check`。`corepack pnpm repository:check`（以及聚焦的 `check:docs`、`check:decisions` 和 `check:secrets`）会对 Git 跟踪文件执行无依赖的仓库完整性检查。
 
-构建成功后，可使用 `corepack pnpm start:web`、`start:api`、`start:worker`、`start:fetcher` 或 `start:renderer` 启动相应进程。Web 提供登录、活跃／已归档 Dashboard 视图、Content Package 创建，以及元数据／归档 Workspace。API 提供存活检查、三个 `/v1/auth/*` 端点、受保护的 `/v1/content-packages` 路由、受保护的 `/v1/content-packages/:packageId/sources` 路由（粘贴文本捕获、`.md`／`.txt` 文件上传捕获、列表、读取、Working Copy 编辑、Version 创建、Version 列表、批准）、受保护的 URL-capture request 路由、私有且不进入 OpenAPI 的 Fetcher Gateway Claim/Heartbeat/Result 路由，以及 `/openapi.json`；Worker 运行有界的 Outbox Dispatcher 和 lease/delivery reconciliation，只发布固定的最小 BullMQ envelope。Fetcher 需要 Gateway Secret/origin、`CONTENTOS_FETCHER_REDIS_URL` 和 Fetcher-scoped Object Storage 配置；它只消费固定的 Fetcher Job、调用私有 Gateway，且没有 PostgreSQL 凭据。Web 与 API 的启动要求提供 `.env.example` 所记录的已验证值。
+构建成功后，可使用 `corepack pnpm start:web`、`start:api`、`start:worker`、`start:fetcher` 或 `start:renderer` 启动相应进程。Web 提供登录、活跃／已归档 Dashboard、Content Package 创建、元数据／归档 Workspace，以及活动 Package 的 Source intake、Working Copy/Version/Approval 审核和安全 Timeline。API 提供存活检查、三个 `/v1/auth/*` 端点、受保护的 `/v1/content-packages` 路由、受保护的 `/v1/content-packages/:packageId/sources` 路由（粘贴文本捕获、`.md`／`.txt` 文件上传捕获、列表、读取、Working Copy 编辑、Version 创建、Version 列表、批准）、受保护的 URL-capture request 路由、私有且不进入 OpenAPI 的 Fetcher Gateway Claim/Heartbeat/Result 路由，以及 `/openapi.json`；Worker 运行有界的 Outbox Dispatcher 和 lease/delivery reconciliation，只发布固定的最小 BullMQ envelope。Fetcher 需要 Gateway Secret/origin、`CONTENTOS_FETCHER_REDIS_URL` 和 Fetcher-scoped Object Storage 配置；它只消费固定的 Fetcher Job、调用私有 Gateway，且没有 PostgreSQL 凭据。Web 与 API 的启动要求提供 `.env.example` 所记录的已验证值。
 
 交互式生成本地 owner-password hash，然后仅在通过环境变量提供目标 PostgreSQL URL 后应用已提交的数据库迁移：
 
@@ -130,7 +134,7 @@ corepack pnpm test:integration
 
 ## 下一步实施工作
 
-1. M2 — 来源与工作流基础 — 正在进行。`M2-FETCH-001`、`M2-SRC-004`、`M2-WF-004A`、`M2-WF-004B` 与 `M2-WEB-001A` 已完成。Source 编辑、Version/Approval 审核 UI 与 M2 acceptance work 均尚未启动。
+1. M2 — 来源与工作流基础 — 正在进行。`M2-FETCH-001`、`M2-SRC-004`、`M2-WF-004A`、`M2-WF-004B` 与 `M2-WEB-001A` 已完成；`M2-WEB-001B` 的 Source 编辑、Version/Approval 审核和安全 Timeline UI 正在审核。M2 acceptance work 尚未启动。
 2. 不要从当前阶段推断 M2 范围，也不要开始 Agent、Research 或发布路径。
 
 本仓库不承诺完成日期。
