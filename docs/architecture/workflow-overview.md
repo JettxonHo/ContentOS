@@ -94,10 +94,13 @@ public Event variants, while PostgreSQL remains the truth. `M2-WF-004B` is
 Completed: its one private owner-scoped SSE route emits only bounded
 `workflow-notification/v1` change notifications and a transport keepalive, and
 its reusable browser controller refreshes authoritative REST state with Polling
-fallback. `M2-WEB-001B` is In Review and composes that controller into the active
-Workspace for Source, URL-intake, and bounded Timeline REST reads. The SSE
-notification cannot reconstruct state and is not a Workflow store. Later
-Workflow transitions remain inactive until their own Ready Work Items.
+fallback. `M2-WEB-001B` is Completed through PR #122 and composes that
+controller into the active Workspace for Source intake, active-only Working
+Copy review and save, immutable Version history, exact current Review Candidate
+human Approval, and bounded Timeline REST reads. The SSE notification cannot
+reconstruct state and is not a Workflow store. Source Approval does not
+transition `source_review` or append a Workflow Event, and later Workflow
+transitions remain inactive until their own Ready Work Items.
 
 M2-WF-003A adds the first delivery-only execution boundary. The Worker owns a
 bounded Dispatcher that moves the PostgreSQL Outbox record through
@@ -154,13 +157,13 @@ No Source Version, Source Approval, or Owner Retry is created; the boundary
 performs no public fetch and no Queue consumption. A terminal Task is never
 dispatched, claimed, heartbeated, or recovered again.
 
-`M2-FETCH-001C` is in review and composes the completed private public
-transport, Candidate extraction, and scoped Snapshot writer behind one fixed
-BullMQ consumer. A valid current-generation Job is claimed through the private
-API, captured once, prepared, and submitted as the existing exact Result.
-PostgreSQL remains Workflow truth: stale, duplicate, terminal, or otherwise
-ineligible Jobs are Fetcher no-ops, and the Fetcher has no direct Task, Source,
-or database write authority.
+`M2-FETCH-001C` is Completed through PR #100 and composes the completed private
+public transport, Candidate extraction, and scoped Snapshot writer behind one
+fixed BullMQ consumer. A valid current-generation Job is claimed through the
+private API, captured once, prepared, and submitted as the existing exact
+Result. PostgreSQL remains Workflow truth: stale, duplicate, terminal, or
+otherwise ineligible Jobs are Fetcher no-ops, and the Fetcher has no direct
+Task, Workflow, Source, or database write authority.
 
 ## 4. Workflow Instance
 

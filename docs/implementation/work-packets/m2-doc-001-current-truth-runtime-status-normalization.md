@@ -1,6 +1,6 @@
 # M2-DOC-001 — Current-truth Runtime Status Normalization
 
-**Status:** Ready
+**Status:** In Review
 
 **Issue:** [#133](https://github.com/JettxonHo/ContentOS/issues/133)
 
@@ -11,12 +11,12 @@
 - Type: Documentation Integrity
 - Owner: Documentation Executor
 - Reviewer: Independent Review Agent
-- Logical Role: `WORK_ITEM_PLANNER`
-- Requested Model: `gpt-5.6-sol`
+- Logical Role: `DOCUMENTATION_EXECUTOR`
+- Requested Model: `gpt-5.6-terra`
 - Reasoning: High
 - Actual Runtime: `UNVERIFIED_RUNTIME_MODEL`
-- Thread: `/root`
-- Planning Base SHA: `d4cdd1d774ecb659bd60002ec05303933bd3d852`
+- Thread: `/root/m2qual002_implementation`
+- Base SHA: `b79f0cde55ec78fa5f7ece5e8f9d2d3fdbcd05a9`
 - Risk: Current-truth accuracy only
 
 ## Goal
@@ -157,6 +157,40 @@ focused documentation commit.
 Only the five allowed documentation files. No Decision Register, Session,
 Product Current-truth, API, Schema, testing strategy, README, or `AGENTS.md`
 change is required.
+
+## Implementation evidence
+
+- `docs/security/source-fetcher.md` now records `M2-FETCH-001C` as Completed
+  through PR #100 in both stale locations. The registered bounded consumer
+  retains the existing transport/extraction policy, uses separate
+  least-privilege Redis and Object Storage identities, never loads
+  `DATABASE_URL`, and submits Result through the API-owned boundary.
+- `docs/architecture/workflow-overview.md` now records `M2-WEB-001B` as
+  Completed through PR #122 and `M2-FETCH-001C` as Completed through PR #100.
+  The active Workspace and Queue-to-Gateway capabilities are bounded to the
+  merged behavior; PostgreSQL remains Workflow truth and the API remains the
+  only domain-state write authority.
+- `docs/architecture/source-foundation.md` now records `M2-FETCH-001B` as
+  Completed through PR #96, its Fetcher-private Snapshot writer as registered
+  by completed `M2-FETCH-001C` through PR #100, and the separate Fetcher Object
+  Storage and Redis configuration as loaded by the current lifecycle without
+  API, Worker, or database-configuration fallback.
+- Raw Snapshot bytes remain private evidence and are never directly rendered.
+  Deterministic plain-text review content is the non-executable user review
+  representation; no separate Safe Display entity or HTML renderer is added.
+  The internal current-Approved Source input projection remains only a current
+  read for a future consumer, not Research readiness, a Research Agent, or
+  Research execution.
+- The implementation changes documentation only. Code, Docker, integration,
+  concurrent, and browser tests were not run locally because the Ready packet
+  does not require them for this documentation-only change.
+- `corepack pnpm format:check`, `corepack pnpm check:docs`,
+  `corepack pnpm repository:check`, `corepack pnpm check:secrets`, and
+  `git diff --check` passed locally. The diff contains exactly the five allowed
+  files, the local-path scan returned no matches, and there are no untracked or
+  task-generated artifacts. Existing ignored `.DS_Store` files predate and are
+  outside this Work Item; they were not modified or claimed as task output.
+- M2 remains In Progress pending `M2-GOV-005`; M3 remains Not Started.
 
 ## Definition of Ready
 

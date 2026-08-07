@@ -106,7 +106,7 @@ The Source domain defines a framework-independent `ObjectStore` Port in `package
 
 The `packages/object-storage` package implements this Port using `@aws-sdk/client-s3@3.1096.0`:
 
-- Object keys are opaque, no-overwrite, and database owner-bound, and are constructed only from server-generated IDs. Two key families exist. Pasted/upload Raw Snapshots use `sources/{ownerUserId}/{contentPackageId}/{sourceId}/raw/{snapshotId}`. `public_url` Raw Snapshots (M2-SRC-003) use `fetcher/url-capture/{taskId}/{attemptNumber}/raw/{snapshotId}`, composed only of the current Task id, the current Attempt, and a server-generated snapshot UUID. No user-controlled path segment, URL, host, or filename is accepted. A `public_url` key must be reconstructed by an exact parser and compared field-by-field before it is integrity-read or compensated; a prefix/substring check is never sufficient. `M2-FETCH-001B` is in review with a dedicated, Fetcher-private writer for this key family; it uses conditional no-overwrite, the existing integrity metadata, and a bounded read-back. It is not registered in the Fetcher runtime, and M2-SRC-003 continues to perform no object write.
+- Object keys are opaque, no-overwrite, and database owner-bound, and are constructed only from server-generated IDs. Two key families exist. Pasted/upload Raw Snapshots use `sources/{ownerUserId}/{contentPackageId}/{sourceId}/raw/{snapshotId}`. `public_url` Raw Snapshots (M2-SRC-003) use `fetcher/url-capture/{taskId}/{attemptNumber}/raw/{snapshotId}`, composed only of the current Task id, the current Attempt, and a server-generated snapshot UUID. No user-controlled path segment, URL, host, or filename is accepted. A `public_url` key must be reconstructed by an exact parser and compared field-by-field before it is integrity-read or compensated; a prefix/substring check is never sufficient. `M2-FETCH-001B` is Completed through PR #96 with a dedicated, Fetcher-private writer for this key family; it uses conditional no-overwrite, the existing integrity metadata, and a bounded read-back. `M2-FETCH-001C` is Completed through PR #100 and registers that writer behind the bounded Fetcher consumer. M2-SRC-003 continues to perform no object write.
 - Immutable-put semantics use one conditional `PutObject` request with `If-None-Match: *`; a collision is rejected and never overwrites existing bytes.
 - SHA-256 and byte size are stored as object metadata and verified with actual streamed bytes and the read allowlisted content type. Integrity reads fail closed on missing/mismatched `Content-Length`, type, metadata, digest, or byte count and never buffer an object beyond the fixed 2 MiB ceiling.
 - Compensation delete is used only when a database write fails after a successful object put. Compensation failure surfaces `SOURCE_COMPENSATION_FAILED` and is never reported as success.
@@ -137,12 +137,13 @@ Object Storage configuration is loaded through typed fail-fast validation in `pa
 - `ApiConfig.objectStorage` — non-secret configuration: endpoint, region, bucket, `forcePathStyle`.
 - `ApiSecrets.objectStorageAccessKey` and `ApiSecrets.objectStorageSecretKey` — private credentials that never appear in public config, logs, or error messages.
 
-`M2-FETCH-001B` also defines a separate Fetcher-private configuration contract
-for later runtime use: `CONTENTOS_FETCHER_OBJECT_STORAGE_ENDPOINT`, `REGION`,
-`BUCKET`, `FORCE_PATH_STYLE`, `ACCESS_KEY`, and `SECRET_KEY`. It has no fallback
-to API object-storage names or identity. The Fetcher lifecycle process does not
-load this configuration or connect to Object Storage until a later accepted
-runtime Work Item registers it.
+`M2-FETCH-001B` defines a separate Fetcher-private configuration contract:
+`CONTENTOS_FETCHER_OBJECT_STORAGE_ENDPOINT`, `REGION`, `BUCKET`,
+`FORCE_PATH_STYLE`, `ACCESS_KEY`, and `SECRET_KEY`. `M2-FETCH-001C` loads this
+contract together with the independently named `CONTENTOS_FETCHER_REDIS_URL`
+when the Fetcher lifecycle starts. The Fetcher has separate least-privilege
+Redis and Object Storage identities, with no fallback to the Worker's
+`REDIS_URL`, API object-storage names or identity, or `DATABASE_URL`.
 
 Missing or malformed object-storage configuration causes the API to fail before accepting any work.
 
@@ -165,7 +166,7 @@ Protected Source routes live under `/v1/content-packages/:packageId/sources`:
 
 The JSON capture route remains `pasted_text`-only; `uploaded_text` capture is only available through the multipart upload route. Responses never include storage keys, credentials, temporary URLs, or raw object-store responses. The list endpoint returns only Source Reference fields without working-copy bodies or snapshot details.
 
-`M2-WEB-001A` composes those existing owner-scoped commands and formal Source reads into the active Package Workspace. Its adjacent URL-intake read is a zero-or-one owner-visible record of queued, running, failed, or succeeded capture; it is not a formal Source until a verified successful Result creates the correlated `public_url` Source. Failed URL capture remains visible while a Paste or Upload fallback creates an independent Source. `M2-WEB-001B` adds active-only plain-text Source review: explicit Working Copy save with revision conflict preservation, checkpoint-aware immutable Version creation/history, and an exact current Review Candidate human-Approval confirmation. It exposes current Approved Head state only, never raw Snapshot bytes, hashes, object keys, or historical Approval inference. Source Approval still does not transition the Workflow `source_review` Node or append a Workflow Event.
+`M2-WEB-001A` composes those existing owner-scoped commands and formal Source reads into the active Package Workspace. Its adjacent URL-intake read is a zero-or-one owner-visible record of queued, running, failed, or succeeded capture; it is not a formal Source until a verified successful Result creates the correlated `public_url` Source. Failed URL capture remains visible while a Paste or Upload fallback creates an independent Source. `M2-WEB-001B` adds active-only plain-text Source review: explicit Working Copy save with revision conflict preservation, checkpoint-aware immutable Version creation/history, and an exact current Review Candidate human-Approval confirmation. Deterministic plain-text review content is the non-executable user review representation; raw Snapshot bytes are never directly rendered, and no separate Safe Display entity or HTML renderer is introduced. The Workspace exposes current Approved Head state only, never hashes, object keys, or historical Approval inference. Source Approval still does not transition the Workflow `source_review` Node or append a Workflow Event.
 
 ## 10. Error mapping
 
