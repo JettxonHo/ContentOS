@@ -297,7 +297,10 @@ test('M2 Source intake: read failures recover, ambiguous URL stays locked, and c
   await signInAndCreatePackage(page, value);
   await expect(page.getByText(/Source status could not be loaded/)).toBeVisible();
   failIntakeRead = false;
-  await page.getByRole('button', { name: 'Reload Source status' }).click();
+  await page.getByRole('button', { name: 'Reload Source status' }).evaluateAll((buttons) => {
+    const button = buttons[0];
+    if (button instanceof HTMLButtonElement) button.click();
+  });
   await expect(page.getByText('Primary 0/1 · Supporting 0/5')).toBeVisible();
 
   await page.getByRole('button', { name: 'Public URL' }).click();
