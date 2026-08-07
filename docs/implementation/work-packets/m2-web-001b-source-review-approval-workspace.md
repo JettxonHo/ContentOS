@@ -1,8 +1,14 @@
 # M2-WEB-001B — Source Review and Approval Workspace
 
-**Status:** In Review
+**Status:** Completed
 
 **Issue:** [#120](https://github.com/JettxonHo/ContentOS/issues/120)
+
+**Implementation PR:** [#122](https://github.com/JettxonHo/ContentOS/pull/122)
+
+**Squash merge:** `9af5f68b8846ab172bff7599657c9409faed85c4`
+
+**Merge title:** `feat: add Source review and approval workspace (#122)`
 
 **Planning branch:** `codex/m2-web-001b-ready-design`
 
@@ -641,7 +647,7 @@ The Implementation Agent may adjust internal component factoring inside the
 allowlist, but not the public behavior, error contract, Source lifecycle, or
 security boundary.
 
-## In-review correction evidence
+## Completion evidence
 
 - Recovery draft adoption is baseline-aware: a clean refresh adopts new
   authoritative text only while the owner draft still equals the authoritative
@@ -665,6 +671,16 @@ security boundary.
 - Primary orchestration evidence records the unchanged Docker integration suite
   passing 26 files / 182 tests and the exact concurrent integration command
   passing on immediate rerun.
+
+PR #122 merged the reviewed implementation as squash commit
+`9af5f68b8846ab172bff7599657c9409faed85c4` (`feat: add Source review and
+approval workspace (#122)`). The active Workspace now provides Source intake,
+explicit Working Copy review and save, immutable Version history, exact human
+Approval, safe Timeline presentation, and the existing SSE/Polling recovery.
+Approval does not transition `source_review` or append a Workflow Timeline
+Event; archived review commands, Research, Agent, Render, and Export remain
+unimplemented. M2 stays In Progress because `M2-QUAL-001` and `M2-GOV-005`
+remain not started.
 
 ## Git and collaboration authority
 
