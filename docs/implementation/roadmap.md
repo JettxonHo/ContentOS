@@ -214,6 +214,8 @@ The first Agent is not implemented in M2. It consumes only Approved Source Versi
 
 | `M2-MAINT-001 — Inherited Dependency Audit Remediation` | Remove the inherited Critical/High dependency-audit blocker with the smallest compatible patched transitive versions. | `M2-QUAL-001` completed | **Completed.** [Work Packet](work-packets/m2-maint-001-inherited-dependency-audit-remediation.md), Issue #95, PR #131, squash merge `fea08d03eb1c4303f5ae65e6e3fea6c289a44023` (`fix: remediate inherited dependency advisories (#131)`). Both official-registry audits reported zero known vulnerabilities and all three required CI jobs passed. M2 remains In Progress pending Current-truth normalization and `M2-GOV-005`; M3 remains Not Started. |
 
+| `M2-DOC-001 — Current-truth Runtime Status Normalization` | Normalize six stale implementation-status and runtime-configuration passages in the bounded M2 Current-truth documents. | `M2-FETCH-001B`, `M2-FETCH-001C`, and `M2-WEB-001B` completed | **In Review.** [Work Packet](work-packets/m2-doc-001-current-truth-runtime-status-normalization.md), Issue #133. Documentation-only status normalization with no product, architecture, security-policy, Schema, migration, dependency, CI, or runtime change. M2 remains In Progress pending `M2-GOV-005`; M3 remains Not Started. |
+
 ## 10. M3 — Research
 
 M3 introduces the first formal Agent Vertical Slice:

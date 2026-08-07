@@ -49,11 +49,13 @@ The Fetcher does not own:
 `M2-FETCH-001A` and `M2-FETCH-001B` are completed private Fetcher modules for
 the accepted Node.js 24 public transport, deterministic Candidate extraction,
 and Task/Attempt-scoped immutable Snapshot/Result preparation. `M2-FETCH-001C`
-is in review and registers those modules behind one fixed BullMQ consumer. The
-Fetcher validates the current-generation Job, obtains a private API Claim,
-captures once within the existing budget, then submits the exact Result. The
-API remains the only authority that changes Task or Source state; the Fetcher
-has no PostgreSQL access.
+is Completed through PR #100 and registers those modules behind one fixed
+BullMQ consumer. The Fetcher validates the current-generation Job, obtains a
+private API Claim, captures once within the existing budget, then submits the
+exact Result. It loads only its separate least-privilege Redis and Object
+Storage identities, never `DATABASE_URL`. PostgreSQL remains authoritative,
+and the API remains the only authority that changes Task, Workflow, or Source
+state.
 
 ## 2. Fetcher Trust Boundary
 
@@ -213,7 +215,8 @@ hostname lookup after the policy decision.
 `M2-DES-006` selects `parse5@8.0.1` for the deterministic HTML extraction
 adapter, with strict UTF-8 handling and the approved text/Markdown path.
 `M2-FETCH-001C` is the bounded runtime composition of that existing adapter;
-it does not change the extraction or capture policy and remains In Review.
+it is Completed through PR #100 and does not change the extraction or capture
+policy.
 
 ## 11. Prompt Injection Containment
 
