@@ -12,11 +12,11 @@ Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Rend
 
 ## 当前状态
 
-`M2-WEB-001B — Source Review and Approval Workspace` 正在**审核**。它提供仅用于活动 Package 的显式 Working Copy 保存、不可变 Version 审核、仅对当前准确 Review Candidate 的人工 Approval，以及通过既有恢复控制器呈现的安全 REST Timeline；M2 尚未完成。
+`M2-WEB-001B — Source Review and Approval Workspace` 已通过 PR #122 **完成**，squash merge 为 `9af5f68b8846ab172bff7599657c9409faed85c4`（`feat: add Source review and approval workspace (#122)`）。M2 仍在进行中。
 
-仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001` 至 `M2-SRC-004`、`M2-WF-001` 至 `M2-WF-004B`、`M2-FETCH-001A` 至 `M2-FETCH-001C` 以及 `M2-WEB-001A` 已完成。`M2-FETCH-001` 已通过 PR #100 完成，squash merge 为 `4fe20a48a02b83ec68886bae68b86f5e65ba3895`（`feat: add queue-to-gateway Fetcher orchestration (#100)`）。`M2-WF-004A` 已通过 PR #108 完成，squash merge 为 `acdb971ffd8a1c8898666182ac017817f095e1b7`（`feat: add workflow projection and timeline queries (#108)）。`M2-WF-004B`已通过 PR #112 完成，squash merge 为`d9460747c530797dc11c341374183ad57e7fa85e`（`feat: add workflow SSE recovery (#112)`）：提供仅通知的私有 SSE 路由和可复用的浏览器恢复控制器。正在审核的 `M2-WEB-001B` 已将该控制器接入活动 Workspace，以权威 REST 读取刷新 Source、URL intake 和安全 Timeline；SSE 仍只负责通知。`M2-WEB-001A`已通过 PR #118 完成，squash merge 为`58d2e8ca1f80d0ea03ef991aa22f40c3b058c25c`（`feat: add Source intake workspace (#118)`）。M2 仍未完成，须等待其余 M2 工作项和 Exit Criteria 通过。
+仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001` 至 `M2-SRC-004`、`M2-WF-001` 至 `M2-WF-004B`、`M2-FETCH-001A` 至 `M2-FETCH-001C` 以及 `M2-WEB-001A` 至 `M2-WEB-001B` 已完成。`M2-FETCH-001` 已通过 PR #100 完成，squash merge 为 `4fe20a48a02b83ec68886bae68b86f5e65ba3895`（`feat: add queue-to-gateway Fetcher orchestration (#100)`）。`M2-WF-004A` 已通过 PR #108 完成，squash merge 为 `acdb971ffd8a1c8898666182ac017817f095e1b7`（`feat: add workflow projection and timeline queries (#108)）。`M2-WF-004B`已通过 PR #112 完成，squash merge 为`d9460747c530797dc11c341374183ad57e7fa85e`（`feat: add workflow SSE recovery (#112)`）：提供仅通知的私有 SSE 路由和可复用的浏览器恢复控制器。`M2-WEB-001A`已通过 PR #118 完成，squash merge 为`58d2e8ca1f80d0ea03ef991aa22f40c3b058c25c`（`feat: add Source intake workspace (#118)`）。`M2-QUAL-001`和`M2-GOV-005` 尚未启动，因此 M2 仍未完成。
 
-当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 投递与 lease reconciliation，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat/Result 边界。`M2-FETCH-001C` 已将既有受控 transport 和 Candidate/Snapshot preparation 注册到一个 `contentos-fetcher` BullMQ consumer：它校验固定的当前 generation Job、经 API Claim、执行一次抓取并提交精确 Result。PostgreSQL 与 API 仍是 Task/Source 状态权威；Fetcher 不连接数据库。活动 Workspace 现在提供粘贴文本、`.md`/`.txt` 上传、可持久恢复的 URL capture intake、Source Working Copy 编辑、Version/Approval 审核和安全 Timeline。仓库仍不提供 Agent、Render、发布、部署或开发服务器。
+当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 投递与 lease reconciliation，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat/Result 边界。`M2-FETCH-001C` 已将既有受控 transport 和 Candidate/Snapshot preparation 注册到一个 `contentos-fetcher` BullMQ consumer：它校验固定的当前 generation Job、经 API Claim、执行一次抓取并提交精确 Result。PostgreSQL 与 API 仍是 Task/Source 状态权威；Fetcher 不连接数据库。活动 Workspace 现在提供粘贴文本、`.md`/`.txt` 上传、可持久恢复的 URL capture intake、Source Working Copy 审核和显式保存、不可变 Version 历史、准确 Review Candidate 的人工 Approval，以及通过既有 SSE/Polling 恢复路径刷新的安全 Timeline。Source Approval 不会推进 `source_review`，也不会追加 Workflow Timeline Event；归档 Package 不提供审核命令。仓库仍不提供 Research、Agent、Render、Export、发布、部署或开发服务器。
 
 `M2-WEB-001B` 现在已接入活动 Workspace：它允许显式保存标准化 Working Copy、审核不可变 Version、确认当前准确 Review Candidate 的人工 Approval，并通过既有 SSE/Polling 恢复控制器显示有界安全 REST Timeline。Source Approval 不会推进 `source_review`，也不会追加 Workflow Timeline Event；归档 Package 仍不提供这些命令。
 
@@ -120,7 +120,7 @@ corepack pnpm test:integration
 
 安装固定的 Chromium revision（`corepack pnpm exec playwright install chromium`）后，运行 `corepack pnpm test:browser` 以演练完整的 M1 owner loop。其安全、清理和范围边界请阅读 [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md)。
 
-这些命令仍只是受限的 M1 基础，加上正在评审的 M2 Source、delivery、Fetcher execution 和 Source-evidence slices。当前没有 `dev`、广泛的产品 E2E suite、持久 request/delivery/lease/recovery/result 边界之外的 Workflow Engine、Agent、Render 或内容发布功能。
+这些命令仍只是受限的 M1 基础，加上当前已实现的 M2 Source、delivery、Fetcher execution 和 Source-evidence slices。当前没有 `dev`、广泛的产品 E2E suite、持久 request/delivery/lease/recovery/result 边界之外的 Workflow Engine、Agent、Render 或内容发布功能。
 
 ## 持续集成
 
@@ -134,7 +134,7 @@ corepack pnpm test:integration
 
 ## 下一步实施工作
 
-1. M2 — 来源与工作流基础 — 正在进行。`M2-FETCH-001`、`M2-SRC-004`、`M2-WF-004A`、`M2-WF-004B` 与 `M2-WEB-001A` 已完成；`M2-WEB-001B` 的 Source 编辑、Version/Approval 审核和安全 Timeline UI 正在审核。M2 acceptance work 尚未启动。
+1. M2 — 来源与工作流基础 — 正在进行。`M2-FETCH-001`、`M2-SRC-004`、`M2-WF-004A`、`M2-WF-004B` 以及 `M2-WEB-001A` 至 `M2-WEB-001B` 已完成。`M2-QUAL-001` 和 `M2-GOV-005` 尚未启动。
 2. 不要从当前阶段推断 M2 范围，也不要开始 Agent、Research 或发布路径。
 
 本仓库不承诺完成日期。
