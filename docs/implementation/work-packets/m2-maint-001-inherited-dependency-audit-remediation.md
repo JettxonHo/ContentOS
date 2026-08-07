@@ -1,6 +1,6 @@
 # M2-MAINT-001 — Inherited Dependency Audit Remediation
 
-**Status:** Ready
+**Status:** In Review
 
 **Issue:** [#95](https://github.com/JettxonHo/ContentOS/issues/95)
 
@@ -12,12 +12,12 @@
 - Type: Dependency Maintenance / Security Remediation
 - Owner: Implementation Agent
 - Reviewer: Independent Review Agent
-- Logical Role: `WORK_ITEM_PLANNER`
-- Requested Model: `gpt-5.6-sol`
+- Logical Role: `IMPLEMENTATION_AGENT`
+- Requested Model: `gpt-5.6-terra`
 - Reasoning: High
 - Actual Runtime: `UNVERIFIED_RUNTIME_MODEL`
-- Thread: `/root`
-- Planning Base SHA: `88f18884491e797071191788bc0e752fd60446ca`
+- Thread: `/root/m2qual002_implementation`
+- Base SHA: `dbecd8578d67503927afe003f8e9953e3d1c8d77`
 - Risk Classification: Bounded transitive dependency and build-tool compatibility
 
 ## Goal
@@ -212,6 +212,53 @@ the lockfile, tests, CI, and the completion report are the evidence.
 - No Current-truth architecture, product, security policy, Decision Register,
   or Session update is required.
 
+## Implementation evidence
+
+### Advisory and dependency resolution
+
+The pre-remediation official-registry full audit reported four High advisories:
+`fast-uri` 3.x and 4.x under Fastify validation/serialization,
+`brace-expansion` under the ESLint/minimatch toolchain, and `js-yaml` 4.x under
+the ESLint configuration toolchain. The production audit reported the two
+`fast-uri` High paths. Neither audit result was suppressed or reclassified.
+
+| Dependency path class      | Before                  | After                   | License      |
+| -------------------------- | ----------------------- | ----------------------- | ------------ |
+| Fastify/Ajv validation     | `fast-uri@3.1.4`        | `fast-uri@3.1.5`        | BSD-3-Clause |
+| Fastify JSON serialization | `fast-uri@4.1.1`        | `fast-uri@4.1.2`        | BSD-3-Clause |
+| ESLint/minimatch           | `brace-expansion@5.0.8` | `brace-expansion@5.0.9` | MIT          |
+| ESLint configuration       | `js-yaml@4.3.0`         | `js-yaml@4.3.1`         | MIT          |
+| `@nestjs/swagger@11.4.6`   | `js-yaml@5.2.2`         | `js-yaml@5.2.2`         | MIT          |
+
+Final `pnpm why` output confirms exactly the two required `fast-uri` versions,
+one patched `brace-expansion@5.0.9`, the ESLint `js-yaml@4.3.1` path, and the
+preserved Nest Swagger `js-yaml@5.2.2` path. Both final official-registry audits
+exit zero with `No known vulnerabilities found`.
+
+### Patch and compatibility evidence
+
+The deleted 5.0.8 patch and replacement 5.0.9 patch each contain the same one
+compatibility addition:
+`module.exports = Object.assign(expand, exports);`. The replacement changes only
+the upstream hunk location needed by 5.0.9. The focused compatibility suite
+passes all three tests across minimatch 3.1.5, 9.0.9, and 10.2.5, including
+representative matching and bounded expansion behavior.
+
+### Verification evidence
+
+- Node.js `24.18.0`, pnpm `11.17.0`, frozen installation, and workspace checks
+  pass.
+- Root `check` passes with all 53 test files and 485 tests, followed by
+  successful builds for all five applications. A first restricted-sandbox
+  attempt reached the process-identity tests and failed with `spawn EPERM`; the
+  same gate passed under normal process permissions.
+- Integration passes 27 files and 184 tests; the concurrent isolation harness
+  exits zero; the browser harness passes all 16 tests. A first restricted
+  integration setup attempt failed before test execution with clean teardown;
+  the same gate passed under normal process permissions.
+- Documentation, repository, Secret, local-path, diff, scope, and owned-residue
+  checks are required before handoff and are recorded in the completion report.
+
 ## Definition of Ready
 
 **PASS.** Independent review confirmed the four advisory paths, minimum patched
@@ -235,8 +282,10 @@ Critical or High official-registry advisory remains; M2 remains In Progress.
 ## Git authority
 
 The Implementation Agent may modify only the allowed files and must stop before
-Git publication. The Orchestrator may commit, push, create the PR, and squash
-merge only after independent review passes and required CI is green.
+Git publication. After independent review passes, the Orchestrator may commit,
+push, and create a draft PR. The Orchestrator may mark the PR ready and squash
+merge only after all required CI is green and no unresolved finding or
+escalation item remains.
 
 ## Completion report requirements
 
