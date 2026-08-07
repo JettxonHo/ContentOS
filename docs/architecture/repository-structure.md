@@ -127,6 +127,8 @@ An `apps` project primarily owns a deployable process entry point and compositio
 
 ## 4. `packages` Responsibilities
 
+`M2-WEB-001A` adds the framework-neutral Core URL-intake read Port, its PostgreSQL projection, and the typed API Contract. The active Web Source Intake panel uses those API reads and existing Source commands without PostgreSQL or Secret access.
+
 | Planned package  | Responsibility                                                                                                                            |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `core`           | Domain Modules, Application Use Cases, Ports, Domain Events, pure Validators, and Domain errors                                           |

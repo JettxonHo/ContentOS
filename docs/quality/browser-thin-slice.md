@@ -30,7 +30,7 @@ The single deterministic scenario proves:
 - a correct password creates an HttpOnly, SameSite=Strict session through exact-Origin CORS;
 - Dashboard shows the empty state and keeps unavailable Settings visibly disabled;
 - a package can be created once even when submission is triggered twice;
-- Workspace shows truthful M1 stages while Source and Workflow remain unavailable;
+- Workspace shows truthful stages, including active Package Source Intake for Paste, `.md`/`.txt` upload, and one URL-capture record; Source review/Approval and Workflow Timeline UI remain unavailable;
 - metadata edits persist across a browser refresh;
 - a stale revision is rejected and the owner can reload the authoritative revision;
 - Archive requires explicit confirmation, preserves one archived package, and is not Delete; and

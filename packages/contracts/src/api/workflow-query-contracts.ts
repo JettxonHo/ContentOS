@@ -85,7 +85,7 @@ export interface WorkflowTimelinePageResponse {
   };
 }
 
-const failureSchema: PortableJsonSchema = {
+export const workflowFailureResourceSchema: PortableJsonSchema = {
   anyOf: [
     ['fetch_failed', 'FETCH_FAILED'],
     ['validation_blocked', 'VALIDATION_BLOCKED'],
@@ -131,7 +131,7 @@ const taskSchema: PortableJsonSchema = {
       properties: {
         ...taskBase,
         state: { type: 'string', enum: ['failed'] },
-        failure: failureSchema,
+        failure: workflowFailureResourceSchema,
       },
     },
   ],
@@ -222,7 +222,7 @@ const timelineItemSchemas: PortableJsonSchema[] = [
       ...timelineBase,
       kind: { type: 'string', enum: ['url_capture_failed.v1'] },
       attemptNumber: { type: 'integer', minimum: 1 },
-      failure: failureSchema,
+      failure: workflowFailureResourceSchema,
     },
   },
   {

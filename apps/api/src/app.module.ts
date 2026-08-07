@@ -26,6 +26,7 @@ import {
   type FetcherGatewayClaimGenerator,
   FetcherResultService,
   type WorkflowQueryPort,
+  type UrlCaptureIntakeQueryPort,
   type FetcherResultIds,
 } from '@contentos/core';
 import type { UserId } from '@contentos/core';
@@ -56,6 +57,7 @@ import {
   FETCHER_GATEWAY_SERVICE,
   FETCHER_RESULT_SERVICE,
   WORKFLOW_QUERY,
+  URL_CAPTURE_INTAKE_QUERY,
 } from './runtime.tokens';
 
 @Module({})
@@ -186,6 +188,11 @@ export class AppModule {
           provide: WORKFLOW_QUERY,
           inject: [DatabaseService],
           useFactory: (database: DatabaseService): WorkflowQueryPort => database.workflowQuery,
+        },
+        {
+          provide: URL_CAPTURE_INTAKE_QUERY,
+          inject: [DatabaseService],
+          useFactory: (database: DatabaseService): UrlCaptureIntakeQueryPort => database.urlCaptureIntake,
         },
         { provide: APP_GUARD, useClass: TrustedOriginGuard },
         { provide: APP_FILTER, useClass: ApiExceptionFilter },

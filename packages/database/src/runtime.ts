@@ -5,6 +5,7 @@ import type {
   SourceRepository,
   UrlCaptureCommandRepository,
   UrlCaptureResultRepository,
+  UrlCaptureIntakeQueryPort,
   FetcherLeaseRecoveryCandidate,
   FetcherLeaseRecoveryRequest,
   WorkflowOutboxDeliveryCandidate,
@@ -23,6 +24,7 @@ import { DrizzleWorkflowCommandRepository } from './workflow-command-repository.
 import { DrizzleWorkflowDispatchRepository } from './workflow-dispatch-repository.js';
 import { DrizzleWorkflowFetcherGatewayRepository } from './workflow-fetcher-gateway-repository.js';
 import { DrizzleWorkflowQueryProjection } from './workflow-query-projection.js';
+import { DrizzleUrlCaptureIntakeProjection } from './url-capture-intake-projection.js';
 
 export const DISPATCHER_LEASE_MS = 30_000;
 export const DISPATCH_BATCH_LIMIT = 10;
@@ -44,6 +46,7 @@ export interface DatabaseRuntime {
   readonly sources: SourceRepository;
   readonly approvedSourceInputs: ApprovedSourceInputPort;
   readonly workflowQuery: WorkflowQueryPort;
+  readonly urlCaptureIntake: UrlCaptureIntakeQueryPort;
   readonly urlCapture: UrlCaptureCommandRepository;
   readonly fetcherGateway: FetcherGatewayClaimRepository;
   readonly urlCaptureResults: UrlCaptureResultRepository;
@@ -64,6 +67,7 @@ export function createDatabaseRuntime(databaseUrl: string): DatabaseRuntime {
     sources: new DrizzleSourceRepository(connection),
     approvedSourceInputs: new DrizzleApprovedSourceInputProjection(connection),
     workflowQuery: new DrizzleWorkflowQueryProjection(connection),
+    urlCaptureIntake: new DrizzleUrlCaptureIntakeProjection(connection),
     urlCapture: new DrizzleWorkflowCommandRepository(connection),
     fetcherGateway: new DrizzleWorkflowFetcherGatewayRepository(connection),
     urlCaptureResults: new DrizzleUrlCaptureResultRepository(connection),

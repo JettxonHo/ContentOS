@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   parseUrlCaptureRequest,
+  urlCaptureIntakeCollectionResponseSchema,
   urlCaptureRequestResponseSchema,
   urlCaptureRequestSchema,
 } from './url-capture-contracts.js';
@@ -64,5 +65,46 @@ describe('URL capture API contracts', () => {
         },
       }),
     ).toBe(true);
+  });
+
+  it('strictly validates empty and discriminated owner URL intake collections', () => {
+    const validate = new Ajv2020({ allErrors: true, strict: true }).compile(urlCaptureIntakeCollectionResponseSchema);
+    const base = {
+      id: '00000000-0000-4000-8000-000000000001',
+      role: 'primary',
+      submittedUrl: 'https://example.test/private-article',
+      createdAt: '2026-08-07T00:00:00.000Z',
+      updatedAt: '2026-08-07T00:00:01.000Z',
+    };
+    expect(validate({ data: { items: [] } })).toBe(true);
+    expect(validate({ data: { items: [{ ...base, status: 'queued', failure: null, sourceId: null }] } })).toBe(true);
+    expect(validate({ data: { items: [{ ...base, status: 'running', failure: null, sourceId: null }] } })).toBe(true);
+    expect(
+      validate({
+        data: {
+          items: [{ ...base, status: 'failed', failure: { category: 'timeout', code: 'TIMEOUT' }, sourceId: null }],
+        },
+      }),
+    ).toBe(true);
+    expect(
+      validate({
+        data: {
+          items: [
+            {
+              ...base,
+              status: 'succeeded',
+              failure: null,
+              sourceId: '00000000-0000-4000-8000-000000000002',
+            },
+          ],
+        },
+      }),
+    ).toBe(true);
+    expect(validate({ data: { items: [{ ...base, status: 'failed', failure: null, sourceId: null }] } })).toBe(false);
+    expect(
+      validate({
+        data: { items: [{ ...base, status: 'succeeded', failure: null, sourceId: null, taskId: 'hidden' }] },
+      }),
+    ).toBe(false);
   });
 });

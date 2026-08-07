@@ -2,12 +2,21 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import type { ContentPackageModeDto, ContentPackageOutputDto, ContentPackageResource } from '@contentos/contracts';
+import type {
+  ContentPackageModeDto,
+  ContentPackageOutputDto,
+  ContentPackageResource,
+  SourceListItemResource,
+  UrlCaptureIntakeResource,
+} from '@contentos/contracts';
 
 import { ContentOsApiClient, WebApiError } from '../lib/api-client';
+import { SourceRefreshCoordinator } from '../lib/source-intake-view';
+import { WorkflowRecoveryController } from '../lib/workflow-recovery';
 import { AppShell, StatusMessage } from './app-shell';
+import { SourceIntakePanel } from './source-intake-panel';
 
 export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: string; contentPackageId: string }) {
   const api = useMemo(() => new ContentOsApiClient(apiOrigin), [apiOrigin]);
@@ -23,6 +32,18 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [section, setSection] = useState<'sources' | 'details'>('sources');
+  const [sources, setSources] = useState<readonly SourceListItemResource[] | null>(null);
+  const [intakes, setIntakes] = useState<readonly UrlCaptureIntakeResource[] | null>(null);
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [sourceStale, setSourceStale] = useState(false);
+  const [sourceError, setSourceError] = useState('');
+  const sourceRefreshRef = useRef<
+    SourceRefreshCoordinator<{
+      readonly intakes: readonly UrlCaptureIntakeResource[];
+      readonly sources: readonly SourceListItemResource[] | null;
+    }>
+  >(null);
 
   function apply(value: ContentPackageResource): void {
     setContentPackage(value);
@@ -30,7 +51,56 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     setDescription(value.description ?? '');
     setContentMode(value.contentMode);
     setOutputs([...value.requestedOutputs]);
+    if (value.lifecycle === 'archived') setSection('details');
   }
+
+  const showPackageUnavailable = useCallback((): void => {
+    setContentPackage(null);
+    setSources(null);
+    setIntakes(null);
+    setSourceLoading(false);
+    setSourceStale(false);
+    setSourceError('');
+    setError('This Content Package is unavailable.');
+  }, []);
+
+  const handleSourceTerminal = useCallback(
+    (cause: unknown): boolean => {
+      if (cause instanceof WebApiError && cause.status === 401) {
+        router.replace('/login');
+        return true;
+      }
+      if (cause instanceof WebApiError && cause.status === 404) {
+        showPackageUnavailable();
+        return true;
+      }
+      return false;
+    },
+    [router, showPackageUnavailable],
+  );
+
+  const refreshSources = useCallback(
+    async (background = false): Promise<readonly UrlCaptureIntakeResource[] | undefined> => {
+      const sourceRefresh = sourceRefreshRef.current;
+      if (!sourceRefresh) return undefined;
+      if (!background) setSourceLoading(true);
+      if (!background) setSourceError('');
+      try {
+        return (await sourceRefresh.request())?.intakes;
+      } catch (cause) {
+        if (handleSourceTerminal(cause)) return undefined;
+        if (background) {
+          setSourceStale(true);
+        } else {
+          setSourceError('Source status could not be loaded. Reload the authoritative status.');
+        }
+      } finally {
+        if (!background) setSourceLoading(false);
+      }
+      return undefined;
+    },
+    [handleSourceTerminal],
+  );
 
   async function load(): Promise<void> {
     setLoading(true);
@@ -58,7 +128,8 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
       .session()
       .then(() => api.get(contentPackageId))
       .then((result) => {
-        if (current) apply(result.data.contentPackage);
+        if (!current) return;
+        apply(result.data.contentPackage);
       })
       .catch((cause: unknown) => {
         if (!current) return;
@@ -71,6 +142,62 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
       current = false;
     };
   }, [api, contentPackageId, router]);
+
+  useEffect(() => {
+    if (!contentPackage || section !== 'sources') return;
+    let active = true;
+    const sourceRefresh = new SourceRefreshCoordinator(
+      async () => {
+        const intakeResponse = await api.listUrlCaptureIntakes(contentPackageId);
+        const sourceResponse = contentPackage.lifecycle === 'active' ? await api.listSources(contentPackageId) : null;
+        return { intakes: intakeResponse.data.items, sources: sourceResponse?.data.items ?? null };
+      },
+      (result) => {
+        setIntakes(result.intakes);
+        setSources(result.sources);
+        setSourceError('');
+        setSourceStale(false);
+      },
+    );
+    sourceRefreshRef.current = sourceRefresh;
+    void Promise.resolve().then(async () => {
+      if (!active) return;
+      setSourceLoading(true);
+      setSourceError('');
+      try {
+        await sourceRefresh.request();
+      } catch (cause) {
+        if (!active) return;
+        if (!handleSourceTerminal(cause)) {
+          setSourceError('Source status could not be loaded. Reload the authoritative status.');
+        }
+      } finally {
+        if (active) setSourceLoading(false);
+      }
+    });
+    const recovery = contentPackage.lifecycle === 'active' ? new WorkflowRecoveryController(api, apiOrigin) : null;
+    const unsubscribe = recovery?.subscribe(contentPackageId, (notice) => {
+      if (notice.kind === 'projection') void refreshSources(true);
+      if (notice.kind === 'terminal' && notice.status === 401) router.replace('/login');
+      if (notice.kind === 'terminal' && notice.status === 404) showPackageUnavailable();
+    });
+    return () => {
+      active = false;
+      unsubscribe?.();
+      sourceRefresh.dispose();
+      if (sourceRefreshRef.current === sourceRefresh) sourceRefreshRef.current = null;
+    };
+  }, [
+    api,
+    apiOrigin,
+    contentPackage,
+    contentPackageId,
+    handleSourceTerminal,
+    refreshSources,
+    router,
+    section,
+    showPackageUnavailable,
+  ]);
 
   async function logout(): Promise<void> {
     try {
@@ -171,108 +298,146 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
 
       {contentPackage && !loading ? (
         <div className="workspace-layout">
-          <section className="workspace-main" aria-labelledby="metadata-title">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Current foundation</p>
-                <h2 id="metadata-title">Package metadata</h2>
-              </div>
-              <span className={`lifecycle ${contentPackage.lifecycle}`}>{contentPackage.lifecycle}</span>
-            </div>
-            <form className="form-grid" onSubmit={save}>
-              <div className="field full-span">
-                <label htmlFor="workspace-title">Title</label>
-                <input
-                  id="workspace-title"
-                  maxLength={200}
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  disabled={contentPackage.lifecycle === 'archived'}
-                  required
+          <section
+            className="workspace-main"
+            aria-labelledby={section === 'sources' ? 'sources-title' : 'metadata-title'}
+          >
+            {section === 'sources' ? (
+              <>
+                {sourceError ? (
+                  <StatusMessage>
+                    {sourceError}{' '}
+                    <button className="inline-button" type="button" onClick={() => void refreshSources()}>
+                      Reload Source status
+                    </button>
+                  </StatusMessage>
+                ) : null}
+                <SourceIntakePanel
+                  api={api}
+                  contentPackage={contentPackage}
+                  sources={sources}
+                  intakes={intakes}
+                  busy={sourceLoading}
+                  stale={sourceStale}
+                  onRefresh={() => refreshSources()}
+                  onTerminal={handleSourceTerminal}
                 />
-              </div>
-              <div className="field full-span">
-                <label htmlFor="workspace-description">
-                  Description <span>Optional</span>
-                </label>
-                <textarea
-                  id="workspace-description"
-                  maxLength={2000}
-                  rows={4}
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  disabled={contentPackage.lifecycle === 'archived'}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="workspace-mode">Content mode</label>
-                <select
-                  id="workspace-mode"
-                  value={contentMode}
-                  onChange={(event) => setContentMode(event.target.value as ContentPackageModeDto)}
-                  disabled={contentPackage.lifecycle === 'archived'}
-                >
-                  <option value="deferred">Decide later</option>
-                  <option value="creator_led">Creator-led</option>
-                  <option value="research_based">Research-based</option>
-                </select>
-              </div>
-              <fieldset className="field output-field" disabled={contentPackage.lifecycle === 'archived'}>
-                <legend>Requested outputs</legend>
-                <label className="check-label">
-                  <input type="checkbox" checked={outputs.includes('blog')} onChange={() => toggleOutput('blog')} />{' '}
-                  Blog
-                </label>
-                <label className="check-label">
-                  <input
-                    type="checkbox"
-                    checked={outputs.includes('xiaohongshu')}
-                    onChange={() => toggleOutput('xiaohongshu')}
-                  />{' '}
-                  Xiaohongshu
-                </label>
-              </fieldset>
-              {outputs.length === 0 ? (
-                <p className="field-error full-span" role="alert">
-                  Choose at least one output.
-                </p>
-              ) : null}
-              {notice ? (
-                <p className="save-notice full-span" role="status">
-                  {notice}
-                </p>
-              ) : null}
-              {contentPackage.lifecycle === 'active' ? (
-                <div className="form-actions full-span">
-                  <button
-                    className="primary-button"
-                    type="submit"
-                    disabled={saving || title.trim() === '' || outputs.length === 0}
-                  >
-                    {saving ? 'Saving…' : 'Save changes'}
-                  </button>
+              </>
+            ) : (
+              <>
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow">Current foundation</p>
+                    <h2 id="metadata-title">Package metadata</h2>
+                  </div>
+                  <span className={`lifecycle ${contentPackage.lifecycle}`}>{contentPackage.lifecycle}</span>
                 </div>
-              ) : null}
-            </form>
+                <form className="form-grid" onSubmit={save}>
+                  <div className="field full-span">
+                    <label htmlFor="workspace-title">Title</label>
+                    <input
+                      id="workspace-title"
+                      maxLength={200}
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      disabled={contentPackage.lifecycle === 'archived'}
+                      required
+                    />
+                  </div>
+                  <div className="field full-span">
+                    <label htmlFor="workspace-description">
+                      Description <span>Optional</span>
+                    </label>
+                    <textarea
+                      id="workspace-description"
+                      maxLength={2000}
+                      rows={4}
+                      value={description}
+                      onChange={(event) => setDescription(event.target.value)}
+                      disabled={contentPackage.lifecycle === 'archived'}
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="workspace-mode">Content mode</label>
+                    <select
+                      id="workspace-mode"
+                      value={contentMode}
+                      onChange={(event) => setContentMode(event.target.value as ContentPackageModeDto)}
+                      disabled={contentPackage.lifecycle === 'archived'}
+                    >
+                      <option value="deferred">Decide later</option>
+                      <option value="creator_led">Creator-led</option>
+                      <option value="research_based">Research-based</option>
+                    </select>
+                  </div>
+                  <fieldset className="field output-field" disabled={contentPackage.lifecycle === 'archived'}>
+                    <legend>Requested outputs</legend>
+                    <label className="check-label">
+                      <input type="checkbox" checked={outputs.includes('blog')} onChange={() => toggleOutput('blog')} />{' '}
+                      Blog
+                    </label>
+                    <label className="check-label">
+                      <input
+                        type="checkbox"
+                        checked={outputs.includes('xiaohongshu')}
+                        onChange={() => toggleOutput('xiaohongshu')}
+                      />{' '}
+                      Xiaohongshu
+                    </label>
+                  </fieldset>
+                  {outputs.length === 0 ? (
+                    <p className="field-error full-span" role="alert">
+                      Choose at least one output.
+                    </p>
+                  ) : null}
+                  {notice ? (
+                    <p className="save-notice full-span" role="status">
+                      {notice}
+                    </p>
+                  ) : null}
+                  {contentPackage.lifecycle === 'active' ? (
+                    <div className="form-actions full-span">
+                      <button
+                        className="primary-button"
+                        type="submit"
+                        disabled={saving || title.trim() === '' || outputs.length === 0}
+                      >
+                        {saving ? 'Saving…' : 'Save changes'}
+                      </button>
+                    </div>
+                  ) : null}
+                </form>
+              </>
+            )}
           </section>
 
           <aside className="stage-panel" aria-labelledby="stage-title">
-            <p className="eyebrow">M1 context</p>
+            <p className="eyebrow">Workspace</p>
             <h2 id="stage-title">Foundation</h2>
-            <div className="stage-current">
+            <button
+              className={section === 'details' ? 'stage-current stage-button' : 'stage-future stage-button'}
+              type="button"
+              aria-pressed={section === 'details'}
+              onClick={() => setSection('details')}
+            >
               <span>01</span>
               <div>
                 <strong>Package metadata</strong>
-                <small>Available now</small>
+                <small>Available</small>
               </div>
-            </div>
-            <div className="stage-future">
+            </button>
+            <button
+              className={section === 'sources' ? 'stage-current stage-button' : 'stage-future stage-button'}
+              type="button"
+              aria-pressed={section === 'sources'}
+              onClick={() => setSection('sources')}
+            >
               <span>02</span>
               <div>
                 <strong>Sources</strong>
-                <small>Planned for M2</small>
+                <small>{contentPackage.lifecycle === 'archived' ? 'History only' : 'Available'}</small>
               </div>
-            </div>
+            </button>
             <div className="stage-future">
               <span>03</span>
               <div>

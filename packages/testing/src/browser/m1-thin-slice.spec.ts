@@ -99,11 +99,12 @@ test('M1 owner loop: login, create, edit, refresh, conflict, archive, and logout
   await createButton.dblclick();
   await expect(page).toHaveURL(/\/packages\/[0-9a-f-]+$/);
   await expect(page.getByRole('heading', { name: 'M1 browser package' })).toBeVisible();
-  await expect(page.getByText('Planned for M2')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sources' })).toBeVisible();
   await expect(page.getByText('Not implemented')).toBeVisible();
 
   const id = page.url().split('/').at(-1);
   if (!id) throw new Error('workspace route is missing its opaque identity');
+  await page.getByRole('button', { name: /Package metadata/ }).click();
   await page.getByLabel('Title').fill('M1 persisted package');
   await page.getByLabel('Description').fill('Persisted through the authoritative API.');
   await page.getByRole('button', { name: 'Save changes' }).click();
@@ -111,6 +112,7 @@ test('M1 owner loop: login, create, edit, refresh, conflict, archive, and logout
   await expect(page.getByText('Revision 2')).toBeVisible();
 
   await page.reload();
+  await page.getByRole('button', { name: /Package metadata/ }).click();
   await expect(page.getByLabel('Title')).toHaveValue('M1 persisted package');
   await expect(page.getByLabel('Description')).toHaveValue('Persisted through the authoritative API.');
   await expect(page.getByText('Revision 2')).toBeVisible();

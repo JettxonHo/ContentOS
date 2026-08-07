@@ -710,6 +710,81 @@ select:focus {
 .stage-future {
   opacity: 0.67;
 }
+.stage-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.stage-button:disabled {
+  cursor: not-allowed;
+}
+.source-intake-panel {
+  display: grid;
+  gap: 16px;
+}
+.source-capacity,
+.help-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.source-card-list {
+  display: grid;
+  gap: 10px;
+}
+.source-card {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfcfb;
+}
+.source-card strong,
+.source-card small {
+  display: block;
+}
+.source-card small,
+.source-card time,
+.source-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.fallback-actions,
+.source-mode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.source-composer {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.source-composer fieldset,
+.role-fieldset {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+.source-composer legend,
+.role-fieldset legend {
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+.role-fieldset label {
+  font-size: 13px;
+}
 .stage-note {
   margin: 22px 0;
   padding: 14px;

@@ -235,6 +235,8 @@ Workflow completion is derived from the fixed Template's required branch and Gat
 
 ## 6. Current Action
 
+The active Workspace Source Intake surface uses existing notification/polling recovery only to refresh its authoritative Source and URL-intake REST reads. SSE remains notification-only; it is not Workflow state and does not create a Timeline UI.
+
 Current Action is a derived, user-facing recommendation based on:
 
 - Workflow Instance and Node state;

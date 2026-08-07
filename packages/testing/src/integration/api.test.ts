@@ -102,6 +102,15 @@ describe('api smoke', () => {
     const urlCaptureResponses =
       sourcePaths['/v1/content-packages/{packageId}/url-capture-requests']?.post?.responses ?? {};
     expect(Object.keys(urlCaptureResponses).sort()).toEqual(['201', '401', '404', '409', '422']);
+    const urlCaptureIntake = sourcePaths['/v1/content-packages/{packageId}/url-capture-requests']?.get;
+    expect(Object.keys(urlCaptureIntake?.responses ?? {}).sort()).toEqual(['200', '401', '404', '422', '500']);
+    expect(urlCaptureIntake?.security).toEqual([{ contentos_session: [] }]);
+    expect(urlCaptureIntake?.requestBody).toBeUndefined();
+    expect(urlCaptureIntake?.parameters?.filter((parameter) => parameter.in === 'query') ?? []).toEqual([]);
+    const intakeSuccessContract = JSON.stringify(urlCaptureIntake?.responses?.['200']?.content?.['application/json']);
+    for (const stateName of ['queued', 'running', 'failed', 'succeeded'])
+      expect(intakeSuccessContract).toContain(stateName);
+    expect(intakeSuccessContract).not.toMatch(/taskId|claim|lease|attempt|outbox|objectKey|storageKey/i);
     for (const pathName of [
       '/v1/content-packages/{packageId}/workflow',
       '/v1/content-packages/{packageId}/workflow/events',

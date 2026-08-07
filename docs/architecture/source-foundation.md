@@ -165,6 +165,8 @@ Protected Source routes live under `/v1/content-packages/:packageId/sources`:
 
 The JSON capture route remains `pasted_text`-only; `uploaded_text` capture is only available through the multipart upload route. Responses never include storage keys, credentials, temporary URLs, or raw object-store responses. The list endpoint returns only Source Reference fields without working-copy bodies or snapshot details.
 
+`M2-WEB-001A` composes those existing owner-scoped commands and formal Source reads into the active Package Workspace. Its adjacent URL-intake read is a zero-or-one owner-visible record of queued, running, failed, or succeeded capture; it is not a formal Source until a verified successful Result creates the correlated `public_url` Source. Failed URL capture remains visible while a Paste or Upload fallback creates an independent Source. The surface does not expose Source bodies, Working Copy editing, Versions, or Approval.
+
 ## 10. Error mapping
 
 Source failures map into the existing stable error envelope:
