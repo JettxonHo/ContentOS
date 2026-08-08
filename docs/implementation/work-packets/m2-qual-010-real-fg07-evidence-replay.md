@@ -1,6 +1,34 @@
 # M2-QUAL-010 — Real FG-07 Evidence Replay
 
-**Status:** Ready
+**Status:** In Review — Not Reproduced; independent review passed; awaiting
+GitHub CI
+
+Implementation evidence (2026-08-09): the clean implementation worktree was
+`codex/m2-qual-010-real-fg07-replay-impl` at base
+`5e270c875b47e406cc43240fb694f1f00b1b6451`. The initial Git status was clean.
+Node `v24.18.0` and pnpm `11.17.0` were confirmed in the same `fnm exec`
+context; frozen install and workspace checks passed. Read-only preflight
+confirmed the fixed `test:integration:concurrent:fg07` script and the merged
+safe coordinator diagnostics were present without modification. The ten
+listed concurrent and Harness injection variables were all unset; the
+preflight emitted only `injection-env=unset`.
+
+The aggregate entry snapshot was
+`app-processes=0 compose-projects=0 compose-containers=0`
+`coordinator-temp-roots=0 repo-local-pnpm-store=no`. The three sequential,
+non-injected focused attempts each exited `0`; after each attempt the same
+aggregate fields were `0, 0, 0, 0, no` and the task-owned cleanup delta was
+zero. No coordinator failure fields were emitted, so no FG case or child
+cleanup boundary was attributed. The terminal outcome is **not reproduced**
+only. No root cause, repair, M2-QUAL-003 completion, M2-GOV-006 completion,
+M2 completion, or M3 start is claimed. The runtime model was not visible and
+remains `UNVERIFIED_RUNTIME_MODEL`.
+
+Independent implementation reviews passed: evidence and correctness
+`/root/m2_qual_010_evidence_review`, and governance, scope, and security
+`/root/m2_qual_010_scope_review`. Both reviewers used logical role
+`INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, and recorded runtime model
+`UNVERIFIED_RUNTIME_MODEL`.
 
 **Issue:** [#169](https://github.com/JettxonHo/ContentOS/issues/169)
 
@@ -17,17 +45,14 @@
 - Config File: `~/.codex/agents/luna-worker.toml`
 - Configured Model: `gpt-5.6-luna`
 - Reasoning: Max
-- Actual Runtime Model: record if visible; otherwise
-  `UNVERIFIED_RUNTIME_MODEL`
-- Model Verification Status: `CONFIG_VERIFIED`; runtime status recorded by the
-  implementation Agent
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
+- Model Verification Status: `CONFIG_VERIFIED / UNVERIFIED_RUNTIME_MODEL`
 - Planning Thread: `/root`
 - Planning Branch: `codex/m2-qual-010-real-fg07-replay-plan`
 - Planning Base SHA: `5874d042cc4631bee10f087e3d030b681140c10d`
-- Implementation Thread: assigned after this Ready packet merges
+- Implementation Thread: `/root/m2_qual_010_implementation`
 - Implementation Branch: `codex/m2-qual-010-real-fg07-replay-impl`
-- Implementation Base SHA: latest `origin/main` after this Ready packet merges;
-  record the exact SHA before any runtime command
+- Implementation Base SHA: `5e270c875b47e406cc43240fb694f1f00b1b6451`
 - Dependency: M2-QUAL-009 Completed through PR #167 and its Completed status
   synchronized through PR #168
 - Risk Classification: bounded concurrent-test execution and cleanup evidence
