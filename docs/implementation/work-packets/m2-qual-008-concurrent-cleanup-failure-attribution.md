@@ -1,6 +1,6 @@
 # M2-QUAL-008 — Concurrent Cleanup Failure Attribution
 
-**Status:** Ready
+**Status:** Blocked
 
 **Issue:** [#163](https://github.com/JettxonHo/ContentOS/issues/163)
 
@@ -22,8 +22,9 @@
 - Planning Thread: `/root`
 - Planning Branch: `codex/m2-qual-008-concurrent-cleanup-attribution-planning`
 - Planning Base SHA: `7a5e8a0db980383fa6fa5d15f0093b998535ba5d`
-- Implementation Thread: assigned after this Ready packet is merged
-- Implementation Branch: assigned from the then-current `origin/main`
+- Implementation Thread: `/root/m2_qual_008_implementation`
+- Implementation Branch: `codex/m2-qual-008-concurrent-cleanup-attribution-impl`
+- Implementation Base SHA: `6d6155266463d10b8684ebb0e6df27a1adf28f39`
 - Dependencies: the reviewed, uncommitted M2-QUAL-007 seven-file checkpoint is
   preserved in `/private/tmp/contentos-m2-qual-007-impl-wt`
 - Risk Classification: bounded test-harness cleanup diagnostics only
@@ -377,3 +378,33 @@ push, and create a Draft PR. Only all-green final-head CI and no unresolved
 finding or escalation permit Ready-for-review status and squash merge. A
 diagnostic result does not authorize its repair. The implementer cannot approve
 or merge its own work.
+
+## Blocked implementation checkpoint
+
+The fresh implementation worktree reproduced the reviewed M2-QUAL-007
+five-file checkpoint byte-for-byte before the bounded attribution delta. The
+deterministic concurrent-smoke suite passed 53 tests. Frozen install,
+workspace resolution, root `check` (53 files / 532 tests plus builds),
+Integration (27 files / 185 tests), Browser (16/16), documentation, repository,
+Secret, diff, and zero-residue checks passed under Node.js 24.18.0. Independent
+correctness and scope reviews passed after two bounded test corrections
+(`/root/m2_qual_008_correctness_review` and
+`/root/m2_qual_008_scope_review`; requested `gpt-5.6-sol` High, runtime
+`UNVERIFIED_RUNTIME_MODEL`).
+
+Focused `test:integration:concurrent:fg07` attempt #1 stopped on its first red
+without rerun:
+
+```text
+child-2 exit=1 signal=none category=cleanup-failed captured-bytes=2179 remaining-child=clean owned-cleanup=verified
+```
+
+The parent cleanup axis is verified. The child cleanup axis is generic rather
+than one allowlisted complete Harness record, so the applicable evidence is
+unclassified for this diagnostic and the Work Item remains Blocked. No full
+Concurrent substitute was executed; task-owned processes and temporary roots
+were absent after the run, and unrelated Compose projects were unchanged. The
+reviewed seven-file checkpoint remains uncommitted and unpublished in
+`/private/tmp/contentos-m2-qual-008-impl-wt`. M2-QUAL-009 owns the bounded safe
+record-transport correction; no cleanup root cause or cleanup repair is
+claimed.
