@@ -229,7 +229,7 @@ async function expectRejectedWithoutEffects(
 }
 
 describe('M2-WF-003B private Fetcher Gateway API', () => {
-  it('rejects real malformed or duplicate-header Claim requests before any state write', async () => {
+  it('[FG-01] rejects real malformed or duplicate-header Claim requests before any state write', async () => {
     const state = requireState();
     const { gatewaySecret } = credentials(state);
     const fixture = await createFixture(state);
@@ -363,7 +363,7 @@ describe('M2-WF-003B private Fetcher Gateway API', () => {
     }
   });
 
-  it('returns the exact flat Claim and Heartbeat shapes and keeps private URL disclosure success-only', async () => {
+  it('[FG-02] returns the exact flat Claim and Heartbeat shapes and keeps private URL disclosure success-only', async () => {
     const state = requireState();
     const { gatewaySecret } = credentials(state);
     const fixture = await createFixture(state);
@@ -439,7 +439,7 @@ describe('M2-WF-003B private Fetcher Gateway API', () => {
     }
   });
 
-  it('rejects every legal ineligible database state without disclosure or side effects', async () => {
+  it('[FG-03] rejects every legal ineligible database state without disclosure or side effects', async () => {
     const state = requireState();
     const { gatewaySecret } = credentials(state);
     const scenarios: readonly { readonly name: string; readonly sql: (fixture: GatewayFixture) => string }[] = [
@@ -502,7 +502,7 @@ describe('M2-WF-003B private Fetcher Gateway API', () => {
     }
   });
 
-  it('rejects missing, duplicate, malformed, wrong, expired, and mismatched Heartbeat claims without effects', async () => {
+  it('[FG-04] rejects missing, duplicate, malformed, wrong, expired, and mismatched Heartbeat claims without effects', async () => {
     const state = requireState();
     const { gatewaySecret } = credentials(state);
     const fixture = await createFixture(state);
@@ -710,7 +710,7 @@ function successResultBody(input: {
 }
 
 describe('M2-SRC-003 private Fetcher Result API', () => {
-  it('keeps the result route private and rejects transport, identity, and claim faults without effects', async () => {
+  it('[FG-05] keeps the result route private and rejects transport, identity, and claim faults without effects', async () => {
     const state = requireState();
     const { gatewaySecret } = credentials(state);
     const fixture = await createFixture(state);
@@ -866,7 +866,7 @@ describe('M2-SRC-003 private Fetcher Result API', () => {
     }
   });
 
-  it('records a success result with a verified object and an exact replay returns duplicate=true', async () => {
+  it('[FG-06] records a success result with a verified object and an exact replay returns duplicate=true', async () => {
     const state = requireState();
     const { gatewaySecret } = credentials(state);
     const fixture = await createFixture(state);
@@ -943,7 +943,7 @@ describe('M2-SRC-003 private Fetcher Result API', () => {
     }
   });
 
-  it('records a Fetcher-reported failure without a Source and rejects an over-limit body before parsing', async () => {
+  it('[FG-07] records a Fetcher-reported failure without a Source and rejects an over-limit body before parsing', async () => {
     const state = requireState();
     const { gatewaySecret } = credentials(state);
     const fixture = await createFixture(state);
@@ -1007,7 +1007,7 @@ describe('M2-SRC-003 private Fetcher Result API', () => {
     }
   });
 
-  it('rejects missing, duplicate, charset, compound, and wrong Content-Type with a safe 422', async () => {
+  it('[FG-08] rejects missing, duplicate, charset, compound, and wrong Content-Type with a safe 422', async () => {
     const state = requireState();
     const { gatewaySecret } = credentials(state);
     const fixture = await createFixture(state);
@@ -1063,7 +1063,7 @@ describe('M2-SRC-003 private Fetcher Result API', () => {
     }
   });
 
-  it('rejects null, array, and string bodies with a safe 422', async () => {
+  it('[FG-09] rejects null, array, and string bodies with a safe 422', async () => {
     const state = requireState();
     const { gatewaySecret } = credentials(state);
     const fixture = await createFixture(state);
@@ -1088,7 +1088,7 @@ describe('M2-SRC-003 private Fetcher Result API', () => {
     }
   });
 
-  it('accepts a body of exactly 1,048,576 bytes at the transport boundary (then rejects it as a contract fault)', async () => {
+  it('[FG-10] accepts a body of exactly 1,048,576 bytes at the transport boundary (then rejects it as a contract fault)', async () => {
     const state = requireState();
     const { gatewaySecret } = credentials(state);
     const fixture = await createFixture(state);
@@ -1113,7 +1113,7 @@ describe('M2-SRC-003 private Fetcher Result API', () => {
     }
   });
 
-  it('accepts a 100,000-byte Candidate full of quotes or backslashes and rejects 100,001 bytes', async () => {
+  it('[FG-11] accepts a 100,000-byte Candidate full of quotes or backslashes and rejects 100,001 bytes', async () => {
     const state = requireState();
     const { gatewaySecret } = credentials(state);
 

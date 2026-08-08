@@ -42,6 +42,12 @@ const FAILED_MODULE_LINE =
   /^\s*❯\s+packages\/testing\/src\/integration\/([a-z0-9-]+\.test\.ts)\s+\(\d+\s+tests?\s+\|\s+\d+\s+failed(?:\s+\|\s+\d+\s+(?:skipped|todo))*\)\s+\d+ms(?:\s+\d+\s+MB heap used)?\s*$/;
 const FAILED_SUMMARY_LINE =
   /^\s*FAIL\s+packages\/testing\/src\/integration\/([a-z0-9-]+\.test\.ts)(?:\s+>\s+\S.*)?\s*$/;
+const FETCHER_GATEWAY_FAIL_LINE =
+  /^\s*FAIL\s+packages\/testing\/src\/integration\/fetcher-gateway-api\.test\.ts(?:\s+>\s+(.+?))?\s*$/;
+const FETCHER_GATEWAY_CASE_MARKER = /\[FG-[^\]\r\n]*\]/gi;
+const FETCHER_GATEWAY_CASE_IDS = new Set(
+  Array.from({ length: 11 }, (_, index) => `FG-${String(index + 1).padStart(2, '0')}`),
+);
 
 export interface ChildResult {
   readonly code: number | null;
@@ -177,6 +183,38 @@ export function extractIntegrationTestBasename(output: string, outputStartsMidLi
   return basenames.size === 1 ? [...basenames][0]! : 'unclassified';
 }
 
+/**
+ * Extract one safe Fetcher Gateway case ID from complete Vitest FAIL metadata.
+ * Only the exact Fetcher Gateway integration path and one allowlisted marker
+ * on that same newline-terminated line are eligible for attribution.
+ */
+export function extractFetcherGatewayCase(output: string, outputStartsMidLine = false): string {
+  const normalized = stripVTControlCharacters(output);
+  const lines = normalized.split('\n');
+  if (!normalized.endsWith('\n')) lines.pop();
+  if (outputStartsMidLine) lines.shift();
+
+  const caseIds = new Set<string>();
+  let invalidMetadata = false;
+  for (const line of lines) {
+    const candidate = line.endsWith('\r') ? line.slice(0, -1) : line;
+    const match = FETCHER_GATEWAY_FAIL_LINE.exec(candidate);
+    if (!match) continue;
+    const markers = match[1]?.match(FETCHER_GATEWAY_CASE_MARKER) ?? [];
+    if (markers.length !== 1) {
+      invalidMetadata = true;
+      continue;
+    }
+    const caseId = markers[0]!.slice(1, -1);
+    if (!FETCHER_GATEWAY_CASE_IDS.has(caseId)) {
+      invalidMetadata = true;
+      continue;
+    }
+    caseIds.add(caseId.toLowerCase());
+  }
+  return !invalidMetadata && caseIds.size === 1 ? [...caseIds][0]! : 'unclassified';
+}
+
 function childDiagnostic(index: number, result: ChildResult): string {
   const combinedSetup = result.output.match(/contentos smoke setup failed: setup=([a-z-]+) teardown=(clean|failed)/);
   const cleanupMatch = result.output.match(
@@ -221,10 +259,13 @@ function childDiagnostic(index: number, result: ChildResult): string {
   const signal = result.signal && /^SIG[A-Z0-9]+$/.test(result.signal) ? result.signal : 'none';
   const outputBytes = Math.min(Buffer.byteLength(result.output, 'utf8'), MAX_CAPTURED_OUTPUT);
   const testAttribution =
-    category === 'test-run-failed'
-      ? ` test=${extractIntegrationTestBasename(result.output, result.outputStartsMidLine)}`
+    category === 'test-run-failed' ? extractIntegrationTestBasename(result.output, result.outputStartsMidLine) : '';
+  const caseAttribution =
+    testAttribution === 'fetcher-gateway-api.test.ts'
+      ? ` case=${extractFetcherGatewayCase(result.output, result.outputStartsMidLine)}`
       : '';
-  return `child-${index + 1} exit=${code} signal=${signal} category=${category}${testAttribution} captured-bytes=${outputBytes}`;
+  const testDiagnostic = category === 'test-run-failed' ? ` test=${testAttribution}${caseAttribution}` : '';
+  return `child-${index + 1} exit=${code} signal=${signal} category=${category}${testDiagnostic} captured-bytes=${outputBytes}`;
 }
 
 interface RuntimeEvidence {
