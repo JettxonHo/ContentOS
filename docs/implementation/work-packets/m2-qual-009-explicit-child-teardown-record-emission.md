@@ -1,6 +1,13 @@
 # M2-QUAL-009 — Explicit Child Teardown Record Emission
 
-**Status:** In Review — independent review passed; awaiting GitHub CI
+**Status:** Completed
+
+Completed through PR
+[#167](https://github.com/JettxonHo/ContentOS/pull/167), squash merge
+`2ab7ef5d87f89eafa2d4829d5d4749e22d44c3fa`
+(`test: emit explicit child teardown evidence (#167)`). Final-head CI run
+`31280850681` completed all three required jobs successfully, and Issue #165
+is closed.
 
 Implementation evidence (2026-08-09): the QUAL008 five-file checkpoint was
 reproduced byte-identically before the QUAL009 delta. Frozen install,
@@ -12,14 +19,14 @@ repeated process-enabled without test changes. The single injected FG07 run
 returned the expected non-zero evidence:
 `cleanup-synthetic`, `child-physical=clean`, `child-capsule=removed`,
 `remaining-child=clean`, and `owned-cleanup=verified`; scoped post-run checks
-found no task-owned temporary roots or Compose projects. No publication,
-commit, push, or Issue closure was performed.
+found no task-owned temporary roots or Compose projects. The reviewed change
+was published through PR #167 after final-head CI passed.
 
 Independent implementation reviews passed after one test-only evidence
 correction: correctness `/root/m2_qual_009_correctness_review` and scope,
 security, and governance `/root/m2_qual_009_scope_review`. Both reviewers used
 logical role `INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, and recorded
-runtime model `UNVERIFIED_RUNTIME_MODEL`. GitHub CI remains pending.
+runtime model `UNVERIFIED_RUNTIME_MODEL`.
 
 **Issue:** [#165](https://github.com/JettxonHo/ContentOS/issues/165)
 
