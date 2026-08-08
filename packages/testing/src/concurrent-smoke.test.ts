@@ -8,6 +8,7 @@ import {
   coordinateConcurrentSmoke,
   cleanupAndVerifyClaims,
   discoverOwnedStates,
+  extractIntegrationTestBasename,
   writeOwnedSentinels,
   type ChildResult,
   type ManagedSmokeChild,
@@ -325,7 +326,7 @@ describe('concurrent smoke claimed ownership', () => {
 
       expect(Date.now() - startedAt).toBeLessThan(500);
       expect(failure?.message).toContain('exited before authenticated state publication');
-      expect(failure?.message).toContain('child-1 exit=1 signal=none category=test-run-failed');
+      expect(failure?.message).toContain('child-1 exit=1 signal=none category=test-run-failed test=unclassified');
       expect(failure?.message).not.toContain('do-not-echo');
       expect(failure?.message).not.toContain('private-text');
       expect(failure?.message).not.toContain(root);
@@ -394,6 +395,117 @@ describe('concurrent smoke claimed ownership', () => {
           verifyOwnedCleanup: async () => undefined,
         }),
       ).rejects.toThrow('owned-cleanup=failed');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('safe concurrent failure attribution', () => {
+  it('recognizes one plain failed-module and FAIL summary basename', () => {
+    const output = [
+      ' ❯ packages/testing/src/integration/worker-dispatcher.test.ts (2 tests | 1 failed) 12ms',
+      ' FAIL  packages/testing/src/integration/worker-dispatcher.test.ts > repaired dispatch',
+      ' Test Files  1 failed (1)',
+      '',
+    ].join('\n');
+
+    expect(extractIntegrationTestBasename(output)).toBe('worker-dispatcher.test.ts');
+  });
+
+  it('strips ANSI formatting and deduplicates repeated metadata', () => {
+    const output = [
+      '\u001b[31m ❯ packages/testing/src/integration/url-capture.test.ts (3 tests | 1 failed | 1 skipped) 7ms\u001b[39m',
+      '\u001b[1m FAIL  packages/testing/src/integration/url-capture.test.ts > capture\u001b[22m',
+      '',
+    ].join('\n');
+
+    expect(extractIntegrationTestBasename(output)).toBe('url-capture.test.ts');
+  });
+
+  it('drops only a flagged truncated leading fragment', () => {
+    const metadata = '❯ packages/testing/src/integration/api.test.ts (2 tests | 1 failed) 4ms\n';
+
+    expect(extractIntegrationTestBasename(metadata, true)).toBe('unclassified');
+    expect(extractIntegrationTestBasename(metadata, false)).toBe('api.test.ts');
+  });
+
+  it('requires a complete trailing metadata line', () => {
+    expect(
+      extractIntegrationTestBasename('❯ packages/testing/src/integration/api.test.ts (2 tests | 1 failed) 4ms'),
+    ).toBe('unclassified');
+  });
+
+  it.each([
+    ' ❯ packages/testing/src/integration/api.test.ts (2 tests | 1 failed) 4ms\n ❯ packages/testing/src/integration/web.test.ts (2 tests | 1 failed) 4ms\n',
+    ' ❯ packages/testing/src/integration/api.test.ts (2 tests | 1 failed) 4ms\n ❯ packages/testing/src/integration/api.test.ts (2 tests | 1 failed) 4ms\n ❯ packages/testing/src/integration/web.test.ts (2 tests | 1 failed) 4ms\n',
+  ])('returns unclassified when metadata has zero or multiple distinct basenames', (output) => {
+    expect(extractIntegrationTestBasename(output)).toBe('unclassified');
+  });
+
+  it('ignores passing modules, stack paths, malformed lines, and incomplete output', () => {
+    const output = [
+      ' ✓ packages/testing/src/integration/api.test.ts (2 tests) 4ms',
+      ' ❯ packages/testing/src/integration/invalid_name.test.ts (2 tests | 1 failed) 4ms',
+      ' ❯ packages/testing/src/integration/api.test.ts (2 tests | 1 failed)',
+      ' ❯ /private/tmp/api.test.ts (2 tests | 1 failed) 4ms',
+      ' at /private/tmp/project/packages/testing/src/integration/web.test.ts:3:4',
+      ' FAIL packages/testing/src/integration/api.test.ts >',
+    ].join('\n');
+
+    expect(extractIntegrationTestBasename(output)).toBe('unclassified');
+  });
+
+  it('does not return sensitive adjacent output or a standalone path', () => {
+    const output = [
+      'AssertionError: private body https://private.example.test/secret TOKEN=do-not-echo',
+      ' at /Users/private/project/packages/testing/src/integration/source.test.ts:3:4',
+      'packages/testing/src/integration/source.test.ts',
+      '',
+    ].join('\n');
+
+    const attribution = extractIntegrationTestBasename(output);
+    expect(attribution).toBe('unclassified');
+    expect(attribution).not.toContain('private.example');
+    expect(attribution).not.toContain('do-not-echo');
+  });
+
+  it('adds only the safe basename to a test-run-failed child diagnostic', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'contentos-concurrent-attribution-test-'));
+    const remainingResult = deferredResult();
+    const claims = [
+      makeClaim(root, 'child-one', 'a'.repeat(32), 'b'.repeat(32)),
+      makeClaim(root, 'child-two', 'a'.repeat(32), 'c'.repeat(32)),
+    ] as const;
+    try {
+      await expect(
+        coordinateConcurrentSmoke({
+          claims,
+          children: [
+            managedChild(
+              claims[0],
+              Promise.resolve({
+                code: 1,
+                signal: null,
+                output: [
+                  ' ❯ packages/testing/src/integration/api.test.ts (2 tests | 1 failed) 4ms',
+                  ' FAIL  packages/testing/src/integration/api.test.ts > login TOKEN=do-not-echo',
+                  ' Test Files  1 failed (1)',
+                  '',
+                ].join('\n'),
+              }),
+            ),
+            managedChild(claims[1], remainingResult.promise, (signal) => {
+              if (signal === 'SIGTERM') remainingResult.resolve({ code: null, signal: 'SIGTERM', output: '' });
+            }),
+          ],
+          discoveryTimeoutMs: 100,
+          terminationGraceMs: 50,
+          killGraceMs: 50,
+          pollMs: 2,
+          verifyOwnedCleanup: async () => undefined,
+        }),
+      ).rejects.toThrow(/category=test-run-failed test=api\.test\.ts captured-bytes=\d+/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

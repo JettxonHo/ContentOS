@@ -14,6 +14,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { stripVTControlCharacters } from 'node:util';
 
 import { composeDown, parseComposeProjectNames } from './compose.ts';
 import {
@@ -37,10 +38,16 @@ const TERMINATION_GRACE_MS = 75_000;
 const KILL_GRACE_MS = 10_000;
 const MAX_CAPTURED_OUTPUT = 8_192;
 
+const FAILED_MODULE_LINE =
+  /^\s*❯\s+packages\/testing\/src\/integration\/([a-z0-9-]+\.test\.ts)\s+\(\d+\s+tests?\s+\|\s+\d+\s+failed(?:\s+\|\s+\d+\s+(?:skipped|todo))*\)\s+\d+ms(?:\s+\d+\s+MB heap used)?\s*$/;
+const FAILED_SUMMARY_LINE =
+  /^\s*FAIL\s+packages\/testing\/src\/integration\/([a-z0-9-]+\.test\.ts)(?:\s+>\s+\S.*)?\s*$/;
+
 export interface ChildResult {
   readonly code: number | null;
   readonly signal: NodeJS.Signals | null;
   readonly output: string;
+  readonly outputStartsMidLine?: boolean;
   readonly startFailed?: boolean;
 }
 
@@ -83,14 +90,22 @@ function startCompleteSmoke(claim: SmokeOwnershipClaim, extraEnv: NodeJS.Process
     detached: process.platform !== 'win32',
   });
   let output = '';
+  let outputStartsMidLine = false;
   const capture = (chunk: Buffer): void => {
-    output = `${output}${chunk.toString('utf8')}`.slice(-MAX_CAPTURED_OUTPUT);
+    const combined = `${output}${chunk.toString('utf8')}`;
+    const boundary = combined.length - MAX_CAPTURED_OUTPUT;
+    if (boundary > 0) {
+      outputStartsMidLine = combined[boundary - 1] !== '\n';
+    } else if (outputStartsMidLine && combined.includes('\n')) {
+      outputStartsMidLine = false;
+    }
+    output = combined.slice(-MAX_CAPTURED_OUTPUT);
   };
   child.stdout.on('data', capture);
   child.stderr.on('data', capture);
   const result = new Promise<ChildResult>((resolve) => {
-    child.once('error', () => resolve({ code: null, signal: null, output, startFailed: true }));
-    child.once('close', (code, signal) => resolve({ code, signal, output }));
+    child.once('error', () => resolve({ code: null, signal: null, output, outputStartsMidLine, startFailed: true }));
+    child.once('close', (code, signal) => resolve({ code, signal, output, outputStartsMidLine }));
   });
   return { claim, result, signal: (signal) => signalProcessGroup(child.pid, signal) };
 }
@@ -139,6 +154,29 @@ function trackChildren(children: readonly ManagedSmokeChild[]): readonly Tracked
   });
 }
 
+/**
+ * Extract one safe Integration test basename from complete Vitest metadata
+ * lines. The bounded child tail can begin or end in the middle of a line, so
+ * only newline-terminated records are eligible for attribution. The caller
+ * supplies `outputStartsMidLine` only when the slice boundary proves that the
+ * first retained fragment is incomplete.
+ */
+export function extractIntegrationTestBasename(output: string, outputStartsMidLine = false): string {
+  const normalized = stripVTControlCharacters(output);
+  const lines = normalized.split('\n');
+  if (!normalized.endsWith('\n')) lines.pop();
+  if (outputStartsMidLine) lines.shift();
+  const basenames = new Set<string>();
+  for (const line of lines) {
+    const candidate = line.endsWith('\r') ? line.slice(0, -1) : line;
+    const moduleMatch = FAILED_MODULE_LINE.exec(candidate);
+    const summaryMatch = FAILED_SUMMARY_LINE.exec(candidate);
+    const basename = moduleMatch?.[1] ?? summaryMatch?.[1];
+    if (basename) basenames.add(basename);
+  }
+  return basenames.size === 1 ? [...basenames][0]! : 'unclassified';
+}
+
 function childDiagnostic(index: number, result: ChildResult): string {
   const combinedSetup = result.output.match(/contentos smoke setup failed: setup=([a-z-]+) teardown=(clean|failed)/);
   const cleanupMatch = result.output.match(
@@ -182,7 +220,11 @@ function childDiagnostic(index: number, result: ChildResult): string {
   const code = Number.isInteger(result.code) ? String(result.code) : 'none';
   const signal = result.signal && /^SIG[A-Z0-9]+$/.test(result.signal) ? result.signal : 'none';
   const outputBytes = Math.min(Buffer.byteLength(result.output, 'utf8'), MAX_CAPTURED_OUTPUT);
-  return `child-${index + 1} exit=${code} signal=${signal} category=${category} captured-bytes=${outputBytes}`;
+  const testAttribution =
+    category === 'test-run-failed'
+      ? ` test=${extractIntegrationTestBasename(result.output, result.outputStartsMidLine)}`
+      : '';
+  return `child-${index + 1} exit=${code} signal=${signal} category=${category}${testAttribution} captured-bytes=${outputBytes}`;
 }
 
 interface RuntimeEvidence {
