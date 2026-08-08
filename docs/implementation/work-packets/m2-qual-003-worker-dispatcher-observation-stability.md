@@ -1,6 +1,6 @@
 # M2-QUAL-003 — Worker Dispatcher Reconciliation Observation Stability
 
-**Status:** Blocked — awaiting safe Fetcher Gateway case attribution
+**Status:** In Progress — final revalidation on the safe-case baseline required
 
 **Issue:** [#147](https://github.com/JettxonHo/ContentOS/issues/147)
 
@@ -51,9 +51,11 @@ M2-QUAL-004 completed through PR #151 and added safe test-file attribution. The
 valid implementation was replayed onto `a72aecb` and passed its focused, root,
 full Integration, and Browser evidence. Its first required concurrent run then
 stopped without rerun at `test=fetcher-gateway-api.test.ts`, with the remaining
-child clean and owned cleanup verified. The evidence does not identify a unique
-case or root cause. M2-QUAL-005 owns the next diagnostic-only step; this repair
-remains preserved but unaccepted and unpublished.
+child clean and owned cleanup verified. M2-QUAL-005 completed through PR #155,
+squash merge `b212d9713cef35d6181b2864f2d0ae4760c4d13e`, adding bounded safe
+case attribution. Its three local concurrent attempts did not reproduce the
+failure, so they do not complete this repair. The preserved Worker change must
+now be replayed and finally revalidated on the new `main` baseline.
 
 ## Relevant decisions and documents
 

@@ -1,6 +1,6 @@
 # M2-GOV-006 — M2 Exit Review and Acceptance Record 002
 
-**Status:** Blocked — awaiting M2-QUAL-003 and M2-QUAL-005
+**Status:** Blocked — awaiting M2-QUAL-003
 
 **Issue:** [#144](https://github.com/JettxonHo/ContentOS/issues/144)
 
@@ -54,10 +54,10 @@ final-head Integration job exposed the M2-QUAL-003 observation race. M2-QUAL-004
 is completed through PR #151 and provides safe concurrent failure-file
 attribution. M2-QUAL-003 was replayed on that baseline and its first required
 concurrent run stopped at `fetcher-gateway-api.test.ts`, without a unique case
-or root cause. M2-QUAL-005 owns the bounded case-attribution step. Only after
-M2-QUAL-005 completes, any safely attributed defect path observed is resolved,
-and M2-QUAL-003 completes can this Exit Review restart from a new exact `main`
-commit.
+or root cause. M2-QUAL-005 completed through PR #155 with safe bounded case
+attribution; its three local concurrent attempts recorded only `not reproduced`.
+M2-QUAL-003 must now complete final revalidation on that merged baseline before
+this Exit Review can restart from a new exact `main` commit.
 
 A maintenance verification run previously exposed and then cleaned one
 task-owned orphan API process. Four subsequent isolated harness lifecycles—one
