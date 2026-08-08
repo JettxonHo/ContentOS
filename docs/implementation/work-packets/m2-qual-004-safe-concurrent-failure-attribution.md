@@ -1,6 +1,6 @@
 # M2-QUAL-004 — Safe Concurrent Failure Attribution
 
-**Status:** In Review — independent review passed; awaiting GitHub CI
+**Status:** Completed
 
 **Issue:** [#149](https://github.com/JettxonHo/ContentOS/issues/149)
 
@@ -22,6 +22,19 @@
 - Implementation Base SHA: `6b4385ac420f19c4257f484adc9340968f4eb926`
 - Planning Base SHA: `8dceb8789cb2bc308839934b376a35bc9e4fedd6`
 - Risk Classification: test-harness diagnostic disclosure and failure attribution
+
+## Completion status
+
+Completed through Issue #149 and PR #151, squash merge
+`3bdbebc9bb58a498cae5d90a6e5919799b7aa4a1`
+(`test: add safe concurrent failure attribution (#151)`). GitHub Actions run
+`31264849581` passed Docker-independent quality, Integration smoke, and M1/M2
+browser smoke before merge. The Issue remains open only until this completion
+status synchronization is merged.
+
+The safe diagnostic capability is complete. It did not reproduce or identify
+the downstream concurrent test failure during its bounded real runs, so it does
+not complete M2-QUAL-003 or unblock M2-GOV-006 by itself.
 
 ## Goal
 
@@ -50,7 +63,8 @@ cleanup behavior. It parses only complete newline-terminated Vitest failed-modul
 or `FAIL` metadata lines after ANSI removal; a single validated basename is
 reported, while missing or ambiguous metadata remains `unclassified`.
 
-M2-QUAL-003 and M2-GOV-006 are blocked. Issues #147 and #144 remain open. M2
+M2-QUAL-003 is In Progress pending replay and revalidation on the safe-attribution
+baseline. M2-GOV-006 remains blocked. Issues #147 and #144 remain open. M2
 remains In Progress and M3 remains Not Started.
 
 ## Relevant decisions and documents
@@ -175,8 +189,8 @@ not return its final exit-status chunk; no failure text was observed and no
 task-owned residue remained. The second attempt returned an explicit
 `CONCURRENT_RC=0`. No concurrent failure was reproduced, so no safe basename
 was attributed from a real failure; the bounded run stopped after these two
-attempts. This does not unblock or complete `M2-QUAL-003`, which remains
-`Blocked`, and does not change `M2-GOV-006`'s blocked status.
+attempts. This does not complete `M2-QUAL-003`, which is now In Progress pending
+replay and revalidation, and does not change `M2-GOV-006`'s blocked status.
 
 Independent implementation reviews passed after two bounded corrections: the
 capture now records whether the retained tail begins mid-line, and the final
