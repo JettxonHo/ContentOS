@@ -696,7 +696,7 @@ const CLEANUP_CATEGORY_ORDER = [
 ] as const;
 type CleanupCategory = (typeof CLEANUP_CATEGORY_ORDER)[number];
 
-class HarnessCleanupError extends Error {
+export class HarnessCleanupError extends Error {
   readonly categories: readonly CleanupCategory[];
   readonly physical: 'clean' | 'incomplete';
   readonly capsule: 'removed' | 'preserved';
@@ -712,6 +712,43 @@ class HarnessCleanupError extends Error {
     this.physical = physical;
     this.capsule = capsule;
   }
+}
+
+const UNKNOWN_HARNESS_CLEANUP_RECORD =
+  'contentos smoke harness teardown failed: cleanup=unclassified physical=incomplete capsule=preserved';
+
+function isCleanupCategory(value: unknown): value is CleanupCategory {
+  return typeof value === 'string' && (CLEANUP_CATEGORY_ORDER as readonly string[]).includes(value);
+}
+
+function hasCanonicalCleanupCategories(value: unknown): value is readonly CleanupCategory[] {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  let previousOrder = -1;
+  for (const category of value) {
+    if (!isCleanupCategory(category)) return false;
+    const order = CLEANUP_CATEGORY_ORDER.indexOf(category);
+    if (order <= previousOrder) return false;
+    previousOrder = order;
+  }
+  return true;
+}
+
+/**
+ * Reconstructs the fixed teardown record from the internal structured error
+ * fields only. Unknown or malformed errors fail closed without exposing
+ * message, cause, stack, or other arbitrary content.
+ */
+export function formatHarnessCleanupRecord(error: unknown): string {
+  if (!(error instanceof HarnessCleanupError)) return UNKNOWN_HARNESS_CLEANUP_RECORD;
+  if (
+    !hasCanonicalCleanupCategories(error.categories) ||
+    (error.physical !== 'clean' && error.physical !== 'incomplete') ||
+    (error.capsule !== 'removed' && error.capsule !== 'preserved')
+  ) {
+    return UNKNOWN_HARNESS_CLEANUP_RECORD;
+  }
+  const record = `contentos smoke harness teardown failed: cleanup=${error.categories.join(',')} physical=${error.physical} capsule=${error.capsule}`;
+  return /[\r\n]/.test(record) ? UNKNOWN_HARNESS_CLEANUP_RECORD : record;
 }
 
 async function verifyBucketAbsent(endpoint: string, credentials: AwsCredentials, bucketName: string): Promise<boolean> {
