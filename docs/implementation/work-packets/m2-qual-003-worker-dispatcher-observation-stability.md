@@ -1,6 +1,6 @@
 # M2-QUAL-003 — Worker Dispatcher Reconciliation Observation Stability
 
-**Status:** In Progress — final revalidation on the safe-case baseline required
+**Status:** Ready — final replay
 
 **Issue:** [#147](https://github.com/JettxonHo/ContentOS/issues/147)
 
@@ -18,8 +18,15 @@
 - Reasoning: Max
 - Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
 - Model Verification Status: `CONFIG_VERIFIED / UNVERIFIED_RUNTIME_MODEL`
-- Implementation Thread: `/root/m2_qual_003_implementation`
+- Planning Thread: `/root`
+- Planning Branch: `codex/m2-qual-003-final-replay-plan`
 - Planning Base SHA: `c3894a920b4f2315a81c4f0add47b8e06bc28cee`
+- Renewed Planning Base SHA: `e734755bc92d6e4e6a2506511aa0b402c57d68cd`
+- Implementation Thread: assigned after this renewed Ready packet merges
+- Implementation Branch: `codex/m2-qual-003-worker-dispatcher-final-impl`
+- Implementation Base SHA: latest `origin/main` after this renewed Ready packet
+  merges; record the exact SHA before any edit or runtime command
+- Preserved Reference Worktree: `/private/tmp/contentos-m2-qual-005-wt`
 - Risk Classification: integration-test synchronization only
 
 ## Goal
@@ -47,15 +54,22 @@ This is not accepted as a rerun-only CI fluctuation. PR #146 was closed without
 merge, Issue #144 remains open, M2 remains In Progress, and M3 remains Not
 Started.
 
-M2-QUAL-004 completed through PR #151 and added safe test-file attribution. The
-valid implementation was replayed onto `a72aecb` and passed its focused, root,
-full Integration, and Browser evidence. Its first required concurrent run then
-stopped without rerun at `test=fetcher-gateway-api.test.ts`, with the remaining
-child clean and owned cleanup verified. M2-QUAL-005 completed through PR #155,
-squash merge `b212d9713cef35d6181b2864f2d0ae4760c4d13e`, adding bounded safe
-case attribution. Its three local concurrent attempts did not reproduce the
-failure, so they do not complete this repair. The preserved Worker change must
-now be replayed and finally revalidated on the new `main` baseline.
+The preserved final-v2 implementation changes only the initial Job ledger and
+two missing-Job repair ledger observations. It passed three focused Worker
+runs, root quality, full Integration, and Browser. Its first two full Concurrent
+runs passed; the third stopped on the then-safe
+`test=fetcher-gateway-api.test.ts case=fg-07` diagnostic. The Worker change was
+not published.
+
+M2-QUAL-004 through M2-QUAL-009 subsequently added bounded test/case and child
+cleanup attribution without changing product behavior. M2-QUAL-010 completed
+through PR #171, squash merge
+`df7ba1427d066373289d8fa33d008acda0be509a`, and replayed the real non-injected
+focused FG07 loop three times on the merged explicit child teardown baseline;
+all three attempts exited zero with zero task-owned cleanup delta. That result
+is `not reproduced` only, not an FG repair. It removes the diagnostic blocker
+to one final M2-QUAL-003 replay from latest `main` under the same bounded
+first-red stopping rule.
 
 ## Relevant decisions and documents
 
@@ -73,17 +87,26 @@ Question is currently identified.
 
 ## In scope
 
-1. Change the actually observed initial-Job path and both repaired-Job paths in
+1. Start from a clean implementation worktree at latest `origin/main` after
+   this renewed Ready packet merges. Inspect the preserved reference worktree,
+   then reproduce only its `worker-dispatcher.test.ts` observation delta; do not
+   copy its stale documentation or branch state. The preserved worktree is
+   read-only: do not edit it, run commands in it, clean it, or perform any Git
+   operation against it.
+2. Change the actually observed initial-Job path and both repaired-Job paths in
    `worker-dispatcher.test.ts` to wait for the owner Outbox row to reach
    `dispatched` after the matching Job is visible.
-2. Preserve the exact Queue name, Job name, Job ID, envelope, retention,
+3. Preserve the exact Queue name, Job name, Job ID, envelope, retention,
    Task-state, and Outbox-state assertions.
-3. Use the existing bounded `waitFor` test helper or an equally bounded
+4. Use the existing bounded `waitFor` test helper with its existing timeout and
    assertion path; do not add an arbitrary sleep.
-4. Run the focused Worker dispatcher integration test repeatedly and run the
-   complete required local and GitHub gates.
-5. Record the PR #146 failed evidence and final repair evidence.
-6. Synchronize only this Work Packet and the Roadmap status.
+5. Run the focused Worker dispatcher integration test three consecutive times,
+   then run root, full Integration, Browser, and three sequential full
+   Concurrent attempts. Stop immediately on the first red; do not rerun it to
+   green.
+6. Record the PR #146 failure, preserved final-v2 evidence, M2-QUAL-010
+   dependency, and actual final repair evidence.
+7. Synchronize only this Work Packet and the Roadmap status.
 
 ## Out of scope
 
@@ -91,6 +114,8 @@ Question is currently identified.
   API, Web, Fetcher, Renderer, runtime configuration, or product behavior;
 - weakening, removing, skipping, retrying, or extending the timeout of the
   final `dispatched` assertion;
+- changing the merged safe test/case/cleanup diagnostics or running the focused
+  FG07 command as a substitute for full Concurrent;
 - adding polling or delay behavior to production code;
 - dependency, lockfile, Compose, CI workflow, Accepted DEC, or Current-truth
   architecture changes;
@@ -137,27 +162,31 @@ task-owned temporary state and must not touch pre-existing local resources.
 4. The test uses a bounded condition wait and introduces no arbitrary sleep,
    timeout increase, retry setting, or production change.
 5. The focused test passes at least three consecutive isolated runs.
-6. Root quality, full integration, concurrent integration, browser,
-   documentation, repository, Secret, and diff gates pass.
-7. GitHub final-head Docker-independent, Integration, and Browser jobs all pass
+6. Root quality, full Integration, and Browser pass.
+7. Three sequential full Concurrent attempts pass; the first red stops without
+   rerun-to-green and leaves this Work Item Blocked.
+8. Documentation, repository, Secret, and diff gates pass.
+9. GitHub final-head Docker-independent, Integration, and Browser jobs all pass
    before merge.
-8. The diff contains only the three allowed files and leaves no task-owned
-   process, container, temporary directory, or repository-local store.
+10. The diff contains only the three allowed files and leaves no task-owned
+    process, container, temporary directory, or repository-local store.
 
 ## Required tests and commands
 
 ```text
-corepack pnpm install --frozen-lockfile
-corepack pnpm workspace:check
-corepack pnpm exec vitest run --config vitest.integration.config.ts packages/testing/src/integration/worker-dispatcher.test.ts
+fnm exec --using=24.18.0 node --version
+fnm exec --using=24.18.0 corepack pnpm --version
+fnm exec --using=24.18.0 corepack pnpm install --frozen-lockfile
+fnm exec --using=24.18.0 corepack pnpm workspace:check
+fnm exec --using=24.18.0 corepack pnpm exec vitest run --config vitest.integration.config.ts packages/testing/src/integration/worker-dispatcher.test.ts
 # repeat the focused command three times
-corepack pnpm check
-corepack pnpm test:integration
-corepack pnpm test:integration:concurrent
-corepack pnpm test:browser
-corepack pnpm check:docs
-corepack pnpm repository:check
-corepack pnpm check:secrets
+fnm exec --using=24.18.0 corepack pnpm check
+fnm exec --using=24.18.0 corepack pnpm test:integration
+fnm exec --using=24.18.0 corepack pnpm test:browser
+fnm exec --using=24.18.0 corepack pnpm test:integration:concurrent
+# repeat the full Concurrent command three times; stop on first red
+fnm exec --using=24.18.0 corepack pnpm exec prettier --check packages/testing/src/integration/worker-dispatcher.test.ts docs/implementation/work-packets/m2-qual-003-worker-dispatcher-observation-stability.md docs/implementation/roadmap.md
+fnm exec --using=24.18.0 corepack pnpm repository:check
 git diff --check
 ```
 
@@ -166,9 +195,21 @@ path argument, the implementer may use the narrowest existing supported
 integration command plus an exact test-name filter. It must not change test
 configuration to obtain a pass.
 
-Before and after runtime commands, record task-owned process, Compose project,
-container, temporary-directory, and repository-store state. Any current-run
-residue blocks completion until safely cleaned.
+Before the first runtime command, confirm all ten concurrent/Harness failure
+injection variables listed by M2-QUAL-010 are unset and record only the bounded
+`injection-env=unset` result. Record aggregate entry counts for implementation
+worktree application processes, exact `contentos-smoke-*` Compose projects and
+containers, coordinator temporary-root basenames, and this worktree's
+repository-local `.pnpm-store`. After every process-starting command, require no
+new task-owned aggregate delta. Do not output or persist PID, command, absolute
+path, credential, or raw child output. Any current-run residue blocks
+completion until safely cleaned; pre-existing state is not a cleanup target.
+
+Every physical full Concurrent invocation consumes one of the three slots. A
+missing final exit status is Blocked and stops without replacement. Any non-zero
+result stops immediately and is recorded only through the merged sanitized
+coordinator fields; it does not authorize a code change outside the existing
+Worker test delta.
 
 ## Security review
 
@@ -198,31 +239,40 @@ or M3 document changes.
 
 ## Definition of Ready
 
-PASS. The failure, root cause, allowed synchronization change, file boundary,
-assertions, commands, cleanup, and publication gates are defined. No Blocking
-Design Question or new DEC exists.
+**PASS.** Renewed independent review completed against
+`e734755bc92d6e4e6a2506511aa0b402c57d68cd`:
 
-- Reviewers:
-  - `/root/m2_qual_003_dor_correctness` — PASS
-  - `/root/m2_qual_003_dor_scope` — PASS after one mechanical model-routing
-    metadata correction
-- Logical Role: `DEFINITION_OF_READY_REVIEWER`
-- Requested Model: `gpt-5.6-sol`
-- Reasoning: High
-- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
-- Reviewed Base: `c3894a920b4f2315a81c4f0add47b8e06bc28cee`
+- correctness and executability: `/root/m2_qual_003_renewed_dor_correctness`;
+- governance, scope, and security:
+  `/root/m2_qual_003_renewed_dor_governance`.
+
+Both reviewers used logical role `DEFINITION_OF_READY_REVIEWER`, requested
+`gpt-5.6-sol` High, and recorded runtime model `UNVERIFIED_RUNTIME_MODEL`.
+They validated the read-only preserved delta, latest-main sequencing, three
+focused plus three full Concurrent bound, first-red stopping rule, exact
+three-file scope, cleanup ownership, and Git publication rules. No Blocking
+Design Question or new DEC is present.
 
 ## Definition of Done
 
-The focused test passes three consecutive runs, all complete local and final
-GitHub gates pass, independent review finds no unresolved issue, the diff stays
-within the three-file allowlist, and task-owned runtime residue is zero.
+The focused test passes three consecutive runs, all complete local gates pass,
+all three full Concurrent attempts pass, independent review finds no unresolved
+issue, final-head GitHub CI is green, the diff stays within the three-file
+allowlist, and task-owned runtime residue is zero.
 
 ## Git authority
 
 After Definition of Ready passes, the Orchestrator may publish this planning
-packet. The implementer may modify only the Ready contract and must stop before
-Git publication. After independent implementation review passes, the
-Orchestrator may commit, push, and create a Draft PR. Only all-green final-head
-CI and no unresolved finding or escalation permit Ready status and squash
-merge. The implementer cannot approve or merge its own work.
+packet. The implementer may modify only the three allowlisted files within the
+Ready contract and must stop before Git publication. The implementer must not
+create, update, comment on, label, or close Issue #147 or any other Issue. After
+independent implementation review passes, the Orchestrator may commit, push,
+and create a Draft PR. Only all-green final-head CI and no unresolved finding
+or escalation permit Ready status and squash merge. The implementer cannot
+approve or merge its own work.
+
+If a required local gate is red, the combined code branch must not be
+published. After independent evidence review, the Orchestrator may publish a
+separate two-document Blocked record from latest `main`; that publication does
+not include the Worker test delta, does not complete M2-QUAL-003, and authorizes
+no speculative repair.
