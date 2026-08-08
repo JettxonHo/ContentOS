@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import {
   chmodSync,
   closeSync,
@@ -22,7 +22,13 @@ import type { SmokeOwnershipClaim, SmokeState } from './env.ts';
 import { allocateLoopbackPort, run, waitForHttpOk } from './process.ts';
 import { composeDown, composeExec, composePort, composeUp, listComposeProjectNames } from './compose.ts';
 import { signedFetch, type AwsCredentials } from './sigv4.ts';
-import { captureManagedProcessIdentity, stopManagedProcess, type ManagedProcessIdentity } from './process-identity.ts';
+import {
+  captureManagedProcessIdentity,
+  stopManagedProcess,
+  stopPendingManagedProcess,
+  type ManagedProcessIdentity,
+  type PendingManagedProcess,
+} from './process-identity.ts';
 
 const OVERRIDE_FIXTURE = join('packages', 'testing', 'fixtures', 'compose.smoke.yaml');
 const BASE_COMPOSE = 'compose.yaml';
@@ -54,11 +60,19 @@ interface HarnessRuntime {
   apiOrigin: string;
   webProcess: ManagedProcessIdentity | undefined;
   apiProcess: ManagedProcessIdentity | undefined;
+  pendingWebProcess: PendingProcessRecord | undefined;
+  pendingApiProcess: PendingProcessRecord | undefined;
   composeUp: boolean;
   built: boolean;
   stopped: boolean;
+  stopping: boolean;
   bucketName: string;
   ownership: SmokeState['ownership'];
+}
+
+interface PendingProcessRecord extends PendingManagedProcess {
+  readonly role: 'api' | 'web';
+  readonly child: ChildProcess;
 }
 
 let runtime: HarnessRuntime | undefined;
@@ -304,6 +318,114 @@ function persistManagedProcesses(rt: HarnessRuntime): void {
   );
 }
 
+export interface ManagedProcessHandoffState {
+  apiProcess: ManagedProcessIdentity | undefined;
+  webProcess: ManagedProcessIdentity | undefined;
+  pendingApiProcess: PendingProcessRecord | undefined;
+  pendingWebProcess: PendingProcessRecord | undefined;
+}
+
+export interface ManagedProcessHandoffOperations {
+  readonly capture?: typeof captureManagedProcessIdentity;
+  readonly publish: () => void;
+  readonly unref?: (child: ChildProcess) => void;
+}
+
+export interface ManagedProcessRollbackOperations {
+  readonly stopManaged?: typeof stopManagedProcess;
+  readonly stopPending?: typeof stopPendingManagedProcess;
+}
+
+export interface TeardownAttemptState {
+  stopped: boolean;
+  stopping: boolean;
+}
+
+/**
+ * Guards one teardown attempt without treating an incomplete attempt as
+ * permanently stopped. Callers set `stopped` only after their operation has
+ * completed physical cleanup and removed its capsule.
+ */
+export async function runTeardownAttempt(state: TeardownAttemptState, operation: () => Promise<void>): Promise<void> {
+  if (state.stopped || state.stopping) return;
+  state.stopping = true;
+  try {
+    await operation();
+  } finally {
+    if (!state.stopped) state.stopping = false;
+  }
+}
+
+function processIdentityKey(role: 'api' | 'web'): 'apiProcess' | 'webProcess' {
+  return role === 'api' ? 'apiProcess' : 'webProcess';
+}
+
+function pendingProcessKey(role: 'api' | 'web'): 'pendingApiProcess' | 'pendingWebProcess' {
+  return role === 'api' ? 'pendingApiProcess' : 'pendingWebProcess';
+}
+
+function registerPendingProcess(
+  state: ManagedProcessHandoffState,
+  role: 'api' | 'web',
+  child: ChildProcess,
+): PendingProcessRecord {
+  const pid = child.pid;
+  if (typeof pid !== 'number' || !Number.isSafeInteger(pid) || pid <= 0) {
+    throw new Error('managed-process-spawn-missing-pid');
+  }
+  const verifiedPid = pid as number;
+  const pending: PendingProcessRecord = { role, child, pid: verifiedPid, pgid: verifiedPid };
+  state[pendingProcessKey(role)] = pending;
+  return pending;
+}
+
+/**
+ * Completes one detached-process ownership handoff. Pending ownership is
+ * registered synchronously before the first await, then retained through
+ * capture and complete control-record publication. Only a successful publish
+ * allows the child to be unref'ed and pending ownership to be cleared.
+ */
+export async function captureAndPublishManagedProcess(
+  state: ManagedProcessHandoffState,
+  role: 'api' | 'web',
+  child: ChildProcess,
+  operations: ManagedProcessHandoffOperations,
+): Promise<void> {
+  const pending = registerPendingProcess(state, role, child);
+  const capture = operations.capture ?? captureManagedProcessIdentity;
+  const identity = await capture(pending.pid, role);
+  state[processIdentityKey(role)] = identity;
+  operations.publish();
+  (operations.unref ?? ((target) => target.unref()))(pending.child);
+  state[pendingProcessKey(role)] = undefined;
+}
+
+/**
+ * Rolls back one process handoff using the full identity when it exists and
+ * the in-memory pending group otherwise. Neither representation is cleared
+ * until exact disappearance is confirmed.
+ */
+export async function rollbackManagedProcessHandoff(
+  state: ManagedProcessHandoffState,
+  role: 'api' | 'web',
+  operations: ManagedProcessRollbackOperations = {},
+): Promise<void> {
+  const identityKey = processIdentityKey(role);
+  const pendingKey = pendingProcessKey(role);
+  const identity = state[identityKey];
+  const pending = state[pendingKey];
+  if (identity) {
+    await (operations.stopManaged ?? stopManagedProcess)(identity);
+    state[identityKey] = undefined;
+    state[pendingKey] = undefined;
+    return;
+  }
+  if (pending) {
+    await (operations.stopPending ?? stopPendingManagedProcess)(pending);
+    state[pendingKey] = undefined;
+  }
+}
+
 async function readLoopbackPort(rt: HarnessRuntime, service: string, containerPort: number): Promise<number> {
   const result = await composePort(toState(rt), service, containerPort);
   if (!result.ok) {
@@ -348,9 +470,12 @@ async function setupRuntime(): Promise<SmokeState> {
     apiOrigin: '',
     webProcess: undefined,
     apiProcess: undefined,
+    pendingWebProcess: undefined,
+    pendingApiProcess: undefined,
     composeUp: false,
     built: false,
     stopped: false,
+    stopping: false,
     bucketName: '',
     ownership: claim.ownership,
   };
@@ -484,9 +609,20 @@ async function setupRuntime(): Promise<SmokeState> {
     detached: true,
     stdio: ['ignore', apiLog, apiLog],
   });
-  apiChild.unref();
-  runtime.apiProcess = await captureManagedProcessIdentity(apiChild.pid, 'api');
-  persistManagedProcesses(runtime);
+  await captureAndPublishManagedProcess(runtime, 'api', apiChild, {
+    capture: async (pid, role) => {
+      return captureManagedProcessIdentity(pid, role, {
+        injectFailure: role === 'api' && process.env.CONTENTOS_SMOKE_INJECT_API_IDENTITY_CAPTURE_FAILURE === '1',
+      });
+    },
+    publish: () => {
+      try {
+        persistManagedProcesses(runtime!);
+      } catch {
+        throw new Error('managed-process-control-publication-failed');
+      }
+    },
+  });
   if (!(await waitForHttpOk(`${runtime.apiOrigin}/health/live`, 40_000))) {
     throw new Error(`api did not become ready on ${runtime.apiOrigin}/health/live`);
   }
@@ -505,9 +641,15 @@ async function setupRuntime(): Promise<SmokeState> {
     detached: true,
     stdio: ['ignore', webLog, webLog],
   });
-  webChild.unref();
-  runtime.webProcess = await captureManagedProcessIdentity(webChild.pid, 'web');
-  persistManagedProcesses(runtime);
+  await captureAndPublishManagedProcess(runtime, 'web', webChild, {
+    publish: () => {
+      try {
+        persistManagedProcesses(runtime!);
+      } catch {
+        throw new Error('managed-process-control-publication-failed');
+      }
+    },
+  });
   if (!(await waitForHttpOk(runtime.webOrigin, 40_000))) {
     throw new Error(`web did not become ready on ${runtime.webOrigin}`);
   }
@@ -587,25 +729,27 @@ async function verifyBucketAbsent(endpoint: string, credentials: AwsCredentials,
 
 async function teardown(): Promise<void> {
   const rt = runtime;
-  if (!rt || rt.stopped) {
-    return;
-  }
-  rt.stopped = true;
+  if (!rt) return;
+  await runTeardownAttempt(rt, () => teardownRuntime(rt));
+}
 
+async function teardownRuntime(rt: HarnessRuntime): Promise<void> {
   const categories = new Set<CleanupCategory>();
   const injectProcessStopFailure = process.env.CONTENTOS_SMOKE_INJECT_PROCESS_STOP_FAILURE === '1';
-  for (const key of ['webProcess', 'apiProcess'] as const) {
-    const identity = rt[key];
-    if (!identity) continue;
+  for (const role of ['web', 'api'] as const) {
+    const identity = rt[processIdentityKey(role)];
+    const pending = rt[pendingProcessKey(role)];
+    if (!identity && !pending) continue;
     if (injectProcessStopFailure) {
       categories.add('managed-process');
       continue;
     }
     try {
-      await stopManagedProcess(identity);
-      rt[key] = undefined;
+      await rollbackManagedProcessHandoff(rt, role);
     } catch {
-      // Retain only identities that may still be alive for Parent recovery.
+      // Retain ownership for a controlled same-process teardown retry and
+      // preserve fail-closed evidence. Pending ownership is deliberately not
+      // persisted; a parent may use only an already-published full identity.
       categories.add('managed-process');
     }
   }
@@ -671,6 +815,8 @@ async function teardown(): Promise<void> {
   const physicalClean =
     rt.webProcess === undefined &&
     rt.apiProcess === undefined &&
+    rt.pendingWebProcess === undefined &&
+    rt.pendingApiProcess === undefined &&
     processControlUpdated &&
     bucketAbsent &&
     composeAbsent;
@@ -701,13 +847,21 @@ async function teardown(): Promise<void> {
     categories.add('synthetic');
   }
 
-  if (process.env[SMOKE_STATE_FILE_ENV] === rt.stateFile) {
-    delete process.env[SMOKE_STATE_FILE_ENV];
+  const cleanupComplete = physicalClean && capsuleRemoved;
+  // Keep the runtime and authenticated claim visible for a controlled
+  // same-process teardown retry whenever physical cleanup is unproven. Pending
+  // ownership is in-memory only; a parent can use only published full
+  // identities from the authenticated control record.
+  if (cleanupComplete) {
+    if (process.env[SMOKE_STATE_FILE_ENV] === rt.stateFile) {
+      delete process.env[SMOKE_STATE_FILE_ENV];
+    }
+    if (process.env[SMOKE_CLAIM_FILE_ENV] === rt.claimFile) {
+      delete process.env[SMOKE_CLAIM_FILE_ENV];
+    }
+    rt.stopped = true;
+    runtime = undefined;
   }
-  if (process.env[SMOKE_CLAIM_FILE_ENV] === rt.claimFile) {
-    delete process.env[SMOKE_CLAIM_FILE_ENV];
-  }
-  runtime = undefined;
 
   if (categories.size > 0 || !physicalClean || !capsuleRemoved) {
     const ordered = CLEANUP_CATEGORY_ORDER.filter((category) => categories.has(category));
@@ -719,8 +873,9 @@ async function teardown(): Promise<void> {
   }
 }
 
-function classifySetupFailure(error: unknown): string {
+export function classifySetupFailure(error: unknown): string {
   const message = error instanceof Error ? error.message : '';
+  if (message.startsWith('managed-process-')) return 'process-identity-failed';
   if (message.startsWith('Docker engine is not available')) return 'docker-unavailable';
   if (message.startsWith('Application build failed')) return 'build-failed';
   if (message.startsWith('Compose up failed')) return 'compose-start-failed';

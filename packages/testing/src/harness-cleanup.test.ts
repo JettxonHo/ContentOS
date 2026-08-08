@@ -1,10 +1,21 @@
+import type { ChildProcess } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { acquireBuildLock, emptyAndDeleteBucket } from './integration/harness.js';
+import {
+  acquireBuildLock,
+  captureAndPublishManagedProcess,
+  classifySetupFailure,
+  emptyAndDeleteBucket,
+  rollbackManagedProcessHandoff,
+  runTeardownAttempt,
+  type TeardownAttemptState,
+  type ManagedProcessHandoffState,
+} from './integration/harness.js';
+import type { ManagedProcessIdentity } from './integration/process-identity.js';
 import type { signedFetch } from './integration/sigv4.js';
 
 const credentials = { accessKeyId: 'test-access', secretAccessKey: 'test-secret' };
@@ -118,5 +129,114 @@ describe('smoke build lock', () => {
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
+  });
+});
+
+describe('managed process handoff cleanup', () => {
+  it('retains pending and full ownership when control publication fails, then rolls back exactly once', async () => {
+    const unref = vi.fn();
+    const child = { pid: 321, unref } as unknown as ChildProcess;
+    const identity: ManagedProcessIdentity = {
+      role: 'api',
+      pid: 321,
+      pgid: 321,
+      startIdentity: 'a'.repeat(64),
+      executableFingerprint: 'b'.repeat(64),
+      commandFingerprint: 'c'.repeat(64),
+    };
+    const state: ManagedProcessHandoffState = {
+      apiProcess: undefined,
+      webProcess: undefined,
+      pendingApiProcess: undefined,
+      pendingWebProcess: undefined,
+    };
+    const published: ManagedProcessIdentity[] = [];
+
+    await expect(
+      captureAndPublishManagedProcess(state, 'api', child, {
+        capture: async () => identity,
+        publish: () => {
+          published.push(identity);
+          throw new Error('managed-process-control-publication-failed');
+        },
+      }),
+    ).rejects.toThrow('managed-process-control-publication-failed');
+
+    expect(published).toEqual([identity]);
+    expect(state.apiProcess).toEqual(identity);
+    expect(state.pendingApiProcess?.pid).toBe(321);
+    expect(state.pendingApiProcess?.pgid).toBe(321);
+    expect(unref).not.toHaveBeenCalled();
+    expect(classifySetupFailure(new Error('managed-process-control-publication-failed'))).toBe(
+      'process-identity-failed',
+    );
+
+    const stopped: ManagedProcessIdentity[] = [];
+    await rollbackManagedProcessHandoff(state, 'api', {
+      stopManaged: async (record) => {
+        stopped.push(record);
+      },
+    });
+    expect(stopped).toEqual([identity]);
+    expect(state.apiProcess).toBeUndefined();
+    expect(state.pendingApiProcess).toBeUndefined();
+  });
+
+  it('retries rollback after a failed stop instead of treating incomplete cleanup as stopped', async () => {
+    const child = { pid: 322, unref: vi.fn() } as unknown as ChildProcess;
+    const identity: ManagedProcessIdentity = {
+      role: 'api',
+      pid: 322,
+      pgid: 322,
+      startIdentity: 'd'.repeat(64),
+      executableFingerprint: 'e'.repeat(64),
+      commandFingerprint: 'f'.repeat(64),
+    };
+    const state: ManagedProcessHandoffState = {
+      apiProcess: identity,
+      webProcess: undefined,
+      pendingApiProcess: { role: 'api', child, pid: 322, pgid: 322 },
+      pendingWebProcess: undefined,
+    };
+    let stopCalls = 0;
+    let capsuleRemoved = false;
+    const attemptState: TeardownAttemptState = { stopped: false, stopping: false };
+    const physicalClean = (): boolean =>
+      state.apiProcess === undefined &&
+      state.pendingApiProcess === undefined &&
+      state.webProcess === undefined &&
+      state.pendingWebProcess === undefined;
+    const stopManaged = async (): Promise<void> => {
+      stopCalls += 1;
+      if (stopCalls === 1) throw new Error('managed-process-still-alive');
+    };
+
+    await expect(
+      runTeardownAttempt(attemptState, async () => {
+        await rollbackManagedProcessHandoff(state, 'api', { stopManaged });
+        if (physicalClean()) attemptState.stopped = true;
+      }),
+    ).rejects.toThrow('managed-process-still-alive');
+    expect(stopCalls).toBe(1);
+    expect(physicalClean()).toBe(false);
+    expect(capsuleRemoved).toBe(false);
+    expect(attemptState.stopped).toBe(false);
+    expect(attemptState.stopping).toBe(false);
+    expect(classifySetupFailure(new Error('managed-process-term-failed'))).toBe('process-identity-failed');
+
+    await runTeardownAttempt(attemptState, async () => {
+      await rollbackManagedProcessHandoff(state, 'api', { stopManaged });
+      if (physicalClean()) {
+        capsuleRemoved = true;
+        attemptState.stopped = true;
+      }
+    });
+    expect(stopCalls).toBe(2);
+    expect(physicalClean()).toBe(true);
+    expect(attemptState.stopped).toBe(true);
+    expect(attemptState.stopping).toBe(true);
+    expect(capsuleRemoved).toBe(true);
+    expect(state.apiProcess).toBeUndefined();
+    expect(state.pendingApiProcess).toBeUndefined();
   });
 });

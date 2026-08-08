@@ -6,6 +6,7 @@ import {
   captureManagedProcessIdentity,
   inspectManagedProcess,
   sameManagedProcessIdentity,
+  stopPendingManagedProcess,
   stopManagedProcess,
   type ManagedProcessIdentity,
 } from './integration/process-identity.js';
@@ -65,6 +66,12 @@ async function fastWaitForGone(pgid: number, timeoutMs: number): Promise<boolean
 }
 
 describe('managed process identity', () => {
+  it('supports deterministic post-spawn capture-failure injection', async () => {
+    await expect(captureManagedProcessIdentity(45, 'api', { injectFailure: true })).rejects.toThrow(
+      'managed-process-identity-capture-failed',
+    );
+  });
+
   it('captures a complete identity for a detached process-group leader', async () => {
     const child = spawnSleeper(false);
     try {
@@ -154,5 +161,69 @@ describe('managed process identity', () => {
     } finally {
       await forceKill(child);
     }
+  });
+
+  it('clears pending ownership when the exact group is already gone', async () => {
+    const calls: string[] = [];
+    await stopPendingManagedProcess(
+      { pid: 42, pgid: 42 },
+      {
+        probeGroup: () => {
+          calls.push('probe');
+          return 'gone';
+        },
+        signalGroup: () => {
+          calls.push('signal');
+          return 'error';
+        },
+        waitForGone: async () => {
+          calls.push('wait');
+          return false;
+        },
+      },
+    );
+    expect(calls).toEqual(['probe']);
+  });
+
+  it('escalates pending ownership from TERM to KILL and confirms disappearance', async () => {
+    const signals: NodeJS.Signals[] = [];
+    let probes = 0;
+    await stopPendingManagedProcess(
+      { pid: 43, pgid: 43 },
+      {
+        probeGroup: () => {
+          probes += 1;
+          return 'alive';
+        },
+        signalGroup: (_pgid, signal) => {
+          signals.push(signal);
+          return 'ok';
+        },
+        waitForGone: async (_pgid, timeoutMs) => {
+          expect(timeoutMs).toBe(signals.length === 1 ? 7_000 : 5_000);
+          return signals.length === 2;
+        },
+      },
+    );
+    expect(signals).toEqual(['SIGTERM', 'SIGKILL']);
+    expect(probes).toBe(1);
+  });
+
+  it('fails closed when pending group disappearance cannot be proven', async () => {
+    const signals: NodeJS.Signals[] = [];
+    await expect(
+      stopPendingManagedProcess(
+        { pid: 44, pgid: 44 },
+        {
+          probeGroup: () => 'alive',
+          signalGroup: (_pgid, signal) => {
+            signals.push(signal);
+            return 'ok';
+          },
+          waitForGone: async () => false,
+        },
+      ),
+    ).rejects.toThrow('managed-process-still-alive');
+    expect(signals).toEqual(['SIGTERM', 'SIGKILL']);
   });
 });

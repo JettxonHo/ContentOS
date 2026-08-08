@@ -1,6 +1,6 @@
 # M2-QUAL-006 — Managed Process Capture Cleanup Integrity
 
-**Status:** Ready
+**Status:** In Review — independent review passed; awaiting GitHub CI
 
 **Issue:** [#157](https://github.com/JettxonHo/ContentOS/issues/157)
 
@@ -21,9 +21,9 @@
 - Model Verification Status: `CONFIG_VERIFIED / UNVERIFIED_RUNTIME_MODEL`
 - Planning Thread: `/root`
 - Planning Branch: `codex/m2-qual-006-managed-process-capture-cleanup-planning`
-- Implementation Thread: assigned after Definition of Ready passes
-- Implementation Branch: assigned from synchronized `origin/main` after this
-  Ready planning packet is merged
+- Implementation Thread: `/root/m2_qual_006_implementation`
+- Implementation Branch: `codex/m2-qual-006-managed-process-capture-cleanup-impl`
+- Implementation Base SHA: `162cfa750dbd0554bdb83876f96778dcd3c0e48b`
 - Planning Base SHA: `eac0561ea5e020d7f1d712e0aefff100567fc78a`
 - Dependencies: the M2-QUAL-003 final-v2 writer has stopped and its unmerged
   three-file evidence is preserved in its isolated worktree; implementation
@@ -279,6 +279,59 @@ rollback are specified. No Blocking Design Question or new DEC exists.
 - Reasoning: High
 - Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
 - Reviewed Base: `eac0561ea5e020d7f1d712e0aefff100567fc78a`
+
+## Implementation handoff
+
+The implementation is limited to the seven-file allowlist. Detached API and
+Web startup now retain task-local pending child ownership synchronously through
+full identity capture and complete control-record publication; only a
+successful publication permits `unref` and pending-clear. Capture and
+publication failures use exact bounded process-group rollback, preserve the
+runtime and capsule when disappearance is unproven, and classify setup as
+`process-identity-failed`. Teardown uses a transient in-progress guard and
+leaves `stopped` false until physical cleanup and capsule removal complete, so
+an incomplete attempt can be retried in the same process. The exported narrow
+teardown-attempt guard is exercised by a focused regression that performs a
+real rollback failure, proves `stopped=false`/`stopping=false` with ownership
+preserved, then retries and completes cleanup. The API-only post-spawn capture
+injection and focused pending/publication evidence are included.
+
+Under Node.js `24.18.0` and pnpm `11.17.0`, the harness cleanup suite passed
+7/7 tests, pending/capture-injection focused identity tests passed 5/5, and the
+testing package typecheck passed after the reviewed package builds. The full
+identity suite's five real-process cases could not run in this sandbox because
+child-process/`ps` inspection returns `EPERM`; that is an environment limitation
+and not acceptance evidence. Normal-permission runtime and independent-review
+evidence is recorded below. No Integration runtime or Compose project was
+started by this implementation worktree; process-test children were
+force-terminated, but their absence could not be independently verified under
+the denied inspection path, so task-owned process residue for that sandbox
+attempt remains **UNVERIFIED**.
+
+## Runtime and independent-review evidence
+
+Normal-permission verification recorded the deterministic negative path at
+`RC=1` with the exact safe classification
+`setup=process-identity-failed teardown=clean`, followed by zero task-owned
+process, Compose, container, and temporary-run-root residue. The root `check`
+passed 53 files and 510 tests plus all five application builds. Full Integration
+passed 27/184 tests (with the existing `pg@9` warning), and Browser passed
+16/16. The first Concurrent invocation lost its final tool status and emitted
+no failure output; it is not counted as a pass, while a subsequent explicit
+state validation recorded `CONCURRENT_RC=0`. Frozen install, workspace,
+documentation, repository, Secret, and diff checks passed.
+
+Independent correctness and scope reviews both passed with no unresolved
+finding:
+
+- `/root/m2_qual_006_correctness_review` — PASS
+- `/root/m2_qual_006_scope_review` — PASS
+
+Both reviewers requested `gpt-5.6-sol` at High reasoning; runtime model
+verification remains `UNVERIFIED_RUNTIME_MODEL`. The Work Item remains **In
+Review — independent review passed; awaiting GitHub CI**. `M2-QUAL-003` and
+`M2-GOV-006` remain **Blocked**; M2 remains **In Progress** and M3 remains
+**Not Started**.
 
 ## Definition of Done
 
