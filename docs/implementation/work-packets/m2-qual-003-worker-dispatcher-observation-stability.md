@@ -1,6 +1,6 @@
 # M2-QUAL-003 — Worker Dispatcher Reconciliation Observation Stability
 
-**Status:** In Progress — revalidation on the safe-attribution baseline required
+**Status:** Blocked — awaiting safe Fetcher Gateway case attribution
 
 **Issue:** [#147](https://github.com/JettxonHo/ContentOS/issues/147)
 
@@ -25,9 +25,9 @@
 ## Goal
 
 Make the existing Worker reconciliation integration evidence wait for the
-authoritative PostgreSQL acknowledgement after a repaired Redis Job appears,
-without changing production behavior or weakening the final `dispatched`
-assertion.
+authoritative PostgreSQL acknowledgement after an initial or repaired Redis Job
+appears, without changing production behavior or weakening the final
+`dispatched` assertion.
 
 ## Context and root cause
 
@@ -47,13 +47,13 @@ This is not accepted as a rerun-only CI fluctuation. PR #146 was closed without
 merge, Issue #144 remains open, M2 remains In Progress, and M3 remains Not
 Started.
 
-Repeated concurrent validation after implementation reported an unclassified
-child `test-run-failed`. M2-QUAL-004 is now completed through PR #151 and adds
-safe test-file attribution, although its bounded real runs did not reproduce a
-failure. The valid implementation branch is preserved and must now be replayed
-onto the latest `main`, then revalidated with the safe diagnostic active. A
-future failure must stop immediately and use the attributed test file for exact
-remediation rather than rerun-only acceptance.
+M2-QUAL-004 completed through PR #151 and added safe test-file attribution. The
+valid implementation was replayed onto `a72aecb` and passed its focused, root,
+full Integration, and Browser evidence. Its first required concurrent run then
+stopped without rerun at `test=fetcher-gateway-api.test.ts`, with the remaining
+child clean and owned cleanup verified. The evidence does not identify a unique
+case or root cause. M2-QUAL-005 owns the next diagnostic-only step; this repair
+remains preserved but unaccepted and unpublished.
 
 ## Relevant decisions and documents
 
@@ -71,9 +71,9 @@ Question is currently identified.
 
 ## In scope
 
-1. Change the affected repaired-Job path in
+1. Change the actually observed initial-Job path and both repaired-Job paths in
    `worker-dispatcher.test.ts` to wait for the owner Outbox row to reach
-   `dispatched` after the repaired Job is visible.
+   `dispatched` after the matching Job is visible.
 2. Preserve the exact Queue name, Job name, Job ID, envelope, retention,
    Task-state, and Outbox-state assertions.
 3. Use the existing bounded `waitFor` test helper or an equally bounded
@@ -117,8 +117,9 @@ task-owned temporary state and must not touch pre-existing local resources.
 ## Contracts
 
 - Production Dispatcher, Queue, Outbox, Task, and Event contracts: unchanged.
-- Test synchronization contract: repaired Redis Job visibility is followed by
-  a bounded wait for the matching PostgreSQL Outbox row to reach `dispatched`.
+- Test synchronization contract: initial or repaired Redis Job visibility is
+  followed by a bounded wait for the matching PostgreSQL Outbox row to reach
+  `dispatched`.
 - Error, API, JSON Schema, Event, migration, configuration, and security
   contracts: unchanged.
 
