@@ -1,6 +1,6 @@
 # M2-QUAL-005 — Safe Fetcher Gateway Case Attribution
 
-**Status:** In Review — independent review passed; awaiting GitHub CI
+**Status:** Completed
 
 **Issue:** [#153](https://github.com/JettxonHo/ContentOS/issues/153)
 
@@ -21,6 +21,11 @@
 - Implementation Thread: `/root/m2_qual_005_implementation`
 - Planning Base SHA: `a72aecbaf4505d04fb5f3224ba972f25232383ef`
 - Implementation Base SHA: `d1504faa179bf322915dd27eea92199925bad9d4`
+- Completion PR: #155, squash merge
+  `b212d9713cef35d6181b2864f2d0ae4760c4d13e`
+- Completion CI: run `31269730633`; Docker-independent, Integration, and
+  Browser jobs all passed
+- Completion Issue: #153 closed
 - Risk Classification: bounded test diagnostics only
 
 ## Goal
@@ -50,9 +55,9 @@ available evidence distinguishes them. A repair is therefore not Ready.
 
 This Work Item improves only the already accepted bounded diagnostic. It does
 not alter Fetcher Gateway behavior, Lease semantics, test timeouts, capture
-limits, retry policy, or cleanup ownership. M2-QUAL-003 remains preserved but
-Blocked, M2-GOV-006 remains Blocked, M2 remains In Progress, and M3 remains Not
-Started.
+limits, retry policy, or cleanup ownership. M2-QUAL-003 remains preserved and
+is In Progress for final revalidation; M2-GOV-006 remains Blocked pending that
+revalidation. M2 remains In Progress, and M3 remains Not Started.
 
 ## Relevant decisions and documents
 
@@ -256,7 +261,7 @@ case is attributed. No Blocking Design Question or new DEC exists.
 - Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
 - Reviewed Base: `a72aecbaf4505d04fb5f3224ba972f25232383ef`
 
-## Implementation evidence (in review)
+## Completion evidence
 
 The implementation changed only the six files in the allowed boundary. The
 focused parser suite passed 31 tests under Node.js `24.18.0` and pnpm
@@ -284,8 +289,9 @@ tests plus all builds (`RC=0`), and Browser with 16/16 tests (`RC=0`). The
 task-worktree application process count was zero after normal Integration
 teardown. Three sequential concurrent attempts (`#1`, `#2`, `#3`) each exited
 `RC=0` with no failure output. This records `not reproduced` only; it does not
-claim a root cause or authorize a repair. `M2-QUAL-003` and `M2-GOV-006` remain
-Blocked; M2 remains In Progress and M3 remains Not Started.
+claim a root cause or authorize a repair. `M2-QUAL-003` is In Progress for final
+revalidation, and `M2-GOV-006` remains Blocked pending that Work Item. M2
+remains In Progress and M3 remains Not Started.
 
 ## Independent implementation review
 
@@ -309,10 +315,11 @@ remaining finding.
 The safe case parser and static IDs pass independent review and all required
 ordinary gates. One unique `case=fg-xx` completes this diagnostic objective and
 requires a separate repair Work Item. Three consecutive passes may publish only
-`not reproduced`; M2-QUAL-003 remains Blocked pending later revalidation. An
-unclassified case, non-test failure category, or cleanup failure leaves this
-Work Item Blocked and not Done; cleanup failure always blocks publication. The
-diff stays within the six-file allowlist and task-owned runtime residue is zero.
+`not reproduced`; they do not complete M2-QUAL-003, whose later final
+revalidation remains required. An unclassified case, non-test failure category,
+or cleanup failure leaves this Work Item Blocked and not Done; cleanup failure
+always blocks publication. The diff stays within the six-file allowlist and
+task-owned runtime residue is zero.
 
 ## Git authority
 
