@@ -1,6 +1,6 @@
 # M2-QUAL-004 — Safe Concurrent Failure Attribution
 
-**Status:** Ready
+**Status:** In Review — independent review passed; awaiting GitHub CI
 
 **Issue:** [#149](https://github.com/JettxonHo/ContentOS/issues/149)
 
@@ -18,7 +18,8 @@
 - Reasoning: Max
 - Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
 - Model Verification Status: `CONFIG_VERIFIED / UNVERIFIED_RUNTIME_MODEL`
-- Implementation Thread: assigned after Definition of Ready passes
+- Implementation Thread: `/root/m2_qual_004_implementation`
+- Implementation Base SHA: `6b4385ac420f19c4257f484adc9340968f4eb926`
 - Planning Base SHA: `8dceb8789cb2bc308839934b376a35bc9e4fedd6`
 - Risk Classification: test-harness diagnostic disclosure and failure attribution
 
@@ -43,6 +44,11 @@ The coordinator already retains a bounded tail of child stdout/stderr in memory.
 This Work Item extracts only a strictly validated Integration test basename from
 that existing data. It does not persist or expose raw output and does not try to
 fix an unattributed test.
+
+The implementation keeps the existing bounded tail, lifecycle, timeout, and
+cleanup behavior. It parses only complete newline-terminated Vitest failed-module
+or `FAIL` metadata lines after ANSI removal; a single validated basename is
+reported, while missing or ambiguous metadata remains `unclassified`.
 
 M2-QUAL-003 and M2-GOV-006 are blocked. Issues #147 and #144 remain open. M2
 remains In Progress and M3 remains Not Started.
@@ -152,6 +158,38 @@ The basename parser must:
 
 All non-test failure classifications preserve their existing message shape.
 The coordinator does not output or persist the raw captured text.
+
+## Implementation evidence (review correction)
+
+The implementation and focused attribution suite are in review. The focused
+Vitest suite passes 21 tests covering plain and ANSI metadata, duplicate and
+ambiguous basenames, passing-module and stack noise, incomplete lines,
+leading-fragment handling, and the redacted `test-run-failed` diagnostic field.
+The root quality gate passes under Node.js `24.18.0` with 53 test files and 494
+tests, and the full Integration and
+Browser suites pass with 27 files/184 tests and 16/16 tests respectively.
+
+Two sequential real concurrent diagnostics were started after those gates. The
+first process completed without emitting a failure, but the command wrapper did
+not return its final exit-status chunk; no failure text was observed and no
+task-owned residue remained. The second attempt returned an explicit
+`CONCURRENT_RC=0`. No concurrent failure was reproduced, so no safe basename
+was attributed from a real failure; the bounded run stopped after these two
+attempts. This does not unblock or complete `M2-QUAL-003`, which remains
+`Blocked`, and does not change `M2-GOV-006`'s blocked status.
+
+Independent implementation reviews passed after two bounded corrections: the
+capture now records whether the retained tail begins mid-line, and the final
+regression fixture proves that a syntactically valid but flagged leading
+fragment remains `unclassified`.
+
+- Reviewers:
+  - `/root/m2_qual_004_correctness_review` — PASS
+  - `/root/m2_qual_004_scope_security_rereview` — PASS
+- Logical Role: `INDEPENDENT_REVIEWER`
+- Requested Model: `gpt-5.6-sol`
+- Reasoning: High
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
 
 ## Acceptance criteria
 
