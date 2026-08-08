@@ -1,6 +1,6 @@
 # M2-QUAL-005 — Safe Fetcher Gateway Case Attribution
 
-**Status:** Ready
+**Status:** In Review — independent review passed; awaiting GitHub CI
 
 **Issue:** [#153](https://github.com/JettxonHo/ContentOS/issues/153)
 
@@ -18,8 +18,9 @@
 - Reasoning: Max
 - Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
 - Model Verification Status: `CONFIG_VERIFIED / UNVERIFIED_RUNTIME_MODEL`
-- Implementation Thread: assigned after Definition of Ready passes
+- Implementation Thread: `/root/m2_qual_005_implementation`
 - Planning Base SHA: `a72aecbaf4505d04fb5f3224ba972f25232383ef`
+- Implementation Base SHA: `d1504faa179bf322915dd27eea92199925bad9d4`
 - Risk Classification: bounded test diagnostics only
 
 ## Goal
@@ -134,10 +135,11 @@ containers, directories, volumes, or package stores.
 - Case attribution appears only when the existing safe `test` field is exactly
   `fetcher-gateway-api.test.ts`. Its fixed diagnostic order is
   `category=test-run-failed test=fetcher-gateway-api.test.ts case=<value> captured-bytes=...`.
-- The case value is `fg-xx` only for one unique allowlisted marker found on a
-  complete, newline-terminated, same-line Vitest `FAIL` metadata record anchored
-  to the exact Fetcher Gateway integration path. Otherwise it is
-  `unclassified`.
+- The case value is `fg-xx` only when every complete, newline-terminated,
+  same-line Vitest `FAIL` metadata record anchored to the exact Fetcher Gateway
+  integration path contains exactly one unique allowlisted marker. Otherwise it
+  is `unclassified`. Repeated complete records carrying that same marker remain
+  deduplicated.
 - Another safe test basename or an unclassified test basename never gains a
   Fetcher Gateway `case` field. The parser never searches assertions, stacks,
   arbitrary output, or adjacent lines for a marker.
@@ -253,6 +255,54 @@ case is attributed. No Blocking Design Question or new DEC exists.
 - Reasoning: High
 - Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
 - Reviewed Base: `a72aecbaf4505d04fb5f3224ba972f25232383ef`
+
+## Implementation evidence (in review)
+
+The implementation changed only the six files in the allowed boundary. The
+focused parser suite passed 31 tests under Node.js `24.18.0` and pnpm
+`11.17.0`; frozen install, workspace resolution, and the root `check` also
+passed. The 11 Fetcher Gateway test titles now carry the exact `[FG-01]`–
+`[FG-11]` markers, and the safe parser emits only an allowlisted lowercase
+`case=fg-xx` value for an exact complete Fetcher Gateway `FAIL` metadata line.
+
+The required full Integration command first failed twice sequentially in the
+sandboxed ordinary runner from the clean implementation worktree, with no
+Vitest filter or test-selection override. Both attempts produced the same
+sanitized `setup=setup-failed teardown=clean` result (Vitest also reported no
+collected test files after global setup). A normal-permission Orchestrator check
+found two exact identity-confirmed, task-owned orphan API processes from the
+failed sandbox attempts. Only those two processes received `SIGTERM` and were
+confirmed absent, and unrelated historical processes were untouched. The
+sandboxed `ps`/`pgrep` checks were denied with `EPERM`, sysmon was absent, and
+managed-process identity capture depends on that interface; no underlying setup
+cause was classified from the retained run evidence because the harness
+sanitized it.
+
+Normal-permission runtime verification then passed the full Integration suite
+with 27 files and 184 tests (`RC=0`), the root `check` with 53 files and 504
+tests plus all builds (`RC=0`), and Browser with 16/16 tests (`RC=0`). The
+task-worktree application process count was zero after normal Integration
+teardown. Three sequential concurrent attempts (`#1`, `#2`, `#3`) each exited
+`RC=0` with no failure output. This records `not reproduced` only; it does not
+claim a root cause or authorize a repair. `M2-QUAL-003` and `M2-GOV-006` remain
+Blocked; M2 remains In Progress and M3 remains Not Started.
+
+## Independent implementation review
+
+PASS. The bounded parser correction, regression evidence, exact six-file scope,
+identifier-free cleanup record, security boundary, and status truth have no
+remaining finding.
+
+- Reviewers:
+  - `/root/m2_qual_005_blocked_review` — PASS after one parser and two
+    documentation corrections
+  - `/root/m2_qual_005_scope_review` — PASS after identifier and causal-wording
+    corrections
+- Logical Role: `INDEPENDENT_REVIEWER`
+- Requested Model: `gpt-5.6-sol`
+- Reasoning: High
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
+- Reviewed Base: `d1504faa179bf322915dd27eea92199925bad9d4`
 
 ## Definition of Done
 

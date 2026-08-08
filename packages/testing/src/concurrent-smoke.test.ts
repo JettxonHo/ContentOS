@@ -8,6 +8,7 @@ import {
   coordinateConcurrentSmoke,
   cleanupAndVerifyClaims,
   discoverOwnedStates,
+  extractFetcherGatewayCase,
   extractIntegrationTestBasename,
   writeOwnedSentinels,
   type ChildResult,
@@ -423,6 +424,58 @@ describe('safe concurrent failure attribution', () => {
     expect(extractIntegrationTestBasename(output)).toBe('url-capture.test.ts');
   });
 
+  it('extracts one allowlisted Fetcher Gateway case from complete FAIL metadata', () => {
+    const output = [
+      ' ❯ packages/testing/src/integration/fetcher-gateway-api.test.ts (11 tests | 1 failed) 7ms',
+      ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-04] heartbeat rejection',
+      ' Test Files  1 failed (1)',
+      '',
+    ].join('\n');
+
+    expect(extractFetcherGatewayCase(output)).toBe('fg-04');
+  });
+
+  it('strips ANSI formatting and deduplicates repeated Fetcher Gateway case metadata', () => {
+    const output = [
+      '\u001b[31m FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-07] result failure\u001b[39m',
+      ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-07] result failure',
+      '',
+    ].join('\n');
+
+    expect(extractFetcherGatewayCase(output)).toBe('fg-07');
+  });
+
+  it('unclassifies a same-path FAIL line that has no case marker', () => {
+    const output = [
+      ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-07] result failure',
+      ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > result failure',
+      '',
+    ].join('\n');
+
+    expect(extractFetcherGatewayCase(output)).toBe('unclassified');
+  });
+
+  it('ignores a flagged leading fragment and incomplete trailing metadata', () => {
+    const output = [
+      'partial FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-01] fragment',
+      ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-08] content type',
+      ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-09] incomplete',
+    ].join('\n');
+
+    expect(extractFetcherGatewayCase(output, true)).toBe('fg-08');
+  });
+
+  it.each([
+    'Test Files  1 failed (1)\n',
+    ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-01] incomplete',
+    ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-99] unknown\n',
+    ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-01] one [FG-02] two\n',
+    'AssertionError: [FG-03] adjacent fake\n',
+    ' FAIL  packages/testing/src/integration/worker-dispatcher.test.ts > [FG-04] other file\n',
+  ])('returns unclassified for unsafe or unrelated case metadata: %s', (output) => {
+    expect(extractFetcherGatewayCase(output)).toBe('unclassified');
+  });
+
   it('drops only a flagged truncated leading fragment', () => {
     const metadata = '❯ packages/testing/src/integration/api.test.ts (2 tests | 1 failed) 4ms\n';
 
@@ -470,7 +523,7 @@ describe('safe concurrent failure attribution', () => {
     expect(attribution).not.toContain('do-not-echo');
   });
 
-  it('adds only the safe basename to a test-run-failed child diagnostic', async () => {
+  it('adds only safe basename and Fetcher Gateway case to a test-run-failed child diagnostic', async () => {
     const root = mkdtempSync(join(tmpdir(), 'contentos-concurrent-attribution-test-'));
     const remainingResult = deferredResult();
     const claims = [
@@ -488,8 +541,8 @@ describe('safe concurrent failure attribution', () => {
                 code: 1,
                 signal: null,
                 output: [
-                  ' ❯ packages/testing/src/integration/api.test.ts (2 tests | 1 failed) 4ms',
-                  ' FAIL  packages/testing/src/integration/api.test.ts > login TOKEN=do-not-echo',
+                  ' ❯ packages/testing/src/integration/fetcher-gateway-api.test.ts (11 tests | 1 failed) 4ms',
+                  ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-02] login TOKEN=do-not-echo',
                   ' Test Files  1 failed (1)',
                   '',
                 ].join('\n'),
@@ -505,7 +558,7 @@ describe('safe concurrent failure attribution', () => {
           pollMs: 2,
           verifyOwnedCleanup: async () => undefined,
         }),
-      ).rejects.toThrow(/category=test-run-failed test=api\.test\.ts captured-bytes=\d+/);
+      ).rejects.toThrow(/category=test-run-failed test=fetcher-gateway-api\.test\.ts case=fg-02 captured-bytes=\d+/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
