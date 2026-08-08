@@ -1,7 +1,15 @@
 # M2-QUAL-010 — Real FG-07 Evidence Replay
 
-**Status:** In Review — Not Reproduced; independent review passed; awaiting
-GitHub CI
+**Status:** Completed — Not Reproduced
+
+Completed through PR
+[#171](https://github.com/JettxonHo/ContentOS/pull/171), squash merge
+`df7ba1427d066373289d8fa33d008acda0be509a`
+(`test: record real FG-07 evidence replay (#171)`). Final-head CI run
+`31282753745` completed all three required jobs successfully. The first
+Docker-independent quality attempt hit one existing build-lock unit-test
+timeout; its single failed-job rerun passed without source changes. Issue #169
+is closed.
 
 Implementation evidence (2026-08-09): the clean implementation worktree was
 `codex/m2-qual-010-real-fg07-replay-impl` at base
