@@ -1,6 +1,6 @@
 # M2-GOV-006 — M2 Exit Review and Acceptance Record 002
 
-**Status:** Ready
+**Status:** Blocked — awaiting M2-QUAL-003 and M2-QUAL-004
 
 **Issue:** [#144](https://github.com/JettxonHo/ContentOS/issues/144)
 
@@ -48,6 +48,12 @@ and the completion truth was synchronized through PR #143, squash merge
 M2 remains In Progress until a new numbered Exit Review proves every applicable
 criterion again on one post-remediation commit. Record 001 must not be edited,
 reclassified, or reused as the new decision.
+
+The first Record 002 publication attempt was closed without merge after its
+final-head Integration job exposed the M2-QUAL-003 observation race. Repeated
+Concurrent validation then produced an unclassified child test failure, so
+M2-QUAL-004 must provide safe attribution before the remaining exact remediation
+and this Exit Review can restart from a new `main` commit.
 
 A maintenance verification run previously exposed and then cleaned one
 task-owned orphan API process. Four subsequent isolated harness lifecycles—one

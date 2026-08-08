@@ -1,6 +1,6 @@
 # M2-QUAL-003 — Worker Dispatcher Reconciliation Observation Stability
 
-**Status:** Ready
+**Status:** Blocked — awaiting M2-QUAL-004 safe concurrent failure attribution
 
 **Issue:** [#147](https://github.com/JettxonHo/ContentOS/issues/147)
 
@@ -46,6 +46,11 @@ The product contract and the final state assertion remain unchanged.
 This is not accepted as a rerun-only CI fluctuation. PR #146 was closed without
 merge, Issue #144 remains open, M2 remains In Progress, and M3 remains Not
 Started.
+
+Repeated concurrent validation after implementation continued to report an
+unclassified child `test-run-failed`. The valid implementation branch is
+preserved, but this Work Item cannot complete until M2-QUAL-004 adds safe test
+file attribution and the resulting evidence identifies the remaining failure.
 
 ## Relevant decisions and documents
 
