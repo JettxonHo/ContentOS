@@ -1,6 +1,6 @@
 # M2-GOV-006 — M2 Exit Review and Acceptance Record 002
 
-**Status:** Blocked — awaiting M2-QUAL-003 and M2-QUAL-004
+**Status:** Blocked — awaiting M2-QUAL-003
 
 **Issue:** [#144](https://github.com/JettxonHo/ContentOS/issues/144)
 
@@ -9,7 +9,7 @@
 - Task ID: `M2-GOV-006`
 - Title: M2 Exit Review and Acceptance Record 002
 - Milestone: M2 — Source and Workflow Foundation
-- Status: Ready
+- Status: Blocked
 - Type: Milestone Exit Review / Immutable Acceptance Record
 - Owner: Orchestrator Reviewer
 - Reviewer: Independent Review Agents
@@ -50,10 +50,10 @@ criterion again on one post-remediation commit. Record 001 must not be edited,
 reclassified, or reused as the new decision.
 
 The first Record 002 publication attempt was closed without merge after its
-final-head Integration job exposed the M2-QUAL-003 observation race. Repeated
-Concurrent validation then produced an unclassified child test failure, so
-M2-QUAL-004 must provide safe attribution before the remaining exact remediation
-and this Exit Review can restart from a new `main` commit.
+final-head Integration job exposed the M2-QUAL-003 observation race. M2-QUAL-004
+is completed through PR #151 and now provides safe concurrent failure-file
+attribution. M2-QUAL-003 must be replayed and revalidated on that new baseline;
+only after it completes can this Exit Review restart from a new `main` commit.
 
 A maintenance verification run previously exposed and then cleaned one
 task-owned orphan API process. Four subsequent isolated harness lifecycles—one

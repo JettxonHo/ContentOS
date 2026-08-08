@@ -1,6 +1,6 @@
 # M2-QUAL-003 — Worker Dispatcher Reconciliation Observation Stability
 
-**Status:** Blocked — awaiting M2-QUAL-004 safe concurrent failure attribution
+**Status:** In Progress — revalidation on the safe-attribution baseline required
 
 **Issue:** [#147](https://github.com/JettxonHo/ContentOS/issues/147)
 
@@ -18,7 +18,7 @@
 - Reasoning: Max
 - Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
 - Model Verification Status: `CONFIG_VERIFIED / UNVERIFIED_RUNTIME_MODEL`
-- Implementation Thread: assigned after Definition of Ready passes
+- Implementation Thread: `/root/m2_qual_003_implementation`
 - Planning Base SHA: `c3894a920b4f2315a81c4f0add47b8e06bc28cee`
 - Risk Classification: integration-test synchronization only
 
@@ -47,10 +47,13 @@ This is not accepted as a rerun-only CI fluctuation. PR #146 was closed without
 merge, Issue #144 remains open, M2 remains In Progress, and M3 remains Not
 Started.
 
-Repeated concurrent validation after implementation continued to report an
-unclassified child `test-run-failed`. The valid implementation branch is
-preserved, but this Work Item cannot complete until M2-QUAL-004 adds safe test
-file attribution and the resulting evidence identifies the remaining failure.
+Repeated concurrent validation after implementation reported an unclassified
+child `test-run-failed`. M2-QUAL-004 is now completed through PR #151 and adds
+safe test-file attribution, although its bounded real runs did not reproduce a
+failure. The valid implementation branch is preserved and must now be replayed
+onto the latest `main`, then revalidated with the safe diagnostic active. A
+future failure must stop immediately and use the attributed test file for exact
+remediation rather than rerun-only acceptance.
 
 ## Relevant decisions and documents
 
