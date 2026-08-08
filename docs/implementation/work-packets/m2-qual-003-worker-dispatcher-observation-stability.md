@@ -1,6 +1,6 @@
 # M2-QUAL-003 — Worker Dispatcher Reconciliation Observation Stability
 
-**Status:** Ready — final replay
+**Status:** Blocked — focused replay setup failure
 
 **Issue:** [#147](https://github.com/JettxonHo/ContentOS/issues/147)
 
@@ -22,10 +22,9 @@
 - Planning Branch: `codex/m2-qual-003-final-replay-plan`
 - Planning Base SHA: `c3894a920b4f2315a81c4f0add47b8e06bc28cee`
 - Renewed Planning Base SHA: `e734755bc92d6e4e6a2506511aa0b402c57d68cd`
-- Implementation Thread: assigned after this renewed Ready packet merges
+- Implementation Thread: `/root/m2_qual_003_final_replay_implementation`
 - Implementation Branch: `codex/m2-qual-003-worker-dispatcher-final-impl`
-- Implementation Base SHA: latest `origin/main` after this renewed Ready packet
-  merges; record the exact SHA before any edit or runtime command
+- Implementation Base SHA: `2297bad3415157a7f84ff60e6a9a39dc9985adc6`
 - Preserved Reference Worktree: `/private/tmp/contentos-m2-qual-005-wt`
 - Risk Classification: integration-test synchronization only
 
@@ -70,6 +69,43 @@ all three attempts exited zero with zero task-owned cleanup delta. That result
 is `not reproduced` only, not an FG repair. It removes the diagnostic blocker
 to one final M2-QUAL-003 replay from latest `main` under the same bounded
 first-red stopping rule.
+
+The final replay implementation started from clean base
+`2297bad3415157a7f84ff60e6a9a39dc9985adc6` with Node `v24.18.0` and pnpm
+`11.17.0`. The ten concurrent/Harness injection variables were unset, and the
+entry aggregate was `app-processes=0 compose-projects=0 compose-containers=0`
+with `coordinator-temp-roots=0 repo-local-pnpm-store=no`. The implementation
+reproduced only the preserved three `waitFor` observation changes in
+`worker-dispatcher.test.ts`; frozen install and workspace checks passed.
+
+Focused Worker replay attempt 1 exited `1` with the bounded Harness result
+`setup=setup-failed teardown=clean`. This required local-gate red result stopped
+the sequence under the first-red rule: focused attempts 2 and 3, root `check`, full
+Integration, Browser, and all full Concurrent attempts were not run. The
+post-attempt aggregate remained
+`app-processes=0 compose-projects=0 compose-containers=0`,
+`coordinator-temp-roots=0 repo-local-pnpm-store=no`, with
+`task-owned-delta=zero`. No raw child output, root-cause claim, final repair
+completion, M2-GOV-006 completion, M2 completion, or M3 start is claimed.
+M2-QUAL-003 remains **Blocked** pending a future replay from a clean latest-main
+baseline.
+
+## Independent Blocked evidence review
+
+**PASS.** Independent reviewers verified the bounded blocked record against the
+reviewed implementation base/checkpoint `2297bad3415157a7f84ff60e6a9a39dc9985adc6`.
+
+- `/root/m2_qual_003_blocked_evidence_review` — PASS
+- `/root/m2_qual_003_blocked_scope_review` — PASS
+- Logical Role: `INDEPENDENT_REVIEWER`
+- Requested model: `gpt-5.6-sol` / High
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
+- Reviewed the exact three-file dirty implementation evidence; publication is
+  permitted only for these two documentation files.
+
+This PASS authorizes only the two-document Blocked publication. It does not
+authorize publication of the Worker test delta, Issue #147 closure, a
+speculative repair, M2 completion, or M3 start.
 
 ## Relevant decisions and documents
 
