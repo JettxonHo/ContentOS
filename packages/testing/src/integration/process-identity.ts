@@ -13,6 +13,16 @@ export interface ManagedProcessIdentity {
   readonly commandFingerprint: string;
 }
 
+/**
+ * In-memory ownership retained between a detached spawn and publication of
+ * its full managed-process identity. This is intentionally not a recovery
+ * identity and must never be written to the authenticated control record.
+ */
+export interface PendingManagedProcess {
+  readonly pid: number;
+  readonly pgid: number;
+}
+
 type GroupProbe = 'alive' | 'gone' | 'error';
 
 const sleep = (ms: number): Promise<void> =>
@@ -123,6 +133,42 @@ export interface ManagedProcessOperations {
 }
 
 /**
+ * Stops the exact process group that was just created by the current harness
+ * runtime, before a full identity has been captured. Pending ownership is
+ * valid only for this short handoff window; callers must clear it only after
+ * this function confirms that the group is gone.
+ */
+export async function stopPendingManagedProcess(
+  pending: PendingManagedProcess,
+  operations: Pick<ManagedProcessOperations, 'probeGroup' | 'signalGroup' | 'waitForGone'> = {},
+): Promise<void> {
+  if (
+    !Number.isSafeInteger(pending.pid) ||
+    pending.pid <= 0 ||
+    !Number.isSafeInteger(pending.pgid) ||
+    pending.pgid <= 0 ||
+    pending.pgid !== pending.pid
+  ) {
+    throw new Error('managed-process-pending-invalid');
+  }
+  const probe = operations.probeGroup ?? probeProcessGroup;
+  const signal = operations.signalGroup ?? signalProcessGroup;
+  const waitForGone = operations.waitForGone ?? waitForGroupGone;
+  const initialProbe = probe(pending.pgid);
+  if (initialProbe === 'gone') return;
+  if (initialProbe === 'error') throw new Error('managed-process-probe-failed');
+
+  const term = signal(pending.pgid, 'SIGTERM');
+  if (term === 'error') throw new Error('managed-process-term-failed');
+  if (term === 'gone' || (await waitForGone(pending.pgid, 7_000))) return;
+
+  const kill = signal(pending.pgid, 'SIGKILL');
+  if (kill === 'error') throw new Error('managed-process-kill-failed');
+  if (kill === 'gone' || (await waitForGone(pending.pgid, 5_000))) return;
+  throw new Error('managed-process-still-alive');
+}
+
+/**
  * Stops only the exact non-reusable identity recorded by the authenticated
  * recovery capsule. Identity is re-read immediately before both TERM and KILL.
  */
@@ -159,8 +205,13 @@ export async function stopManagedProcess(
 export async function captureManagedProcessIdentity(
   pid: number | undefined,
   role: ManagedProcessRole,
+  options: { readonly injectFailure?: boolean } = {},
 ): Promise<ManagedProcessIdentity> {
   if (pid === undefined) throw new Error('managed-process-spawn-missing-pid');
+  if (options.injectFailure) {
+    await Promise.resolve();
+    throw new Error('managed-process-identity-capture-failed');
+  }
   const deadline = Date.now() + 2_000;
   do {
     const identity = await inspectManagedProcess(pid, role);
