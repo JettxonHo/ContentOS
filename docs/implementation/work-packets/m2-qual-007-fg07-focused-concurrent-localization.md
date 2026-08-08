@@ -1,6 +1,6 @@
 # M2-QUAL-007 — FG-07 Focused Concurrent Localization
 
-**Status:** Ready
+**Status:** Blocked — focused concurrent cleanup failure
 
 **Issue:** [#161](https://github.com/JettxonHo/ContentOS/issues/161)
 
@@ -22,8 +22,9 @@
 - Planning Thread: `/root`
 - Planning Branch: `codex/m2-qual-007-fg07-focused-concurrent-localization-planning`
 - Planning Base SHA: `dd305ee75f0dda69add9d559eb5f9522293e9fdc`
-- Implementation Thread: assigned after this Ready packet is merged
-- Implementation Branch: assigned from the then-current `origin/main`
+- Implementation Thread: `/root/m2_qual_007_implementation`
+- Implementation Branch: `codex/m2-qual-007-fg07-focused-concurrent-localization-impl`
+- Implementation Base SHA: `7a5e8a0db980383fa6fa5d15f0093b998535ba5d`
 - Dependencies: `M2-QUAL-006` Completed; the unmerged three-file
   `M2-QUAL-003` final-v2 correction remains preserved in its isolated worktree
 - Risk Classification: bounded test diagnostics and concurrent-harness command selection
@@ -292,6 +293,36 @@ evidence and requires a separate repair; a fully green bounded run is published
 only as `not reproduced`. Unclassified, unrelated, or cleanup failures leave
 this Work Item Blocked. The final diff stays within the seven-file allowlist,
 the lockfile is unchanged, and task-owned runtime residue is zero.
+
+## Blocked implementation checkpoint
+
+The bounded seven-file implementation passed independent code review. It
+splits `[FG-07]` into independent `[FG-07A]` and `[FG-07B]` fixtures, adds the
+fixed non-injectable focused command, preserves ordinary mode, and keeps safe
+case attribution fail-closed. Frozen install, workspace resolution, focused
+coordinator tests (37/37), root `check` (53 files / 516 tests plus builds), full
+Integration (27 files / 185 tests), Browser (16/16), and static repository gates
+passed. `pnpm-lock.yaml` remained unchanged.
+
+Focused Concurrent attempts #1 and #2 exited zero with zero task-owned
+residue. Attempt #3 stopped on the first failure without rerun:
+
+```text
+child-1 exit=1 signal=none category=cleanup-failed
+captured-bytes=2179 remaining-child=clean owned-cleanup=failed
+```
+
+No `fg-07a` or `fg-07b` case was attributed, and the original full Concurrent
+command was not run. A later read-only check found no task-owned process,
+Compose project, or temporary root, but that does not identify which child or
+parent cleanup boundary failed. No cleanup root cause or repair is claimed.
+The implementation checkpoint remains uncommitted and unpublished in its
+isolated worktree pending M2-QUAL-008.
+
+Independent implementation review `/root/m2_qual_007_implementation_review`
+passed the seven-file code, scope, and security boundary while confirming this
+runtime result blocks publication. Requested model was `gpt-5.6-sol` High;
+runtime model remains `UNVERIFIED_RUNTIME_MODEL`.
 
 ## Git authority
 
