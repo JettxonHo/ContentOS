@@ -10,15 +10,65 @@ import {
   captureAndPublishManagedProcess,
   classifySetupFailure,
   emptyAndDeleteBucket,
+  formatHarnessCleanupRecord,
+  HarnessCleanupError,
   rollbackManagedProcessHandoff,
   runTeardownAttempt,
   type TeardownAttemptState,
   type ManagedProcessHandoffState,
 } from './integration/harness.js';
+import { emitHarnessTeardownFailure } from './integration/global-setup.js';
 import type { ManagedProcessIdentity } from './integration/process-identity.js';
 import type { signedFetch } from './integration/sigv4.js';
 
 const credentials = { accessKeyId: 'test-access', secretAccessKey: 'test-secret' };
+
+describe('safe Harness teardown record transport', () => {
+  it('formats structured cleanup fields into one fixed record without CR/LF', () => {
+    const record = formatHarnessCleanupRecord(new HarnessCleanupError(['synthetic'], 'clean', 'removed'));
+
+    expect(record).toBe('contentos smoke harness teardown failed: cleanup=synthetic physical=clean capsule=removed');
+    expect(record).not.toMatch(/[\r\n]/);
+  });
+
+  it('fails closed for arbitrary errors without exposing message-like input', () => {
+    const secretAndPath = 'secret-value /private/tmp/contentos-owner-password';
+    const record = formatHarnessCleanupRecord(new Error(`cleanup failed: ${secretAndPath}`));
+
+    expect(record).toBe(
+      'contentos smoke harness teardown failed: cleanup=unclassified physical=incomplete capsule=preserved',
+    );
+    expect(record).not.toContain(secretAndPath);
+  });
+
+  it('writes exactly one LF-terminated record, sets failure status, and rethrows the same error', () => {
+    const error = new HarnessCleanupError(['synthetic'], 'clean', 'removed');
+    const previousExitCode = process.exitCode;
+    const stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+      expect(process.exitCode).toBe(1);
+      expect(chunk).toBe('contentos smoke harness teardown failed: cleanup=synthetic physical=clean capsule=removed\n');
+      return true;
+    });
+    process.exitCode = 0;
+    try {
+      let thrown: unknown;
+      try {
+        emitHarnessTeardownFailure(error);
+      } catch (caught) {
+        thrown = caught;
+      }
+      expect(thrown).toBe(error);
+      expect(process.exitCode).toBe(1);
+      expect(stderrWrite).toHaveBeenCalledTimes(1);
+      expect(stderrWrite).toHaveBeenCalledWith(
+        'contentos smoke harness teardown failed: cleanup=synthetic physical=clean capsule=removed\n',
+      );
+    } finally {
+      stderrWrite.mockRestore();
+      process.exitCode = previousExitCode;
+    }
+  });
+});
 
 describe('smoke S3 cleanup', () => {
   it('decodes escaped pagination tokens once and attempts later pages and bucket deletion after an object throw', async () => {

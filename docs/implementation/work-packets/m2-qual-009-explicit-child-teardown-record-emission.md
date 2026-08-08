@@ -1,6 +1,25 @@
 # M2-QUAL-009 — Explicit Child Teardown Record Emission
 
-**Status:** Ready
+**Status:** In Review — independent review passed; awaiting GitHub CI
+
+Implementation evidence (2026-08-09): the QUAL008 five-file checkpoint was
+reproduced byte-identically before the QUAL009 delta. Frozen install,
+workspace, focused tests (64), root quality (53 files / 536 tests and builds),
+Integration (27 files / 185 tests), Browser (16/16), documentation,
+repository, Secret, and diff gates passed under Node 24.18.0 via `fnm exec`.
+The sandbox-only root run hit the known `spawn EPERM` limitation and was
+repeated process-enabled without test changes. The single injected FG07 run
+returned the expected non-zero evidence:
+`cleanup-synthetic`, `child-physical=clean`, `child-capsule=removed`,
+`remaining-child=clean`, and `owned-cleanup=verified`; scoped post-run checks
+found no task-owned temporary roots or Compose projects. No publication,
+commit, push, or Issue closure was performed.
+
+Independent implementation reviews passed after one test-only evidence
+correction: correctness `/root/m2_qual_009_correctness_review` and scope,
+security, and governance `/root/m2_qual_009_scope_review`. Both reviewers used
+logical role `INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, and recorded
+runtime model `UNVERIFIED_RUNTIME_MODEL`. GitHub CI remains pending.
 
 **Issue:** [#165](https://github.com/JettxonHo/ContentOS/issues/165)
 
@@ -22,8 +41,9 @@
 - Planning Thread: `/root`
 - Planning Branch: `codex/m2-qual-009-explicit-child-teardown-record-planning`
 - Planning Base SHA: `6d6155266463d10b8684ebb0e6df27a1adf28f39`
-- Implementation Thread: assigned after this Ready packet is merged
-- Implementation Branch: assigned from the then-current `origin/main`
+- Implementation Thread: `/root/m2_qual_009_implementation`
+- Implementation Branch: `codex/m2-qual-009-explicit-child-teardown-record-impl`
+- Implementation Base SHA: `8273ac64951eb2d91033beacfaceb5fc677fbeff`
 - Dependency: reviewed M2-QUAL-008 checkpoint preserved read-only at
   `/private/tmp/contentos-m2-qual-008-impl-wt`
 - Risk Classification: bounded test-harness evidence transport only

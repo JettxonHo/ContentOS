@@ -943,7 +943,7 @@ describe('M2-SRC-003 private Fetcher Result API', () => {
     }
   });
 
-  it('[FG-07] records a Fetcher-reported failure without a Source and rejects an over-limit body before parsing', async () => {
+  it('[FG-07A] records a Fetcher-reported failure without a Source', async () => {
     const state = requireState();
     const { gatewaySecret } = credentials(state);
     const fixture = await createFixture(state);
@@ -982,7 +982,19 @@ describe('M2-SRC-003 private Fetcher Result API', () => {
         `PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT count(*) FROM sources WHERE content_package_id = '${fixture.packageId}'"`,
       ]);
       expect(sourceCount.stdout.trim()).toBe('0');
+    } finally {
+      await cleanup(state, fixture.packageId);
+    }
+  });
 
+  it('[FG-07B] rejects an over-limit body before parsing', async () => {
+    const state = requireState();
+    const { gatewaySecret } = credentials(state);
+    const fixture = await createFixture(state);
+    let claimed: ClaimedFixture | undefined;
+    try {
+      claimed = await claimFixture(state, fixture, gatewaySecret);
+      const path = `/internal/fetcher/tasks/${fixture.taskId}/result`;
       // An over-limit body is rejected at the transport boundary before full parsing.
       const oversizedCandidate = 'x'.repeat(1_100_000);
       const oversizedBody = JSON.stringify({

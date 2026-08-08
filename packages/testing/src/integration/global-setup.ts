@@ -1,4 +1,15 @@
-import { harness } from './harness.js';
+import { formatHarnessCleanupRecord, harness } from './harness.js';
+
+/**
+ * Emits one bounded teardown record, then rethrows the exact original error.
+ * This is a narrow seam for deterministic transport testing in this private
+ * harness source; cleanup execution remains owned by `harness.teardown()`.
+ */
+export function emitHarnessTeardownFailure(error: unknown): never {
+  process.exitCode = 1;
+  process.stderr.write(`${formatHarnessCleanupRecord(error)}\n`);
+  throw error;
+}
 
 /**
  * Vitest global setup: starts the isolated Compose project and the five
@@ -18,8 +29,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     try {
       await harness.teardown();
     } catch (error) {
-      process.exitCode = 1;
-      throw error;
+      emitHarnessTeardownFailure(error);
     }
   };
 }

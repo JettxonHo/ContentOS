@@ -7,9 +7,13 @@ import { describe, expect, it } from 'vitest';
 import {
   coordinateConcurrentSmoke,
   cleanupAndVerifyClaims,
+  classifyParentCleanupFailure,
+  concurrentSmokeChildArgs,
   discoverOwnedStates,
+  extractChildCleanupEvidence,
   extractFetcherGatewayCase,
   extractIntegrationTestBasename,
+  parseConcurrentSmokeMode,
   writeOwnedSentinels,
   type ChildResult,
   type ManagedSmokeChild,
@@ -374,7 +378,7 @@ describe('concurrent smoke claimed ownership', () => {
     }
   });
 
-  it('reports child teardown failure even when physical claim cleanup succeeds', async () => {
+  it('keeps child teardown failure separate when physical claim cleanup succeeds', async () => {
     const root = mkdtempSync(join(tmpdir(), 'contentos-concurrent-claim-test-'));
     try {
       const claims = [
@@ -387,7 +391,11 @@ describe('concurrent smoke claimed ownership', () => {
           children: [
             managedChild(
               claims[0],
-              Promise.resolve({ code: 1, signal: null, output: 'setup=partial-compose-injected teardown=failed' }),
+              Promise.resolve({
+                code: 1,
+                signal: null,
+                output: 'contentos smoke harness teardown failed: cleanup=synthetic physical=clean capsule=removed\n',
+              }),
             ),
             managedChild(claims[1], Promise.resolve({ code: 1, signal: null, output: '' })),
           ],
@@ -395,7 +403,48 @@ describe('concurrent smoke claimed ownership', () => {
           pollMs: 2,
           verifyOwnedCleanup: async () => undefined,
         }),
-      ).rejects.toThrow('owned-cleanup=failed');
+      ).rejects.toThrow(
+        /category=cleanup-synthetic child-physical=clean child-capsule=removed captured-bytes=\d+ remaining-child=clean owned-cleanup=verified/,
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps partial cleanup text out of the final ordinary test-failure diagnostic', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'contentos-concurrent-claim-test-'));
+    const remainingResult = deferredResult();
+    try {
+      const claims = [
+        makeClaim(root, 'child-one', 'a'.repeat(32), 'b'.repeat(32)),
+        makeClaim(root, 'child-two', 'a'.repeat(32), 'c'.repeat(32)),
+      ] as const;
+      const output = [
+        'partial teardown=failed',
+        ' ❯ packages/testing/src/integration/worker-dispatcher.test.ts (2 tests | 1 failed) 12ms',
+        ' FAIL  packages/testing/src/integration/worker-dispatcher.test.ts > ordinary failure',
+        ' Test Files  1 failed (1)',
+        'error during close: teardown=failed',
+      ].join('\n');
+
+      await expect(
+        coordinateConcurrentSmoke({
+          claims,
+          children: [
+            managedChild(claims[0], Promise.resolve({ code: 1, signal: null, output, outputStartsMidLine: true })),
+            managedChild(claims[1], remainingResult.promise, (signal) => {
+              if (signal === 'SIGTERM') remainingResult.resolve({ code: null, signal: 'SIGTERM', output: '' });
+            }),
+          ],
+          discoveryTimeoutMs: 100,
+          terminationGraceMs: 50,
+          killGraceMs: 50,
+          pollMs: 2,
+          verifyOwnedCleanup: async () => undefined,
+        }),
+      ).rejects.toThrow(
+        /category=test-run-failed test=worker-dispatcher\.test\.ts captured-bytes=\d+ remaining-child=clean owned-cleanup=verified/,
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -437,22 +486,262 @@ describe('safe concurrent failure attribution', () => {
 
   it('strips ANSI formatting and deduplicates repeated Fetcher Gateway case metadata', () => {
     const output = [
-      '\u001b[31m FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-07] result failure\u001b[39m',
-      ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-07] result failure',
+      '\u001b[31m FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-07A] result failure\u001b[39m',
+      ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-07A] result failure',
       '',
     ].join('\n');
 
-    expect(extractFetcherGatewayCase(output)).toBe('fg-07');
+    expect(extractFetcherGatewayCase(output)).toBe('fg-07a');
+  });
+
+  it('attributes the focused over-limit case as fg-07b', () => {
+    const output = [
+      ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-07B] over-limit body',
+      '',
+    ].join('\n');
+
+    expect(extractFetcherGatewayCase(output)).toBe('fg-07b');
   });
 
   it('unclassifies a same-path FAIL line that has no case marker', () => {
     const output = [
-      ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-07] result failure',
+      ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > [FG-07A] result failure',
       ' FAIL  packages/testing/src/integration/fetcher-gateway-api.test.ts > result failure',
       '',
     ].join('\n');
 
     expect(extractFetcherGatewayCase(output)).toBe('unclassified');
+  });
+
+  it('accepts only the exact focused command tuple and preserves ordinary mode', () => {
+    expect(parseConcurrentSmokeMode([])).toBe('full');
+    expect(parseConcurrentSmokeMode(['--focus', 'fg-07'])).toBe('fg07');
+    expect(concurrentSmokeChildArgs('full')).toEqual(['pnpm', 'test:integration']);
+    expect(concurrentSmokeChildArgs('fg07')).toEqual([
+      'pnpm',
+      'exec',
+      'vitest',
+      'run',
+      '--config',
+      'vitest.integration.config.ts',
+      'packages/testing/src/integration/fetcher-gateway-api.test.ts',
+      '-t',
+      '\\[FG-07[AB]\\]',
+    ]);
+  });
+
+  it.each([['--focus'], ['--focus', 'fg-07a'], ['--focus', 'fg-07', '--extra'], ['fetcher-gateway-api.test.ts']])(
+    'rejects unsupported focused arguments without exposing them',
+    (...args: string[]) => {
+      expect(() => parseConcurrentSmokeMode(args)).toThrow('Unsupported concurrent smoke mode.');
+    },
+  );
+
+  it('parses one complete ANSI CRLF Harness teardown record with independent child state', () => {
+    const output =
+      '\u001b[31mreporter: contentos smoke harness teardown failed: cleanup=managed-process physical=incomplete capsule=preserved\u001b[39m\r\n';
+
+    expect(extractChildCleanupEvidence(output)).toEqual({
+      kind: 'specific',
+      category: 'managed-process',
+      physical: 'incomplete',
+      capsule: 'preserved',
+    });
+  });
+
+  it('parses the setup failure Harness record and deduplicates repeated identical records', () => {
+    const record =
+      'contentos smoke setup failed: setup=partial-compose-injected teardown=failed cleanup=compose physical=clean capsule=removed\n';
+
+    expect(extractChildCleanupEvidence(`${record}${record}`)).toEqual({
+      kind: 'specific',
+      category: 'compose',
+      physical: 'clean',
+      capsule: 'removed',
+    });
+  });
+
+  it('deduplicates direct and reporter-prefixed identical teardown records', () => {
+    const record = 'contentos smoke harness teardown failed: cleanup=synthetic physical=clean capsule=removed';
+
+    expect(extractChildCleanupEvidence(`${record}\nreporter: ${record}\n`)).toEqual({
+      kind: 'specific',
+      category: 'synthetic',
+      physical: 'clean',
+      capsule: 'removed',
+    });
+  });
+
+  it.each([
+    'contentos smoke harness teardown failed: cleanup=managed-process,compose physical=clean capsule=removed\n',
+    'contentos smoke harness teardown failed: cleanup=unknown physical=clean capsule=removed\n',
+    'contentos smoke harness teardown failed: cleanup=managed-process physical=clean\n',
+    'contentos smoke harness teardown failed: cleanup=managed-process physical=clean capsule=removed\ncontentos smoke harness teardown failed: cleanup=root physical=clean capsule=removed\n',
+  ])('fails closed for malformed, unknown, multi-category, or conflicting Harness records', (output) => {
+    expect(extractChildCleanupEvidence(output)).toEqual({ kind: 'unclassified' });
+  });
+
+  it('ignores incomplete capture segments and ordinary non-Harness cleanup text', () => {
+    expect(
+      extractChildCleanupEvidence(
+        'partial contentos smoke harness teardown failed: cleanup=managed-process physical=incomplete capsule=preserved\n',
+        true,
+      ),
+    ).toBeUndefined();
+    expect(extractChildCleanupEvidence('error during close: teardown=failed\n')).toBeUndefined();
+    expect(
+      extractChildCleanupEvidence(
+        'contentos smoke harness teardown failed: cleanup=managed-process physical=clean capsule=removed',
+      ),
+    ).toBeUndefined();
+  });
+
+  it('maps parent cleanup errors to one deterministic axis and fails closed for unexpected errors', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'contentos-concurrent-parent-axis-test-'));
+    try {
+      const claims = [
+        makeClaim(root, 'child-one', 'a'.repeat(32), 'b'.repeat(32)),
+        makeClaim(root, 'child-two', 'a'.repeat(32), 'c'.repeat(32)),
+      ] as const;
+      try {
+        await cleanupAndVerifyClaims([claims[0]!], { listComposeProjects: async () => ({ ok: true, stdout: '[]' }) });
+        throw new Error('expected cleanup failure');
+      } catch (error) {
+        expect(classifyParentCleanupFailure(error)).toBe('ownership');
+      }
+      expect(classifyParentCleanupFailure(new Error('unexpected'))).toBe('unclassified');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it.each(['process', 'compose', 'verification', 'root'] as const)(
+    'maps the parent %s cleanup path',
+    async (expected) => {
+      const root = mkdtempSync(join(tmpdir(), 'contentos-concurrent-parent-axis-test-'));
+      try {
+        const claims = [
+          makeClaim(root, 'child-one', 'a'.repeat(32), 'b'.repeat(32)),
+          makeClaim(root, 'child-two', 'a'.repeat(32), 'c'.repeat(32)),
+        ] as const;
+        const listComposeProjects = async () => ({ ok: true, stdout: '[]' });
+        const operations =
+          expected === 'process'
+            ? {
+                listComposeProjects,
+                stopManagedProcess: async () => {
+                  rmSync(claims[0]!.runDir, { recursive: true, force: true });
+                  throw new Error('stop failed');
+                },
+              }
+            : expected === 'compose'
+              ? {
+                  listComposeProjects,
+                  composeDown: async (state: SmokeState) => {
+                    rmSync(state.runDir, { recursive: true, force: true });
+                    return { ok: false, code: 1, stdout: '', stderr: '' };
+                  },
+                }
+              : expected === 'verification'
+                ? { listComposeProjects: async () => ({ ok: false, stdout: '' }) }
+                : { listComposeProjects };
+        if (expected === 'process') {
+          writeFileSync(
+            claims[0]!.processFile,
+            JSON.stringify(managedProcessControlForClaim(claims[0]!, [fakeManagedProcessIdentity('api', 303)])),
+          );
+        }
+        if (expected === 'compose') writeFileSync(join(claims[0]!.runDir, 'compose.env'), 'test=1');
+        if (expected === 'root') writeFileSync(join(root, 'unrelated-root-residue'), 'untouched');
+
+        try {
+          await cleanupAndVerifyClaims(claims, operations);
+          throw new Error('expected cleanup failure');
+        } catch (error) {
+          expect(classifyParentCleanupFailure(error)).toBe(expected);
+        }
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it('classifies a pre-cleanup Compose project-list rejection as failed-unclassified', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'contentos-concurrent-parent-axis-test-'));
+    try {
+      const claims = [
+        makeClaim(root, 'child-one', 'a'.repeat(32), 'b'.repeat(32)),
+        makeClaim(root, 'child-two', 'a'.repeat(32), 'c'.repeat(32)),
+      ] as const;
+      try {
+        await cleanupAndVerifyClaims(claims, {
+          listComposeProjects: async () => {
+            throw new Error('unexpected pre-cleanup listing failure');
+          },
+        });
+        throw new Error('expected cleanup failure');
+      } catch (error) {
+        expect(classifyParentCleanupFailure(error)).toBe('unclassified');
+      }
+      expect(existsSync(claims[0].runDir)).toBe(true);
+      expect(existsSync(claims[1].runDir)).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('classifies a post-cleanup Compose project-list rejection as failed-unclassified', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'contentos-concurrent-parent-axis-test-'));
+    try {
+      const claims = [
+        makeClaim(root, 'child-one', 'a'.repeat(32), 'b'.repeat(32)),
+        makeClaim(root, 'child-two', 'a'.repeat(32), 'c'.repeat(32)),
+      ] as const;
+      let listCalls = 0;
+      try {
+        await cleanupAndVerifyClaims(claims, {
+          listComposeProjects: async () => {
+            listCalls += 1;
+            if (listCalls === 1) return { ok: true, stdout: '[]' };
+            throw new Error('unexpected post-cleanup listing failure');
+          },
+        });
+        throw new Error('expected cleanup failure');
+      } catch (error) {
+        expect(classifyParentCleanupFailure(error)).toBe('unclassified');
+      }
+      expect(listCalls).toBe(2);
+      expect(existsSync(claims[0].runDir)).toBe(false);
+      expect(existsSync(claims[1].runDir)).toBe(false);
+      expect(existsSync(root)).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps a resolved malformed Compose project list on the verification axis', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'contentos-concurrent-parent-axis-test-'));
+    try {
+      const claims = [
+        makeClaim(root, 'child-one', 'a'.repeat(32), 'b'.repeat(32)),
+        makeClaim(root, 'child-two', 'a'.repeat(32), 'c'.repeat(32)),
+      ] as const;
+      let listCalls = 0;
+      try {
+        await cleanupAndVerifyClaims(claims, {
+          listComposeProjects: async () => {
+            listCalls += 1;
+            return listCalls === 1 ? { ok: true, stdout: 'not-json' } : { ok: true, stdout: '[]' };
+          },
+        });
+        throw new Error('expected cleanup failure');
+      } catch (error) {
+        expect(classifyParentCleanupFailure(error)).toBe('verification');
+      }
+      expect(listCalls).toBe(2);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it('ignores a flagged leading fragment and incomplete trailing metadata', () => {
