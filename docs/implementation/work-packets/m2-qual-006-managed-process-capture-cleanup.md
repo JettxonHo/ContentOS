@@ -1,6 +1,6 @@
 # M2-QUAL-006 — Managed Process Capture Cleanup Integrity
 
-**Status:** In Review — independent review passed; awaiting GitHub CI
+**Status:** Completed — PR #159 merged
 
 **Issue:** [#157](https://github.com/JettxonHo/ContentOS/issues/157)
 
@@ -328,10 +328,12 @@ finding:
 - `/root/m2_qual_006_scope_review` — PASS
 
 Both reviewers requested `gpt-5.6-sol` at High reasoning; runtime model
-verification remains `UNVERIFIED_RUNTIME_MODEL`. The Work Item remains **In
-Review — independent review passed; awaiting GitHub CI**. `M2-QUAL-003` and
-`M2-GOV-006` remain **Blocked**; M2 remains **In Progress** and M3 remains
-**Not Started**.
+verification remains `UNVERIFIED_RUNTIME_MODEL`. PR #159 (`test: close
+managed process cleanup gap (#159)`) was squash-merged with commit
+`85aedc41beb88c843c6db3f6c492366a44bab311`; final-head CI run `31274247616`
+reported all three required jobs successful, and Issue #157 is closed. The
+Work Item is **Completed**. `M2-QUAL-003` and `M2-GOV-006` remain **Blocked**;
+M2 remains **In Progress** and M3 remains **Not Started**.
 
 ## Definition of Done
 
