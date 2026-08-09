@@ -1,6 +1,6 @@
 # M2-QUAL-018 — Worker Observation Repair Publication and Final Replay
 
-**Status:** Ready
+**Status:** Blocked — Concurrent slot #1 missing final status
 **Issue:** [#204](https://github.com/JettxonHo/ContentOS/issues/204) (Open)
 **Linked Issues:** [#196](https://github.com/JettxonHo/ContentOS/issues/196) and [#147](https://github.com/JettxonHo/ContentOS/issues/147) (Open)
 
@@ -21,13 +21,18 @@ substitute for its own gates.
 - Requested Custom Agent: `luna-worker`
 - Configured Model: `gpt-5.6-luna`
 - Reasoning: Max
-- Actual Runtime Model: record when visible; otherwise `UNVERIFIED_RUNTIME_MODEL`
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
+- Model Verification Status: `CONFIG_VERIFIED`; runtime identity unavailable
 - Planning Thread: `/root`
 - Planning Worktree: `/private/tmp/contentos-m2-qual-018-plan-wt`
 - Planning Branch: `codex/m2-qual-018-worker-repair-plan`
 - Planning Base/HEAD: `78bcac18ae4ca008fa25a00df1f1b5a7643f9aba`
 - Planning Initial Status: clean
-- Proposed Implementation Thread: assigned only after the Ready planning PR merges
+- Implementation Thread: `/root/m2_qual_017_implementation` (reused for M2-QUAL-018)
+- Implementation Worktree: `/private/tmp/contentos-m2-qual-018-impl-wt`
+- Implementation Branch: `codex/m2-qual-018-worker-repair-impl`
+- Implementation Base/HEAD: `576172e0d2ef801120d707afb2cdd9c602fc3c14`
+- Implementation Initial Status: clean
 - Risk Classification: bounded deterministic integration-test repair replay
 
 ## Goal
@@ -328,6 +333,101 @@ Question, unresolved finding, or new DEC.
 Only the Orchestrator may commit/push/open
 the exact-two planning PR, and squash merge it after all three final-head CI jobs
 are green. Implementation starts only from the resulting fresh latest main.
+
+## Implementation Replay Evidence — Blocked
+
+**Terminal outcome:** **Blocked — Concurrent slot #1 missing final status.** The
+fresh implementation baseline passed the reference, reconstruction, focused
+Worker, root, Integration, Browser, and residue gates that preceded Concurrent.
+The first Concurrent invocation then ended without a surfaced final coordinator
+exit status or sanitized child/isolation result. Under this Packet, missing
+final status is a required-gate Blocked condition that consumes slot #1 and
+stops all later runtime gates. No root-cause, alternate repair, permanent
+non-recurrence, Worker publication, Issue closure, M2-GOV-006 completion, M2
+completion, or M3 start is claimed.
+
+### Baseline, reconstruction, and completed gates
+
+- The implementation branch was clean at base/HEAD
+  `576172e0d2ef801120d707afb2cdd9c602fc3c14`, with no untracked files and a
+  passing diff check. The fixed reference branch/HEAD and exact-three dirty
+  allowlist were verified read-only, with no reference mutation. Silent
+  pre-edit comparison to the reference committed Worker file and silent
+  post-edit comparison to its working-copy Worker file both passed.
+- The first governed normal-permission Node probe reported `v24.18.0`,
+  `injection-env=unset` for all eleven names, entry task-owned aggregates of
+  zero for application processes, matching Compose projects/containers,
+  Harness roots, and the repository-local `.pnpm-store`, and a safe shared
+  output state (`directory`, direct count `1`, `.last-run` regular-file,
+  direct aggregates `regular-file=1`, `directory=0`).
+- pnpm `11.17.0`, frozen install, workspace check, and post-install zero
+  task-owned delta passed. The required post-install shared-output probe also
+  passed with `directory`, direct count `1`, `.last-run` regular-file, and
+  direct aggregates `regular-file=1`, `directory=0`. The manual Worker
+  reconstruction contains exactly one `const outboxId = fixture.outboxId;`
+  binding and three existing bounded `waitFor` conversions; no assertion,
+  timeout, retry, sleep, production, or cleanup behavior changed. Preliminary
+  Worker-only scope, no-untracked, and diff checks passed.
+- Focused Worker slots #1–#3 each returned `RC=0`, `1 file / 7 tests`, with
+  immediate post-slot task-owned aggregates at zero. Root `check` returned
+  `RC=0`, `54 files / 578 tests`, and five application builds, with zero
+  post-root residue. Full Integration returned `RC=0`, `27 files / 185 tests`,
+  with only the existing sanitized `pg@9` deprecation warning and zero
+  post-Integration residue. Targeted Worker Prettier, prerequisite
+  `repository:check`, diff, Worker-only scope, and no-untracked checks passed.
+- Browser ran exactly once and returned `RC=0`, `16/16`. Its post-gate
+  task-owned aggregate was zero, and the shared output probe remained safe and
+  determinate (`directory`, direct count `1`, `.last-run` regular-file,
+  direct aggregates `regular-file=1`, `directory=0`).
+
+### Concurrent first-red stopping
+
+- The exact Concurrent command was invoked once with normal permission for
+  planned slot #1. The process session ended without an explicit final
+  coordinator `RC`, complete-child success result, or sanitized isolation and
+  owned-cleanup verification. No success or failure is inferred from the
+  absence of surfaced output; this is the Packet's missing-final-status
+  predicate.
+- The required post-slot task-owned snapshot was safe and zero for application
+  processes, matching Compose projects/containers, Harness roots, and the
+  repository-local `.pnpm-store`; `concurrent-1-post-task-owned-delta=zero`.
+  Slots #2 and #3 were not invoked, and no replacement or fourth invocation was
+  made. Shared output was not reclassified as task-owned residue.
+
+### Blocked publication boundary and final checkpoint
+
+- The Worker delta remains frozen and unpublished. The original M2-QUAL-003
+  Packet remains unchanged. This Blocked terminal uses only the fresh-main
+  exact-two Packet/Roadmap publication path; Issues #204, #196, and #147 remain
+  Open, M2-GOV-006 remains Blocked, M2 remains In Progress, and M3 remains Not
+  Started.
+- After this evidence synchronization, targeted Packet/Roadmap Prettier,
+  `repository:check`, diff/exact-two documentation scope, no-untracked checks,
+  final task-owned residue, and the final bounded shared-output probe all
+  passed. The final task-owned aggregate remained zero and the shared output
+  remained safe (`directory`, direct count `1`, `.last-run` regular-file,
+  direct aggregates `regular-file=1`, `directory=0`). No raw child output,
+  stream, artifact content, PID/PGID, path, URL, credential, Secret, timestamp,
+  or comparison artifact is retained.
+
+## Independent Blocked evidence review
+
+**PASS.** The corrected frozen exact-three implementation evidence on base
+`576172e0d2ef801120d707afb2cdd9c602fc3c14` was independently reviewed by:
+
+- `/root/m2_qual_014_dor_correctness`
+- `/root/m2_qual_012_browser_setup_diagnosis`
+- Logical Role: `INDEPENDENT_REVIEWER`
+- Requested Model: `gpt-5.6-sol`
+- Requested Reasoning: High
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
+
+Both reviewers returned PASS with no remaining finding after the actual
+implementation identity and post-install shared-output snapshot were recorded.
+This authority supports only a fresh-main exact-two Packet/Roadmap Blocked
+publication. It does not authorize publishing the Worker delta, modifying the
+original M2-QUAL-003 Packet, closing Issues, claiming repair or Completed,
+completing M2-GOV-006 or M2, or starting M3.
 
 ## Definition of Done and authority
 
