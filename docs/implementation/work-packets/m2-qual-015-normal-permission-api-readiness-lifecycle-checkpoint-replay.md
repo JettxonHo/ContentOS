@@ -1,6 +1,6 @@
 # M2-QUAL-015 — Normal-Permission API Readiness Lifecycle Checkpoint Reconstruction and Replay
 
-**Status:** Ready
+**Status:** In Review — independent review passed; awaiting GitHub CI
 **Issue:** [#192](https://github.com/JettxonHo/ContentOS/issues/192) (Open)
 **Related Issue:** [#188](https://github.com/JettxonHo/ContentOS/issues/188) (Open)
 
@@ -24,16 +24,22 @@ diagnose a root cause, or authorize a repair.
 - Config File: `~/.codex/agents/luna-worker.toml`
 - Configured Model: `gpt-5.6-luna`
 - Reasoning: Max
-- Actual Runtime Model: record when visible; otherwise
-  `UNVERIFIED_RUNTIME_MODEL`
-- Model Verification Status: `CONFIG_VERIFIED`; runtime verification pending
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
+- Model Verification Status: `CONFIG_VERIFIED`; runtime identity unavailable
 - Planning Thread: `/root`
 - Planning Worktree: `/private/tmp/contentos-m2-qual-015-plan-wt`
 - Planning Branch: `codex/m2-qual-015-normal-permission-replay-plan`
 - Planning Base/HEAD: `f02ac2c8ec234e82e08b44502a4bd9b2e191d753`
 - Planning Initial Status: clean
-- Proposed Implementation Thread: assigned only after this packet is Ready and
-  its planning PR merges with green final-head CI
+- Implementation Thread: `/root/m2_qual_014_implementation` (thread reused for
+  M2-QUAL-015 because the orchestrator did not provide a new canonical path)
+- Implementation Worktree:
+  `/private/tmp/contentos-m2-qual-015-impl-wt`
+- Implementation Branch: `codex/m2-qual-015-normal-permission-replay-impl`
+- Implementation Base/HEAD: `8419524ebf7d4cbcf1597afc81ac35b8a3c4d326`
+- Implementation Initial Status: clean
+- Planning Gate: implementation began only after this Packet was Ready and its
+  planning PR merged with green final-head CI
 - Dependencies: M2-QUAL-014 historical Blocked record and merge-status sync
   published through PRs #190 and #191; Issues #192 and #188 remain Open
 - Risk Classification: bounded test-harness reconstruction and replay
@@ -456,6 +462,80 @@ reference identity, ephemeral output inspection, sandbox stopping semantics,
 and complete Issue terminal/disclosure predicates were corrected and closed.
 No findings remain, there is no Blocking Design Question, and no new DEC is
 required. The reviewers changed no files and ran no runtime or Docker commands.
+
+### Implementation replay evidence
+
+The implementation thread was the reused `/root/m2_qual_014_implementation`
+thread, with logical role `IMPLEMENTER`, requested custom agent `luna-worker`,
+configured `gpt-5.6-luna` with Max reasoning, and actual runtime
+`UNVERIFIED_RUNTIME_MODEL`. The implementation ran only in fresh worktree
+`/private/tmp/contentos-m2-qual-015-impl-wt`, branch
+`codex/m2-qual-015-normal-permission-replay-impl`, at base/HEAD
+`8419524ebf7d4cbcf1597afc81ac35b8a3c4d326`, which was clean before editing.
+
+The preserved read-only reference was verified on branch
+`codex/m2-qual-014-api-readiness-lifecycle-impl`, HEAD
+`ab18bfe5e3e756648465b39beb60f1cd69ca4237`, with exactly the historical
+five-file dirty allowlist and no untracked files. Pre-edit silent non-hash
+comparisons against its committed HEAD passed for all three reconstruction
+targets. The three targets were manually rebuilt with `apply_patch` only;
+post-edit silent non-hash comparisons against the preserved working copy passed
+for all three. No comparison artifact, hash, or raw output was persisted.
+
+Node `24.18.0` / pnpm `11.17.0`, frozen install, workspace check, eleven
+injection-unset checks, entry aggregate, and pre-runtime diff/scope checks
+passed. Every formal process-spawning command below used normal process
+permission on its first physical invocation. One read-only default-sandbox
+`pgrep` residue probe failed with `sysmon request failed: sysmond service not
+found` / `pgrep: Cannot get process list`; it was not a repository/test gate,
+did not produce clean residue evidence, and did not trigger Blocked. The
+task-worktree residue check was then rerun with normal process permission and
+used for the recorded zero-residue evidence:
+
+- Focused Harness exactly once: `RC=0`, `1 file / 14 tests`.
+- Root `check` exactly once: `RC=0`, `54 files / 578 tests`, five application
+  builds.
+- Full Integration exactly once: `RC=0`, `27 files / 185 tests`.
+- Targeted Prettier and prerequisite `repository:check`: `RC=0`; diff-check and
+  exact-three pre-Browser scope passed.
+- Browser exactly once: `RC=0`, `16/16`.
+- Worker command slots #1, #2, and #3: each `RC=0`, `1 file / 7 tests`; no
+  setup category or lifecycle record was emitted. The three-slot cap was
+  consumed; no fourth invocation or rerun-to-green occurred.
+
+The entry aggregate was `api=0 web=0 compose-projects=0
+compose-containers=0 harness-roots=0 browser-artifacts=1 pnpm-store=0`.
+After Browser and after each Worker slot, task-owned app processes, matching
+Compose projects/containers, Harness roots, and repository-local `.pnpm-store`
+remained zero; the single pre-existing Browser `.last-run.json` artifact was
+unchanged. Unrelated main-worktree process state was preserved and excluded
+from task ownership. The runtime terminal outcome is **Completed — Not
+Reproduced**: this is bounded replay evidence only, not proof of non-recurrence
+and not a root-cause, repair, M2-completion, or M3-start claim.
+
+This implementation handoff is not an independent review or publication
+approval. The exact five-file diff remains unpublished until new independent
+correctness and scope/security reviews authorize publication; Issues #192 and
+#188 remain Open. After synchronizing this Packet and Roadmap, final targeted
+Prettier and `repository:check` returned `RC=0`; `git diff --check`, exact-five
+scope, no-untracked, artifact, and aggregate task-owned residue checks passed.
+
+### Independent implementation review
+
+Independent implementation review returned **PASS** from:
+
+- `/root/m2_qual_014_dor_correctness` — correctness/executability and evidence;
+- `/root/m2_qual_012_browser_setup_diagnosis` — scope, governance, and security.
+
+Both reviewers used logical role `INDEPENDENT_REVIEWER`, requested
+`gpt-5.6-sol` with High reasoning, and recorded actual runtime as
+`UNVERIFIED_RUNTIME_MODEL`. They reviewed base
+`8419524ebf7d4cbcf1597afc81ac35b8a3c4d326`, the exact five-file diff, and the
+replay evidence. No findings remain. This PASS closes independent review only;
+the terminal remains **Completed — Not Reproduced**, GitHub CI is still pending,
+and it does not authorize staging, commit, publication, Issue closure,
+root-cause/repair claims, M2 completion, or M3 start. Issues #192 and #188
+remain Open.
 
 ## Definition of Done and publication authority
 
