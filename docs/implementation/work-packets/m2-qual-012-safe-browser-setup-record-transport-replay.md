@@ -1,6 +1,12 @@
 # M2-QUAL-012 — Safe Browser Harness Setup Record Transport and Replay
 
-**Status:** In Review — independent review passed; awaiting GitHub CI
+**Status:** Completed — Not Reproduced
+
+Issue #178 was closed at `2026-08-09T02:10:36Z` after PR #180 merged with
+squash SHA `62a246a01658f0c5c7e1a165b01056df4a301c1d` (`test: preserve Browser
+setup failure evidence (#180)`). Final-head CI run `31289654402` passed all
+three required jobs: quality (`2m13s`), browser (`2m26s`), and integration
+(`3m2s`). Independent correctness and scope review threads both passed.
 
 **Issue:** [#178](https://github.com/JettxonHo/ContentOS/issues/178)
 
@@ -107,9 +113,12 @@ times. Attempts 1, 2, and 3 each explicitly exited `0` with all 16 Browser
 tests passing. After every attempt, the same aggregate fields were observed
 and the task-owned cleanup delta was zero. No Browser setup failure record was
 emitted, so no setup category or root cause is attributed. The terminal
-evidence is **Completed — Not Reproduced**; independent review passed and
-final-head GitHub CI is awaited. This does not prove the historical failure
-cannot recur.
+evidence is **Completed — Not Reproduced** only; independent review passed,
+and final-head GitHub CI run `31289654402` passed all three required jobs
+(quality `2m13s`, browser `2m26s`, integration `3m2s`). PR #180 merged with
+squash SHA `62a246a01658f0c5c7e1a165b01056df4a301c1d`, and Issue #178 closed at
+`2026-08-09T02:10:36Z`. This does not attribute a root cause or prove the
+historical failure cannot recur.
 
 M2-QUAL-012 fixes only that Browser diagnostic transport. It does not copy or
 repair M2-QUAL-011. M2-QUAL-011, M2-QUAL-003, and M2-GOV-006 remain Blocked; M2
