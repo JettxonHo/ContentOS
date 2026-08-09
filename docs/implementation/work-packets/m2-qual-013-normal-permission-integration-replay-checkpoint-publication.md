@@ -641,3 +641,18 @@ implementation evidence. PASS authorizes only a fresh-main Draft PR and
 publication containing this Work Packet and the Roadmap; it does not
 authorize the four code/current-truth files, Issue closure, a root-cause or
 repair claim, M2 completion, or M3 entry. Issues #184 and #175 remain Open.
+
+## Publication status
+
+The Blocked publication was merged through PR #186, titled
+`docs: record blocked M2-QUAL-013 replay`, with squash SHA
+`df9170419fe21f8d70a15b825fddd1127b315762`. The final-head source SHA was
+`5ac22cefea81bba6b0ad921e4b43b2564812ae6d`. CI run `31296542335` reported
+SUCCESS for Docker-independent quality, Integration smoke, and M1-M2 browser
+smoke (approximately 1 minute, 3 minutes, and 2 minutes respectively).
+
+Issues #184 and #175 remain Open. M2-QUAL-013 remains Blocked, and the
+four-file implementation checkpoint remains unpublished. The historical
+M2-QUAL-011 packet remains Blocked; M2-QUAL-003 and M2-GOV-006 remain Blocked;
+M2 remains In Progress; and M3 remains Not Started. This publication fact
+sync changes no root-cause or repair conclusion and creates no Issue or DEC.
