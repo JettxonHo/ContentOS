@@ -1,6 +1,6 @@
 # M2-QUAL-011 — Safe Focused Integration Setup Failure Attribution and Replay
 
-**Status:** Ready
+**Status:** Blocked — Integration setup gate failure
 
 **Issue:** [#175](https://github.com/JettxonHo/ContentOS/issues/175)
 
@@ -121,6 +121,79 @@ truth files, code-gap repair, a Browser rerun, the focused Worker replay, Issue
 The recorded teardown-independence evidence gap remains: the current unit only
 awaits `Promise.resolve()` and does not execute real teardown or runtime
 removal.
+
+## Renewed implementation outcome
+
+**Terminal outcome:** **Blocked — Integration setup gate failure.** The renewed
+implementation started from branch
+`codex/m2-qual-011-safe-setup-attribution-final-impl` at base
+`41abc3e9e495120472aabfd1532974c5f200b536` with a clean initial status. Node
+`v24.18.0` and pnpm `11.17.0` were confirmed through the required `fnm exec`
+wrapper; all ten injection variables were unset. Frozen install, workspace
+check, and the focused Harness/concurrent suite passed (2 files, 79 tests).
+
+Renewed implementation identification (the historical Identification section
+above remains historical metadata):
+
+- Implementation Thread: `/root/m2_qual_011_final_implementation`
+- Logical Role: `IMPLEMENTER`
+- Requested Custom Agent: `luna-worker`
+- Configured Model: `gpt-5.6-luna`
+- Reasoning: `Max`
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
+- Implementation Branch: `codex/m2-qual-011-safe-setup-attribution-final-impl`
+- Implementation Base SHA: `41abc3e9e495120472aabfd1532974c5f200b536`
+
+The implementation adds the nine-phase in-memory tracker and the narrow
+production helper. The setup catch supplies the tracker snapshot and real
+teardown; the helper snapshots once, awaits teardown once, and classifies only
+after teardown. Focused evidence covers every phase mapping, existing-category
+precedence, one bounded sensitive-input regression, exact clean and structured
+teardown paths with shared-state removal, and concurrent parser compatibility.
+No cleanup, timeout, retry, signal, ownership, or output grammar behavior was
+changed.
+
+The first sandbox root `check` stopped on five existing process-identity tests
+with `spawn EPERM`; the exact unchanged command rerun with normal process
+permissions passed (54 files, 589 tests, and all five application builds).
+The full Integration gate then returned exit code `1` with the primary fixed
+Harness record `setup=api-launch-failed teardown=clean` and the secondary
+bounded Vitest result `No test files found` (exit code `1`); no Integration test
+body ran. Aggregate task-owned residue remained zero after the gate for
+application processes, exact `contentos-smoke-*` Compose projects/containers,
+coordinator and Harness temporary roots, and the repository-local
+`.pnpm-store`. Under the first-red rule, the Browser gate was not run and the
+focused Worker replay count remains `0`; no phase-specific root-cause or repair
+claim is made. Issue #175 remains Open; M2-QUAL-003 and M2-GOV-006 remain
+Blocked, M2 remains In Progress, and M3 remains Not Started. Runtime model
+remains `UNVERIFIED_RUNTIME_MODEL`.
+
+This is evidence-only Blocked publication. Once the two-document Blocked
+publication is complete and independently reviewed, only the Orchestrator may
+create a separate bounded diagnostic Issue and Ready Work Item for the reviewed
+`api-launch-failed` boundary. That follow-up is not a repair or root-cause
+finding, does not close Issue #175, and does not authorize publication of the
+six-file implementation. An independent Definition-of-Ready review is required
+before any follow-up implementation begins.
+
+## Final renewed Blocked evidence review
+
+**PASS.** Independent Blocked-evidence review completed against reviewed
+base/checkpoint `41abc3e9e495120472aabfd1532974c5f200b536` and the exact
+six-file dirty implementation evidence:
+
+- correctness: `/root/m2_qual_011_final_blocked_correctness_review`;
+- scope: `/root/m2_qual_011_final_blocked_scope_review`.
+
+Both reviewers used logical role `INDEPENDENT_REVIEWER`, requested
+`gpt-5.6-sol` High, and recorded runtime model `UNVERIFIED_RUNTIME_MODEL`.
+This PASS authorizes only the exact two-document Blocked publication from the
+latest `main`; it does not authorize code publication, repair, Issue #175
+closure, a root-cause claim, or any change to the six-file implementation
+evidence. The combined code remains unpublished. Any follow-up for the
+reviewed `api-launch-failed` boundary must be a separate Orchestrator-created
+diagnostic Issue and Ready Work Item with an independent Definition-of-Ready
+review before implementation; it is not a repair authorized here.
 
 ## Relevant decisions and documents
 
