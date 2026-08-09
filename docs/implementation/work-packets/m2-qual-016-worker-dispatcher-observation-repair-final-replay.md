@@ -1,6 +1,6 @@
 # M2-QUAL-016 — Fresh-Main Worker Dispatcher Observation Repair Reconstruction and Final Replay
 
-**Status:** Ready
+**Status:** Blocked — Browser required gate failure
 **Issue:** [#196](https://github.com/JettxonHo/ContentOS/issues/196) (Open)
 **Historical Defect:** [#147](https://github.com/JettxonHo/ContentOS/issues/147) (Open)
 
@@ -23,16 +23,18 @@ does not add another repair, weaken an assertion, or start the M2 Exit Review.
 - Config File: `~/.codex/agents/luna-worker.toml`
 - Configured Model: `gpt-5.6-luna`
 - Reasoning: Max
-- Actual Runtime Model: record when visible; otherwise
-  `UNVERIFIED_RUNTIME_MODEL`
-- Model Verification Status: `CONFIG_VERIFIED`; runtime verification pending
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
+- Model Verification Status: `CONFIG_VERIFIED`; runtime identity unavailable
 - Planning Thread: `/root`
 - Planning Worktree: `/private/tmp/contentos-m2-qual-016-plan-wt`
 - Planning Branch: `codex/m2-qual-016-worker-observation-final-replay-plan`
 - Planning Base/HEAD: `ec10909bb8590de29684548df8759cd8b4932a00`
 - Planning Initial Status: clean
-- Proposed Implementation Thread: assigned only after this packet is Ready and
-  the planning PR merges with green final-head CI
+- Implementation Thread: `/root/m2_qual_016_implementation`
+- Implementation Worktree: `/private/tmp/contentos-m2-qual-016-impl-wt`
+- Implementation Branch: `codex/m2-qual-016-worker-observation-final-replay-impl`
+- Implementation Base/HEAD: `88ad403382c6470ce8c44e0688c57668fbb731c2`
+- Implementation Initial Status: clean
 - Dependencies: M2-QUAL-015 Completed — Not Reproduced through PR #194 and its
   final status synchronized through PR #195
 - Risk Classification: bounded deterministic integration-test repair replay
@@ -457,3 +459,99 @@ must not publish.
 
 Implementation and review agents may not stage, commit, push, create or mutate
 PRs/Issues, approve, mark Ready, merge, close Issues, or approve their own work.
+
+## Implementation Replay Evidence — Blocked
+
+**Terminal outcome:** **Blocked — Browser required gate failure.** The exact
+fresh-main implementation replay stopped at the first required red. No root
+cause, product repair, permanent non-recurrence, M2-GOV-006 completion, M2
+completion, M3 start, or Issue mutation is claimed.
+
+### Baseline and reconstruction
+
+- Implementation branch was clean at base/HEAD
+  `88ad403382c6470ce8c44e0688c57668fbb731c2` before the local Worker edit.
+- The eleven fixed injection names (ten Harness/concurrent plus the Browser
+  switch) were all unset; Node `24.18.0` and pnpm `11.17.0` were selected with
+  normal process permission from their first invocation.
+- Frozen install, twelve-project workspace check, and immediate post-install
+  aggregate residue check passed with zero delta.
+- The fixed reference branch and HEAD matched the contract exactly, with its
+  exact-three historical dirty allowlist, no untracked files, and clean diff
+  check. Pre-edit comparison against its committed Worker file and post-edit
+  comparison against its working-copy Worker file both passed as ephemeral,
+  silent, non-hash byte comparisons.
+- The Worker file was manually reconstructed with exactly one local
+  `outboxId` binding and the three existing 15-second `waitFor` conversions;
+  no production code, timeout, retry, assertion, or cleanup behavior changed.
+- All governed process-spawning commands used normal process permission from
+  their first physical invocation; no default-sandbox runtime gate was used.
+
+### Runtime gates before the terminal red
+
+- Focused Worker exact command, three planned normal-permission slots: each
+  returned `RC=0` with `1 file / 7 tests`; each post-gate aggregate showed zero
+  application-process, matching Compose project/container, Harness temporary
+  root, and repository-local `.pnpm-store` delta.
+- Root `check`, exactly once with normal permission on its first physical
+  invocation: `RC=0`, `54 files / 578 tests`, and five application builds. Its
+  post-root aggregate residue snapshot was zero.
+- Full Integration, exactly once with normal permission on its first physical
+  invocation: `RC=0`, `27 files / 185 tests`. Its post-Integration aggregate
+  residue snapshot was zero. The only observed warning was the existing
+  sanitized pg@9 concurrent-query deprecation warning.
+- Preliminary targeted Prettier, prerequisite `repository:check`,
+  `git diff --check`, Worker-only scope, and no-untracked checks passed.
+
+### Browser first red and stopping
+
+- Browser ran exactly once with normal process permission. It returned `RC=1`
+  with `15 passed / 1 failed` out of 16. The single failure was the fixed
+  `m2-source-intake` queued-URL refresh test timing out while waiting for the
+  `Capture failed` UI state to become visible.
+- Browser was not rerun. Full Concurrent was not started (`0` of 3 planned
+  runs) because first-red stopping froze all later runtime gates.
+- The Browser wrapper initially reported zero Browser artifacts because it
+  checked the wrong temporary-root location. A final normal-permission probe
+  using the platform `tmpdir()` location found one Browser artifact root with
+  two files. Application-process, matching Compose project/container, Harness
+  temporary-root, and repository-local `.pnpm-store` counts were zero, but
+  Browser artifact ownership cannot be established from the incomplete entry
+  baseline. The artifact was not deleted because it may be pre-existing; this
+  unresolved residue evidence is itself a Blocked condition. No raw Browser
+  path, log, PID, credential, or artifact content is retained.
+
+### Static-check note and publication boundary
+
+- Before runtime, one local shell predicate incorrectly treated the expected
+  tracked Worker modification as an untracked file and returned `RC=1`. The
+  corrected porcelain check immediately proved Worker-only scope and zero
+  untracked files; this operator error was not a runtime/test gate and is not
+  relabeled as a pass.
+- Only this Packet and the Roadmap may carry the Blocked status evidence. The
+  original M2-QUAL-003 Packet remains unchanged, and the Worker delta is frozen
+  as unpublished implementation evidence. Issues #196 and #147 remain Open.
+- Final targeted Prettier for the Packet and Roadmap, `repository:check`,
+  `git diff --check`, exact local-three scope, and no-untracked checks all
+  returned `RC=0` after the documentation sync.
+
+## Independent Blocked Evidence Review
+
+**PASS.** The frozen exact-three implementation evidence was reviewed by:
+
+- `/root/m2_qual_014_dor_correctness` — correctness/evidence: PASS;
+- `/root/m2_qual_012_browser_setup_diagnosis` —
+  scope/governance/security: PASS;
+- logical role: `INDEPENDENT_REVIEWER`;
+- requested model/reasoning: `gpt-5.6-sol` / High;
+- actual runtime model: `UNVERIFIED_RUNTIME_MODEL`;
+- reviewed base/checkpoint:
+  `88ad403382c6470ce8c44e0688c57668fbb731c2` plus the frozen exact-three Worker,
+  Packet, and Roadmap evidence.
+
+Required evidence-accuracy findings were corrected and narrowly re-reviewed.
+This PASS authorizes only a fresh-main exact-two Packet/Roadmap Blocked record
+to enter its own static, independent-review, and publication-CI path. It does
+not authorize the Worker delta, modification or completion of M2-QUAL-003,
+Issue closure, root-cause or repair work, M2-GOV-006 or M2 completion, or M3
+entry.
