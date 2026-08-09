@@ -429,6 +429,42 @@ publication. It does not authorize publishing the Worker delta, modifying the
 original M2-QUAL-003 Packet, closing Issues, claiming repair or Completed,
 completing M2-GOV-006 or M2, or starting M3.
 
+## Blocked Publication Merge Status
+
+The Orchestrator published the independently reviewed exact-two Blocked record
+through PR #206, `docs: record blocked M2-QUAL-018 replay`. The PR final-head
+source was `24fb7a871ceeacec0c6c1906e56eada353dd1a33`; CI run `31316934836`
+completed successfully on that head with Docker-independent quality,
+Integration smoke, and M1/M2 browser smoke at `1m47s`, `2m54s`, and `2m30s`.
+The PR was squash merged at `2026-08-09T13:55:24Z` as
+`f2ceb4d58ad40b8728d0975c5a0739af6b4558e4`, and its published diff contained
+only this Packet and the Roadmap.
+
+This publication records the existing Blocked terminal; it does not publish
+the frozen Worker repair or modify the original M2-QUAL-003 Packet. Issues
+#204, #196, and #147 remain Open. M2-GOV-006 remains Blocked, M2 remains In
+Progress, and M3 remains Not Started. No root-cause, repair, Completed, or
+Issue-closure claim is added.
+
+### Independent merge-status review
+
+**PASS.** The exact-two merge-status diff on base
+`f2ceb4d58ad40b8728d0975c5a0739af6b4558e4` was independently reviewed by:
+
+- `/root/m2_qual_014_dor_correctness`
+- `/root/m2_qual_012_browser_setup_diagnosis`
+- Logical Role: `INDEPENDENT_REVIEWER`
+- Requested Model: `gpt-5.6-sol`
+- Requested Reasoning: High
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
+
+Both reviewers returned PASS with no findings after confirming PR #206, its
+exact-two published scope, final-head source, squash, CI run, and the live Open
+state of Issues #204, #196, and #147. This review authority is limited to the
+Packet/Roadmap merge-status publication. It does not authorize Worker or
+historical Packet publication, Issue closure, root-cause or repair claims,
+Completed, M2-GOV-006 or M2 completion, or M3 start.
+
 ## Definition of Done and authority
 
 Done requires the Completed predicate, exact scope, complete evidence, two
