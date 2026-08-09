@@ -474,6 +474,35 @@ closing Issue #188, and makes no root-cause, repair, M2-completion, or M3-start
 claim. Only the exact Packet + Roadmap Blocked publication on a future fresh
 latest-main status branch is authorized.
 
+## Blocked publication merge result
+
+The authorized exact-two-document Blocked status publication merged as PR #190,
+`docs: record blocked M2-QUAL-014 replay`, with state **MERGED** and squash
+commit `ae2c91631f0200826efc7bfcaee7b27a1bc7a077`. Final-head source was
+`9b19cb4ef52cd20c29439e266305566d15aa0857`. Required final-head CI run
+`31303086273` completed with all three jobs **SUCCESS**: quality `1m44s`,
+Integration `3m9s`, and browser `2m16s`. This merge publishes only the Packet
+and Roadmap Blocked status evidence; the five-file implementation/current-truth
+diff remains unpublished. Issue #188 remains Open, and no root-cause, repair,
+Completed, M2-completion, or M3-start claim is made. Issues #184 and #175,
+M2-QUAL-011, M2-QUAL-013, M2-QUAL-003, and M2-GOV-006 retain their recorded
+open/Blocked statuses; M2 remains In Progress and M3 remains Not Started.
+
+## Merge-status independent review: PASS
+
+The merged exact-two-document status evidence received **PASS** from
+`/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis`. Both reviewers used logical role
+`INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` with High reasoning, and had
+actual runtime `UNVERIFIED_RUNTIME_MODEL`. They reviewed base
+`ae2c91631f0200826efc7bfcaee7b27a1bc7a077` plus the exact-two Packet/Roadmap
+diff, verified PR #190, final-head source `9b19cb4ef52cd20c29439e266305566d15aa0857`,
+CI run `31303086273` with three SUCCESS jobs, and Issue #188 Open. No findings
+remain. This PASS authorizes only the exact-two merge-status publication
+evidence; it does not authorize five-file implementation/current-truth
+publication, Issue closure, root-cause/repair, Completed, M2 completion, or M3
+start.
+
 ## Definition of Ready
 
 **PASS.** All readiness conditions are satisfied:
