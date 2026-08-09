@@ -1,7 +1,7 @@
 # M2-QUAL-021 — Formatted Concurrent Final-Status Observer Fresh-Main Replay
 
-**Status:** Completed — Repository Emitted None (proposed; non-effective until final-head merge)
-**Issue:** [#212](https://github.com/JettxonHo/ContentOS/issues/212) (Open)
+**Status:** Completed — Repository Emitted None
+**Issue:** [#212](https://github.com/JettxonHo/ContentOS/issues/212) (Closed after PR #213 merge)
 **Linked Issues:** [#210](https://github.com/JettxonHo/ContentOS/issues/210) (Closed), plus [#208](https://github.com/JettxonHo/ContentOS/issues/208), [#204](https://github.com/JettxonHo/ContentOS/issues/204), [#196](https://github.com/JettxonHo/ContentOS/issues/196), and [#147](https://github.com/JettxonHo/ContentOS/issues/147) (Open)
 
 ## Terminal publication identity
@@ -11,18 +11,54 @@
 - Terminal branch: `codex/m2-qual-021-terminal-publication`
 - Terminal base/HEAD: `c0470aa7d1b210348f6b119a146bd13bc0bbb890`
 - Initial terminal status: clean at the reviewed base
-- Proposed final status: `Completed — Repository Emitted None`
+- Effective final status: `Completed — Repository Emitted None`
+- Effective PR: #213 — `docs: record M2-QUAL-021 observer attribution`
+- PR mergedAt: `2026-08-09T17:57:14Z`
+- PR squash: `abaff3c00807bdad14cc6006e9bc4b5939470a45`
+- Effective final-head: `5bf7a99102c0058886d5ba82ae13631f7e5f0aca`
+- Final-head CI run: `31327564190` completed `success` (quality `2m06`,
+  Integration `3m05`, Browser `2m40`)
 - Publication shape: exact two — this Packet and `docs/implementation/roadmap.md`
 - Observer/test, runner, package scripts, Worker, old Packets, Current-truth,
   dependencies, lockfile, Schema, migrations, Compose, CI, DEC, Acceptance
   Record, README, and AGENTS remain zero diff and unpublished.
 
-This is a docs-only fresh-main publication candidate. The proposed Completed
-status has received two independent publication reviews with no findings and
-has passed targeted static/scope checks. It remains non-effective until this
-exact docs head receives first eligible final-head quality/Integration/Browser
-CI and Orchestrator squash merge. Issue #212 stays Open until that merge; no
-Issue or GitHub state is changed by this agent.
+## Completion reconciliation identity
+
+- Reconciliation worktree: `/private/tmp/contentos-m2-qual-021-completion-sync-wt`
+- Reconciliation branch: `codex/m2-qual-021-completion-status-sync`
+- Reconciliation base/HEAD: `abaff3c00807bdad14cc6006e9bc4b5939470a45`
+- Physical reconciliation scope: exactly two tracked modifications — `M`
+  Packet and `M` Roadmap — with no other path.
+
+The effective status and merge facts above are historical reconciliation facts
+from PR #213; Issue #212 is Closed after that merge. This worktree is a new
+docs-only exact-two factual reconciliation candidate and does not reopen the
+terminal or any Issue. The reconciliation itself remains proposed until it
+receives its first eligible final-head quality/Integration/Browser CI and
+Orchestrator squash merge; its two independent reviews and targeted
+static/scope checks have already passed.
+
+The initial completion-sync operator scope predicate mistakenly expected
+`M Roadmap + ?? Packet` and returned red because the Packet was already tracked
+at the reconciliation base. The corrected predicate expected both tracked
+modifications (`M Packet + M Roadmap`) and passed with no other path. This was
+an operator predicate correction only, not a repository/runtime red, rerun, or
+laundering of a failed gate, and it does not reverse the effective Completed
+status or Issue #212 closure.
+
+## Completion reconciliation independent review
+
+The corrected completion reconciliation Packet/Roadmap received independent
+review **PASS** with no findings from both
+`/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis`. Both used logical role
+`INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` with High reasoning, and actual
+runtime model `UNVERIFIED_RUNTIME_MODEL`. They reviewed base/HEAD
+`abaff3c00807bdad14cc6006e9bc4b5939470a45` plus the corrected two-tracked-doc
+exact-two candidate. This narrow authority covers only the completion
+reconciliation; it does not reverse the terminal status, reopen or close an
+Issue, publish code, or authorize M2/M3 changes.
 
 ## Actual implementation metadata
 
@@ -73,8 +109,8 @@ Harness concurrent final observation=repository-record-missing
 ```
 
 This yields the local classification `In Review — Repository Emitted None`,
-which this terminal candidate proposes as `Completed — Repository Emitted
-None` only after the required final-head review/CI/merge chain. Process and
+which became the effective `Completed — Repository Emitted None` status through
+PR #213 and its merged final-head/CI evidence recorded above. Process and
 smoke-container residue were zero. No raw child output, stderr, runtime path,
 PID, credential, artifact, log, hash, or temporary sink was retained. No
 direct Concurrent run, retry, replacement, runner/Worker edit, root-cause,
@@ -116,14 +152,15 @@ non-recurrence claims, M2 completion, or M3 start.
 
 ## Publication and Issue lifecycle
 
-The fresh exact-two publication reviews are PASS/no findings as recorded above.
-Targeted Packet/Roadmap Prettier, `repository:check`, `git diff --check`,
-exact-two, no-forbidden, and no-unexpected-artifact checks are also PASS. The
-proposed Completed status remains non-effective only pending the first eligible
-exact-head quality, Integration, and Browser CI and Orchestrator squash merge.
-Only Orchestrator may make the Completed status effective; only after merge may
-Orchestrator close Issue #212. Until then Issue #212 remains Open and
-predecessors #208/#204/#196/#147 remain unchanged/Open.
+The fresh exact-two publication reviews were PASS/no findings before PR #213;
+targeted static/scope and final-head CI also passed as recorded above. PR #213
+made `Completed — Repository Emitted None` effective and closed Issue #212.
+The current reconciliation candidate is separate: its two independent reviews
+and targeted static/scope checks are PASS as recorded above. Only the first
+eligible exact-head quality/Integration/Browser CI and Orchestrator squash
+merge remain required.
+It does not reopen Issue #212 or predecessors #208/#204/#196/#147, which remain
+Closed/Open respectively as recorded above.
 
 No new DEC is required. No Current-truth, runner, Worker, package, test,
 observer, dependency, schema, migration, Compose, CI, or acceptance-record
@@ -133,8 +170,10 @@ Issue mutation is authorized for implementation/review agents.
 ## Acceptance and limitations
 
 - Terminal scope is exact two and contains no generated or unexpected path.
-- Proposed status is supported by the reviewed local RC20 fixed-line evidence.
+- Effective Completed status is supported by the reviewed local RC20 fixed-line
+  evidence and PR #213 final-head/CI facts above.
 - Observer/test publication, cause, repair, permanent non-recurrence, and
   release completion remain out of scope.
-- Only first eligible exact-head quality/Integration/Browser CI and Orchestrator
-  merge remain pending; the proposed status is not effective.
+- The historical status is effective; only the first eligible exact-head
+  quality/Integration/Browser CI and Orchestrator merge remain pending for this
+  reconciliation candidate.
