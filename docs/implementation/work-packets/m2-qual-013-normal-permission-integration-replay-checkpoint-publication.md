@@ -1,6 +1,6 @@
 # M2-QUAL-013 — Normal-Permission Integration Replay and Checkpoint Publication
 
-**Status:** Ready  
+**Status:** Blocked — Worker replay slot #3 non-target failure
 **Issue:** [#184](https://github.com/JettxonHo/ContentOS/issues/184) (Open)  
 **Related historical Issue:** [#175](https://github.com/JettxonHo/ContentOS/issues/175) (Open)
 
@@ -570,3 +570,74 @@ modify only the six allowlisted files in a fresh latest-main worktree and must
 stop before any Git or Issue operation. A later root diagnostic requires
 independent evidence and a separate Ready Work Item; it cannot be hidden in
 this replay.
+
+## Implementation replay evidence
+
+**Base and preflight.** The implementation worktree started at
+`4713a19c0fb49157e340a58519764985291591a2` with a clean status. The first
+normal-permission version checks reported Node `24.18.0` and pnpm `11.17.0`.
+Frozen installation and workspace resolution passed, and the ten Harness/
+concurrent injection variables plus the ordinary Browser injection were unset.
+The entry aggregate contained no task-owned application process, exact
+`contentos-smoke-*` project or container, Harness temporary root, Browser task
+artifact, or repository-local `.pnpm-store`. Three matching application
+processes were pre-existing and retained outside this task-owned set; they
+were not stopped or treated as cleanup targets. Every later aggregate kept
+those three unrelated processes unchanged and recorded a zero task-owned
+delta for all fields.
+
+The four checkpoint files were manually reconstructed: `harness.ts`,
+`harness-cleanup.test.ts`, `concurrent-smoke.test.ts`, and
+`integration-smoke-harness.md`. The ephemeral non-hash comparison against the
+preserved reference passed for all four files with no comparison artifact,
+hash, or raw output retained. The reconstruction diff was exactly the four
+allowed files and `git diff --check` passed before runtime gates.
+
+**Gate sequence.** The required normal-permission full Integration command ran
+exactly once and exited `0` with 27 files and 185 tests passing. The focused
+two-file command then exited `0` with 79 tests passing. The root `check`
+exited `0` with 54 files and 589 tests passing plus all five application
+builds. Targeted Packet/Roadmap Prettier, the first prerequisite
+`repository:check`, and the exact-four diff/scope check all passed. The one
+ordinary Browser command ran exactly once after `CONTENTOS_BROWSER_INJECT_FAILURE`
+was confirmed unset and exited `0` with 16 of 16 tests passing. Each gate's
+post-gate aggregate delta was zero; no task-owned residue was observed.
+
+Worker replay used the exact command sequentially. Slot #1 exited `0` with
+one file and seven tests passing and no setup category. Slot #2 exited `0`
+with one file and seven tests passing and no setup category. Slot #3 exited
+`1` and emitted the bounded primary record
+`setup=api-start-failed teardown=clean` together with the secondary bounded
+Vitest result `No test files found`. `api-start-failed` is a message-derived
+compatibility category rather than one of the nine eligible phase fallback
+categories, and the secondary result is a competing failure boundary. The
+slot is therefore non-target and not eligible for attribution. Its
+post-attempt aggregate delta was zero, but first-red stopping prohibited any
+fourth invocation.
+
+**Terminal outcome.** **Blocked — Worker replay slot #3 was non-target and
+contained a competing failure boundary.** This records no root cause, repair,
+non-recurrence, M2 completion, or M3 entry claim. The historical M2-QUAL-011
+packet remains Blocked and unchanged; M2-QUAL-003 and M2-GOV-006 remain
+Blocked, M2 remains In Progress, and M3 remains Not Started. Issues #184 and
+#175 remain Open. The implementation checkpoint is retained in the frozen
+implementation evidence but is not a publication authorization; the Blocked
+publication path remains limited to this Work Packet and the Roadmap.
+
+## Independent Blocked evidence review
+
+**PASS.** Independent Blocked evidence review metadata is recorded for the
+fresh-main publication path:
+
+- correctness reviewer: `/root/m2_qual_013_blocked_correctness_review`;
+- scope/governance/security reviewer: `/root/m2_qual_012_browser_setup_diagnosis`
+  (reused for this bounded status-sync review).
+
+Both reviewers used logical role `INDEPENDENT_REVIEWER`, requested
+`gpt-5.6-sol` High, and recorded actual runtime
+`UNVERIFIED_RUNTIME_MODEL`. The reviewed base/checkpoint is
+`4713a19c0fb49157e340a58519764985291591a2` plus the exact six-file frozen
+implementation evidence. PASS authorizes only a fresh-main Draft PR and
+publication containing this Work Packet and the Roadmap; it does not
+authorize the four code/current-truth files, Issue closure, a root-cause or
+repair claim, M2 completion, or M3 entry. Issues #184 and #175 remain Open.
