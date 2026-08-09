@@ -13,6 +13,10 @@
 - Correction branch: codex/m2-qual-024-blocked-status-correction
 - Correction base/HEAD: 8a9940220cd86a487054291b36e6710f9109a3e3
 - Correction initial status: clean; publication shape is exact-two M Roadmap + ?? Packet
+- Reconciliation worktree: /private/tmp/contentos-m2-qual-024-merge-status-wt
+- Reconciliation branch: codex/m2-qual-024-merge-status-sync
+- Reconciliation base/HEAD: dac54d2a3efe70f7f2bb498372958cb40aa667b6
+- Reconciliation physical shape: tracked M Packet + tracked M Roadmap; no other path
 - Historical planning worktree: /private/tmp/contentos-m2-qual-024-plan-wt
 - Historical planning branch: codex/m2-qual-024-direct-reference-replay-plan
 - Historical planning base/HEAD: 8a9940220cd86a487054291b36e6710f9109a3e3
@@ -23,11 +27,10 @@
 - Actual runtime model: UNVERIFIED_RUNTIME_MODEL
 - Model verification: CONFIG_VERIFIED; runtime identity unavailable
 
-This is the single permitted material fresh-main, docs-only correction after
-the first Blocked publication candidate closed unmerged on its first eligible
-CI failure. It manually reconstructs the reviewed frozen Blocked Packet and
-Roadmap row, then adds the bounded PR/CI failure evidence. It contains only
-this Packet and Roadmap.
+The single permitted material fresh-main docs-only correction merged through
+PR #224 after the first Blocked publication candidate closed unmerged on its
+first eligible CI failure. This current exact-two reconciliation records the
+effective merge facts in the tracked Packet and Roadmap only.
 The runner, Concurrent test, Harness Current-truth, observer, Worker,
 package/lock files, historical Packets, and every other code path remain at
 the fresh base and are not copied or published.
@@ -151,9 +154,9 @@ standalone Integration/Browser/Worker runs, root-cause, repair, permanent
 non-recurrence, Issue transitions, M2 completion, and M3 start are not
 claimed or authorized.
 
-## Exact-two publication boundary
+## Historical correction publication boundary
 
-The current material correction is exactly:
+The merged material correction was exactly:
 
 1. this new M2-QUAL-024 Packet; and
 2. docs/implementation/roadmap.md.
@@ -252,6 +255,43 @@ run `31339229858` evidence, with no findings. Their authority is limited to
 this correction's exact-two Blocked-publication chain. They do not authorize
 code/current-truth publication, Issue transition, root-cause, repair,
 non-recurrence, M2 completion, or M3 start.
+
+## Effective correction merge and current reconciliation
+
+PR #224, `docs: record M2-QUAL-024 publication gate failure`, published the
+reviewed exact-two correction from final head
+`2cd704d4a4c760e340b7294c533f63d56f5d3901`. Its first eligible CI run
+`31339957320` passed quality after `2m09`, Integration after `3m04`, and
+Browser after `2m15`. The Orchestrator squash-merged it as
+`dac54d2a3efe70f7f2bb498372958cb40aa667b6` at
+`2026-08-09T22:43:34Z`. The effective result remains exactly
+`Blocked — Direct-Reference Concurrent Final Success Emission Not Verified`;
+Issue #222 and linked Open Issues remain Open, and #212/#210 remain Closed.
+
+The current reconciliation starts from that squash commit and changes only
+the now-tracked Packet and Roadmap. It does not rerun implementation or
+runtime gates, publish code/Current-truth, reverse the terminal result, or
+mutate any Issue. Its targeted Packet/Roadmap Prettier, `repository:check`,
+`git diff --check`, tracked-exact-two scope, forbidden-path, and
+no-unexpected-artifact checks passed. It requires its own two independent
+reviews, first eligible final-head quality/Integration/Browser CI, and
+Orchestrator squash merge. The reviews passed as recorded below.
+
+## Merge-status reconciliation reviews
+
+The current tracked exact-two reconciliation received two independent
+PASS/no-findings reviews:
+
+- `/root/m2_qual_014_dor_correctness`, role `INDEPENDENT_REVIEWER`, requested
+  `gpt-5.6-sol` High, actual `UNVERIFIED_RUNTIME_MODEL`;
+- `/root/m2_qual_012_browser_setup_diagnosis`, role `INDEPENDENT_REVIEWER`,
+  requested `gpt-5.6-sol` High, actual `UNVERIFIED_RUNTIME_MODEL`.
+
+Both reviewed base/HEAD `dac54d2a3efe70f7f2bb498372958cb40aa667b6`
+plus the current corrected tracked-exact-two Packet/Roadmap and returned PASS
+with no findings. Their authority is reconciliation-publication review only;
+it cannot reverse the effective Blocked result, mutate Issues, publish code/
+Current-truth, claim cause/repair/non-recurrence, complete M2, or start M3.
 
 ## Required implementation counts
 
@@ -383,10 +423,11 @@ Node 24 safety probe. The pure-Git predicates, two safety observations, and
 docs-only chronology pass as bounded evidence; the three comparisons and all
 implementation runtime gates were not run and cannot establish success.
 
-This correction's two independent reviews and targeted static/scope checks
-passed. It can advance only after its first eligible final-head quality/
-Integration/Browser CI and an Orchestrator squash merge. Until then, the local
-Blocked status and Issue #222 remain unchanged.
+The material correction's two independent reviews, targeted static/scope,
+first eligible three-job CI, and Orchestrator merge all passed. The Blocked
+status and Issue #222 Open state are effective. This reconciliation's targeted
+static/tracked-exact-two scope and its own reviews passed; it is non-effective
+until its first eligible final-head three-job CI and Orchestrator merge pass.
 
 ## Frozen implementation completion report
 
@@ -458,9 +499,10 @@ behavior or architecture change.
 ### Authority and Git status
 
 The frozen evidence and its reviews authorized only the historical exact-two
-Blocked publication chain. PR #223 was staged, committed, pushed, opened, and
-closed unmerged by the Orchestrator after its first eligible quality gate
-failed; no Issue was mutated. This material correction has no code/runtime,
-cleanup, or direct-state authority. Correction reviews and targeted static/
-scope passed; only its first eligible three-job CI and Orchestrator merge
-remain pending.
+Blocked publication chain. PR #223 closed unmerged after its first eligible
+quality failure; PR #224 then published the one permitted material correction
+after its reviews, static/scope, and first eligible three-job CI passed. No
+Issue was mutated. The current reconciliation has no code/runtime, cleanup,
+Issue, or direct-state authority. Its static/tracked-exact-two scope and own
+reviews passed; only first eligible three-job CI and Orchestrator merge remain
+pending.
