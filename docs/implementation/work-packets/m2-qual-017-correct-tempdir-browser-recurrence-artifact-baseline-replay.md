@@ -1,6 +1,6 @@
 # M2-QUAL-017 — Correct-Tempdir Browser Recurrence and Artifact-Baseline Replay
 
-**Status:** Ready
+**Status:** In Review — Browser symptom Not Reproduced; independent review passed, final-head CI and merge pending
 **Issue:** [#200](https://github.com/JettxonHo/ContentOS/issues/200) (Open)
 **Linked Issues:** [#196](https://github.com/JettxonHo/ContentOS/issues/196) and [#147](https://github.com/JettxonHo/ContentOS/issues/147) (Open)
 
@@ -20,13 +20,18 @@ M2-QUAL-003 Worker repair, or reinterpret M2-QUAL-016's historical first red.
 - Requested Custom Agent: `luna-worker`
 - Configured Model: `gpt-5.6-luna`
 - Reasoning: Max
-- Actual Runtime Model: record when visible; otherwise `UNVERIFIED_RUNTIME_MODEL`
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
+- Model Verification Status: `CONFIG_VERIFIED`; runtime identity unavailable
 - Planning Thread: `/root`
 - Planning Worktree: `/private/tmp/contentos-m2-qual-017-plan-wt`
 - Planning Branch: `codex/m2-qual-017-browser-recurrence-plan`
 - Planning Base/HEAD: `001aaf6dbf1d2032c15b870c48838adefd4a3839`
 - Planning Initial Status: clean
-- Proposed Implementation Thread: assigned after the Ready planning PR merges
+- Implementation Thread: `/root/m2_qual_017_implementation`
+- Implementation Worktree: `/private/tmp/contentos-m2-qual-017-impl-wt`
+- Implementation Branch: `codex/m2-qual-017-browser-recurrence-impl`
+- Implementation Base/HEAD: `34adb7147460a949092fda65f054a4fcadbec2a7`
+- Implementation Initial Status: clean
 - Risk: bounded docs/evidence-only Browser replay
 
 ## Goal
@@ -301,6 +306,96 @@ new DEC, and no unresolved review finding.
 No pre-DoR commit/publication is allowed. After both reviews pass, only the
 Orchestrator may mark Ready, publish the exact-two planning PR, and merge it
 after all required final-head CI jobs are green.
+
+## Implementation Replay Evidence — In Review
+
+**Terminal outcome:** **In Review — Browser symptom Not Reproduced; independent
+review passed, final-head CI and merge pending.** The fresh implementation baseline completed all
+three predetermined Browser slots with explicit `RC=0` and `16/16`. This is
+bounded Not Reproduced evidence only; it makes no root-cause, repair, permanent
+non-recurrence, Worker-publication, M2-completion, M3-start, or Issue mutation
+claim.
+
+### Baseline and preflight
+
+- The implementation branch was clean at base/HEAD
+  `34adb7147460a949092fda65f054a4fcadbec2a7`, with no untracked files and a
+  passing diff check.
+- The first governed toolchain invocation used normal permission with Node
+  `v24.18.0`; all eleven fixed failure-injection names were unset. The
+  config-derived shared output probe used platform `tmpdir()`, `lstat` without
+  following symlinks, and the bounded direct-entry read. Its pre-install fields
+  were `fixed-browser-output=directory`,
+  `fixed-browser-entry-count=2`, `fixed-browser-last-run=regular-file`, with
+  direct-entry aggregates `regular-file=1` and `directory=1`; the probe passed.
+- pnpm `11.17.0`, frozen install, and workspace check passed. The pre-install
+  and post-install task-owned aggregates were all zero for application
+  processes, matching Compose projects/containers, Harness roots, and the
+  repository-local `.pnpm-store`; the post-install delta was zero. The repeated
+  shared-output probe remained determinate and safe with fields
+  `directory`, `2`, `regular-file`, `1`, and `1`.
+- Every governed command used normal process permission from its first physical
+  invocation. The fixed shared output was observed only; no content was read,
+  no raw entry names were retained, and the implementer performed no manual
+  cleanup or out-of-contract direct mutation. The later aggregate count change
+  was recorded as contract-allowed Playwright internal management without an
+  ownership or deletion-actor claim.
+
+### Browser slots and post-slot evidence
+
+- The exact command
+  `fnm exec --using=24.18.0 corepack pnpm test:browser` ran in three
+  predetermined sequential slots with first-red stopping.
+- Slot #1 returned `RC=0` with `16/16`. Its post-slot task-owned aggregate was
+  zero for application processes, matching Compose projects/containers,
+  Harness roots, and the repository-local `.pnpm-store`; the shared-output probe
+  passed with `fixed-browser-output=directory`,
+  `fixed-browser-entry-count=1`, `fixed-browser-last-run=regular-file`, and
+  direct-entry aggregates `regular-file=1`, `directory=0`.
+- Slot #2 returned `RC=0` with `16/16`. Its post-slot task-owned aggregate and
+  shared-output probe were the same zero/determinate fields as slot #1.
+- Slot #3 returned `RC=0` with `16/16`. Its post-slot task-owned aggregate and
+  shared-output probe were the same zero/determinate fields as slot #1.
+- The shared direct-entry count changed from two during preflight to one after
+  the first slot and remained one; this shared/non-owned variation is accepted
+  by the contract and was never misclassified as task-owned residue. No fourth
+  or replacement Browser invocation was made.
+
+### Final publication checkpoint
+
+- After evidence synchronization, targeted Packet/Roadmap Prettier,
+  `repository:check`, `git diff --check`, exact-two scope, and no-untracked
+  checks all passed. The final tracked diff contains only this Packet and the
+  Roadmap; no generated or runtime artifact is present.
+- The final task-owned aggregate remained zero for application processes,
+  matching Compose projects/containers, Harness roots, and the repository-local
+  `.pnpm-store`, with `final-task-owned-delta=zero`. The final shared-output
+  probe remained safe and determinate with
+  `fixed-browser-output=directory`, `fixed-browser-entry-count=1`,
+  `fixed-browser-last-run=regular-file`, and direct-entry aggregates
+  `regular-file=1`, `directory=0`.
+
+## Independent implementation review
+
+**PASS.** Independent correctness/evidence and governance/scope/security review
+completed against implementation base
+`34adb7147460a949092fda65f054a4fcadbec2a7` plus the corrected exact-two
+Packet/Roadmap implementation evidence:
+
+- `/root/m2_qual_014_dor_correctness`
+- `/root/m2_qual_012_browser_setup_diagnosis`
+- Logical Role: `INDEPENDENT_REVIEWER`
+- Requested Model: `gpt-5.6-sol`
+- Requested Reasoning: High
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
+
+Both reviews returned PASS with no remaining finding. The planning placeholders
+were replaced with the actual implementation identity, and the shared-output
+count change is now recorded without an ownership or deletion-actor inference.
+This PASS authorizes only the exact-two In Review candidate to enter the
+Orchestrator-controlled final-head CI and merge gate. It is not Completed and
+does not authorize Issue closure, Worker or historical Packet publication,
+root-cause, repair, permanent non-recurrence, M2 completion, or M3 entry.
 
 ## Definition of Done and authority
 
