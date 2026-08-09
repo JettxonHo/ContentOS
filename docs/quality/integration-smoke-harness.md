@@ -96,6 +96,24 @@ Neither switch touches application or production code, and neither emits a crede
 
 If Docker is missing or invalid, the harness fails clearly with a non-zero exit and a `Docker engine is not available` message. It never silently skips.
 
+At the existing API `/health/live` readiness deadline, a failed API readiness
+wait emits one fixed, LF-terminated lifecycle observation immediately before
+the unchanged readiness error is thrown:
+
+```text
+contentos smoke api readiness failed: api-child=exit-observed
+contentos smoke api readiness failed: api-child=no-exit-observed
+```
+
+The formatter reads only whether the API child's `exitCode` or `signalCode` is
+null at that deadline. Any non-null value maps to `exit-observed`; when both
+are null the record is `no-exit-observed`. The record never includes the exit
+code, signal, PID, path, port, URL, environment, credentials, error, stack, or
+child output. `no-exit-observed` is only an observation at the deadline; it is
+not an assertion that the child is alive, listening, or healthy. The existing
+`setup=api-start-failed teardown=<clean|failed>` classification, timeout,
+polling, teardown, cleanup, ownership, and process behavior remain unchanged.
+
 ## 6. Preconditions
 
 - Docker engine and Compose v2 available (Compose `!reset`/`!override` and tmpfs support is required).

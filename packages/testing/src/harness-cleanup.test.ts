@@ -9,7 +9,9 @@ import {
   acquireBuildLock,
   captureAndPublishManagedProcess,
   classifySetupFailure,
+  emitApiReadinessFailure,
   emptyAndDeleteBucket,
+  formatApiReadinessFailureRecord,
   formatHarnessCleanupRecord,
   HarnessCleanupError,
   rollbackManagedProcessHandoff,
@@ -22,6 +24,64 @@ import type { ManagedProcessIdentity } from './integration/process-identity.js';
 import type { signedFetch } from './integration/sigv4.js';
 
 const credentials = { accessKeyId: 'test-access', secretAccessKey: 'test-secret' };
+
+describe('safe API readiness lifecycle observation', () => {
+  it('formats the two fixed records from exit and signal nullability only', () => {
+    expect(formatApiReadinessFailureRecord(null, null)).toBe(
+      'contentos smoke api readiness failed: api-child=no-exit-observed',
+    );
+    expect(formatApiReadinessFailureRecord(17, null)).toBe(
+      'contentos smoke api readiness failed: api-child=exit-observed',
+    );
+    expect(formatApiReadinessFailureRecord(null, 'SIGTERM')).toBe(
+      'contentos smoke api readiness failed: api-child=exit-observed',
+    );
+  });
+
+  it('treats an exit code and signal as equivalent observations with fixed LF shape', () => {
+    const fromExit = formatApiReadinessFailureRecord(23, null);
+    const fromSignal = formatApiReadinessFailureRecord(null, 'SIGKILL');
+
+    expect(fromExit).toBe(fromSignal);
+    expect(fromExit).not.toMatch(/[\r\n]/);
+    expect(`${fromExit}\n`).toMatch(/^[^\r\n]+\n$/);
+  });
+
+  it('writes exactly one fixed record before throwing the unchanged readiness error', () => {
+    const events: string[] = [];
+    let writeCount = 0;
+    const stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+      writeCount += 1;
+      events.push(`write:${String(chunk)}`);
+      return true;
+    });
+    const apiOrigin = 'http://127.0.0.1:48123';
+    const apiChild = { exitCode: 23, signalCode: 'SIGKILL' } as const;
+    let thrown: unknown;
+    try {
+      emitApiReadinessFailure(apiChild, apiOrigin);
+    } catch (error) {
+      events.push('throw');
+      thrown = error;
+    } finally {
+      stderrWrite.mockRestore();
+    }
+
+    expect(events).toEqual(['write:contentos smoke api readiness failed: api-child=exit-observed\n', 'throw']);
+    expect(writeCount).toBe(1);
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toBe(`api did not become ready on ${apiOrigin}/health/live`);
+    expect(classifySetupFailure(thrown)).toBe('api-start-failed');
+  });
+
+  it('does not disclose termination values or readiness origin in the fixed record', () => {
+    const forbidden = ['23', 'SIGKILL', 'http://127.0.0.1:48123', '/private/tmp'];
+    const record = formatApiReadinessFailureRecord(23, 'SIGKILL');
+
+    expect(record).toBe('contentos smoke api readiness failed: api-child=exit-observed');
+    for (const value of forbidden) expect(record).not.toContain(value);
+  });
+});
 
 describe('safe Harness teardown record transport', () => {
   it('formats structured cleanup fields into one fixed record without CR/LF', () => {

@@ -442,6 +442,28 @@ async function readLoopbackPort(rt: HarnessRuntime, service: string, containerPo
   return port;
 }
 
+/**
+ * Formats the one safe API-readiness lifecycle observation. The termination
+ * values are intentionally used only as nullable signals; their contents
+ * never cross the diagnostic boundary.
+ */
+export function formatApiReadinessFailureRecord(exitCode: number | null, signalCode: NodeJS.Signals | null): string {
+  const observation = exitCode !== null || signalCode !== null ? 'exit-observed' : 'no-exit-observed';
+  return `contentos smoke api readiness failed: api-child=${observation}`;
+}
+
+/**
+ * Emits one fixed lifecycle record immediately before preserving the existing
+ * API readiness error shape and classification.
+ */
+export function emitApiReadinessFailure(
+  apiChild: Pick<ChildProcess, 'exitCode' | 'signalCode'>,
+  apiOrigin: string,
+): never {
+  process.stderr.write(`${formatApiReadinessFailureRecord(apiChild.exitCode, apiChild.signalCode)}\n`);
+  throw new Error(`api did not become ready on ${apiOrigin}/health/live`);
+}
+
 async function setupRuntime(): Promise<SmokeState> {
   const repoRoot = process.cwd();
   const baseFile = join(repoRoot, BASE_COMPOSE);
@@ -624,7 +646,7 @@ async function setupRuntime(): Promise<SmokeState> {
     },
   });
   if (!(await waitForHttpOk(`${runtime.apiOrigin}/health/live`, 40_000))) {
-    throw new Error(`api did not become ready on ${runtime.apiOrigin}/health/live`);
+    emitApiReadinessFailure(apiChild, runtime.apiOrigin);
   }
 
   // 8. Start Web on the reserved loopback port; Next honors PORT and binds
