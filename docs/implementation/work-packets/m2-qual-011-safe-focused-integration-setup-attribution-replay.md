@@ -1,6 +1,6 @@
 # M2-QUAL-011 — Safe Focused Integration Setup Failure Attribution and Replay
 
-**Status:** Ready
+**Status:** Blocked — Browser setup gate failure
 
 **Issue:** [#175](https://github.com/JettxonHo/ContentOS/issues/175)
 
@@ -22,10 +22,9 @@
 - Planning Thread: `/root`
 - Planning Branch: `codex/m2-qual-011-safe-setup-attribution-plan`
 - Planning Base SHA: `6a9149be368a9b826c2c13b095ac2459362f2fde`
-- Implementation Thread: assigned after this packet becomes Ready
+- Implementation Thread: `/root/m2_qual_011_implementation`
 - Implementation Branch: `codex/m2-qual-011-safe-setup-attribution-impl`
-- Implementation Base SHA: latest `origin/main` after this Ready packet merges;
-  record the exact SHA before any edit or runtime command
+- Implementation Base SHA: `d2a1db7d797707f6791ebb324f4bee0ee8499d10`
 - Dependencies: M2-QUAL-006 and M2-QUAL-009 completed; M2-QUAL-003
   Blocked record merged through PR #174
 - Risk Classification: bounded Integration Harness diagnostic and cleanup
@@ -60,6 +59,59 @@ This Work Item adds only an in-memory phase snapshot for that final fallback.
 It preserves the existing record grammar and all existing category precedence.
 M2-QUAL-003 and M2-GOV-006 remain Blocked, M2 remains In Progress, and M3
 remains Not Started.
+
+## Implementation checkpoint
+
+The implementation branch records the nine-phase local tracker, snapshots it
+before teardown, and uses it only after the existing specific setup classifier
+has declined a category. Focused unit evidence covers all phase mappings,
+specific-category precedence, bounded sensitive-input redaction, snapshot
+independence, and the existing concurrent parser path.
+
+The unpublished-code implementation review is not a PASS: the current
+teardown-independence unit only awaits `Promise.resolve()` and does not execute
+real teardown or runtime removal. This evidence gap must be corrected before
+any future code publication; the combined code branch remains unpublished.
+
+## Gate and replay outcome
+
+**Terminal outcome:** **Blocked — Browser setup gate failure.** The first sandbox
+root `check` stopped only on five existing `process-identity.test.ts` cases with
+`spawn EPERM`; 52/53 files and 545/550 tests passed before that stop. The exact
+process-enabled root `check` then passed (53 files, 550 tests, and all five
+application builds) without test changes. The full Integration gate passed (27
+files, 185 tests, with the existing `pg@9` warning). The required Browser gate
+returned exit code `1` with only the bounded message `Browser smoke harness
+reported a classified setup failure.` No Browser rerun was made. Under the
+first-red rule, the focused Worker replay was not run and no phase-specific
+setup attribution or root-cause/repair claim is made.
+
+The ten replay injection variables were not evaluated because the Browser gate
+stopped the sequence. The post-gate aggregate residue snapshot is zero for
+application processes, exact `contentos-smoke-*` Compose containers/projects,
+coordinator and Harness temporary roots, and this worktree's repository-local
+`.pnpm-store`. No PID, path, credential, port, or raw child output is retained.
+M2-QUAL-003 and M2-GOV-006 remain Blocked; M2 remains In Progress; M3 remains
+Not Started.
+
+## Independent Blocked evidence review
+
+**PASS.** Independent Blocked-evidence review completed against reviewed
+base/checkpoint `d2a1db7d797707f6791ebb324f4bee0ee8499d10`:
+
+- correctness: `/root/m2_qual_011_blocked_correctness_review`;
+- scope: `/root/m2_qual_011_blocked_scope_review`.
+
+Both reviewers used logical role `INDEPENDENT_REVIEWER`, requested
+`gpt-5.6-sol` High, and recorded runtime model `UNVERIFIED_RUNTIME_MODEL`.
+This PASS is limited to exact Work Packet and Roadmap Blocked publication from
+latest `main` after green publication CI. It is not code or implementation
+review PASS and does not authorize modification of the four code/test/current-
+truth files, code-gap repair, a Browser rerun, the focused Worker replay, Issue
+#175 closure, M2-QUAL-003 or M2-GOV-006 completion, M2 completion, or M3 entry.
+The recorded teardown-independence evidence gap remains: the current unit only
+awaits `Promise.resolve()` and does not execute real teardown or runtime
+removal.
 
 ## Relevant decisions and documents
 
