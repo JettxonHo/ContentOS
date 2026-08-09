@@ -1,4 +1,5 @@
 import { harness } from '../integration/harness.ts';
+import { formatBrowserHarnessSetupFailure } from './setup-failure-transport.ts';
 
 const READY_LINE = 'CONTENTOS_BROWSER_HARNESS_READY';
 let stopping = false;
@@ -24,10 +25,6 @@ try {
   const state = await harness.setup();
   process.stdout.write(`${READY_LINE}:${Buffer.from(state.stateFile, 'utf8').toString('base64url')}\n`);
 } catch (error) {
-  const code =
-    error instanceof Error && error.message.includes('setup=docker-unavailable')
-      ? 'docker-unavailable'
-      : 'setup-failed';
-  process.stdout.write(`CONTENTOS_BROWSER_HARNESS_ERROR:${code}\n`);
+  process.stdout.write(formatBrowserHarnessSetupFailure(error));
   await stop(1);
 }
