@@ -1,6 +1,6 @@
 # M2-QUAL-014 — Safe API Readiness Lifecycle Attribution and Replay
 
-**Status:** Ready
+**Status:** Blocked — normal-permission-first gate-order violation
 **Issue:** [#188](https://github.com/JettxonHo/ContentOS/issues/188) (Open)
 
 This Work Item adds one bounded lifecycle observation at the existing API
@@ -21,19 +21,18 @@ diagnose a root cause, or authorize a repair.
 - Config File: `~/.codex/agents/luna-worker.toml`
 - Configured Model: `gpt-5.6-luna`
 - Reasoning: Max
-- Actual Runtime Model: record the runtime value when visible; otherwise
-  `UNVERIFIED_RUNTIME_MODEL`
-- Model Verification Status: `CONFIG_VERIFIED / UNVERIFIED_RUNTIME_MODEL`
+- Actual Runtime Model: `UNVERIFIED_RUNTIME_MODEL`
+- Model Verification Status: `UNVERIFIED_RUNTIME_MODEL` (configured model is
+  recorded above; the actual runtime value was not visible)
 - Planning Thread: `/root`
 - Planning Worktree: `/private/tmp/contentos-m2-qual-014-plan-wt`
 - Planning Branch: `codex/m2-qual-014-api-readiness-lifecycle-plan`
 - Planning Base/HEAD: `f941c6cde4fa04460be1744c8f72b709ef8e98bc`
 - Planning Initial Status: clean
-- Proposed Implementation Thread: assigned after this packet becomes Ready
-- Proposed Implementation Branch:
-  `codex/m2-qual-014-api-readiness-lifecycle-impl`
-- Proposed Implementation Base: exact latest `origin/main` after the planning
-  packet is merged; record it before any edit or runtime command
+- Implementation Thread: `/root/m2_qual_014_implementation`
+- Implementation Worktree: `/private/tmp/contentos-m2-qual-014-impl-wt`
+- Implementation Branch: `codex/m2-qual-014-api-readiness-lifecycle-impl`
+- Implementation Base/HEAD: `ab18bfe5e3e756648465b39beb60f1cd69ca4237`
 - Dependencies: M2-QUAL-013 Blocked record published through PR #186 and
   status synchronized through PR #187; Issues #184 and #175 remain Open
 - Risk Classification: bounded test-harness lifecycle evidence and replay
@@ -402,6 +401,79 @@ at first evidence and do not widen or repair the task.
 - `docs/implementation/roadmap.md`: synchronize M2-QUAL-014 without changing
   historical M2-QUAL-011/M2-QUAL-013 truth or M2/M3 status.
 
+## Historical implementation evidence and terminal boundary
+
+The implementation evidence was produced in the separate implementation
+worktree `/private/tmp/contentos-m2-qual-014-impl-wt`, branch
+`codex/m2-qual-014-api-readiness-lifecycle-impl`, at base
+`ab18bfe5e3e756648465b39beb60f1cd69ca4237`, by
+`/root/m2_qual_014_implementation` as logical role `IMPLEMENTER` using the
+requested `luna-worker` configuration (`gpt-5.6-luna`, Max; actual runtime
+`UNVERIFIED_RUNTIME_MODEL`). This fresh-main status worktree contains no code,
+test, or Current-truth implementation diff.
+
+The implementation preflight recorded Node `24.18.0`, pnpm `11.17.0`, frozen
+installation, workspace resolution, and all eleven fixed injection variables
+unset. Its entry aggregate had zero task-owned API/Web processes, exact
+`contentos-smoke-*` Compose projects/containers, Harness temporary roots, and
+repository-local `.pnpm-store`; one pre-existing Browser output directory was
+retained. The focused Harness gate passed 14 tests. The root `check` was first
+invoked through the default sandbox and triggered the existing five
+process-identity `spawn EPERM` failures, then the exact unchanged command was
+rerun with normal process permission and passed with 54 files / 578 tests plus
+all five application builds. Full Integration ran exactly once and passed 27
+files / 185 tests; targeted Prettier, repository checks, diff, and the
+implementation exact-five scope check passed. Browser ran exactly once and
+passed 16/16 tests. Worker slots 1–3 each exited `RC=0` with 1 file / 7 tests,
+no setup or lifecycle record, and no fourth slot was run. Every post-gate
+task-owned residue delta was zero; the one pre-existing Browser output
+directory remained unchanged.
+
+The Packet requires normal-permission-first execution and expressly forbids a
+sandbox-first attempt. Therefore the later green Integration, Browser, and
+Worker results and zero-residue evidence are retained as historical evidence
+only and cannot satisfy Completed — Not Reproduced. The truthful terminal
+outcome is **Blocked — normal-permission-first gate-order violation**. No
+root-cause, repair, non-recurrence, M2 completion, or M3-start claim is made.
+
+## Historical five-file implementation review and publication boundary
+
+Both independent reviewers returned **NEEDS_CORRECTION** against the
+implementation evidence:
+
+- `/root/m2_qual_014_dor_correctness`: no code-axis finding; the
+  normal-permission-first evidence violation blocks correctness/executability.
+- `/root/m2_qual_012_browser_setup_diagnosis`: no bounded code-scope finding;
+  the same gate-order evidence and governance boundary blocks publication.
+
+The five-file implementation/current-truth diff must not be published. Only a
+future fresh latest-main status branch containing exactly this Packet and the
+Roadmap may be published as Blocked evidence. Issue #188 remains Open; Issues
+#184 and #175 remain Open; M2-QUAL-011 and M2-QUAL-013 remain Blocked;
+M2-QUAL-003 and M2-GOV-006 remain Blocked; M2 remains In Progress; and M3
+remains Not Started. No root-cause, repair, M2 completion, or M3-start claim is
+authorized by this record.
+
+## Independent Blocked evidence review: PASS
+
+The final fresh-main two-document Blocked status sync received **PASS** from
+both independent reviewers:
+
+- `/root/m2_qual_014_dor_correctness`
+- `/root/m2_qual_012_browser_setup_diagnosis`
+
+Review metadata for both reviewers: logical role
+`INDEPENDENT_REVIEWER`; requested model `gpt-5.6-sol`; reasoning `High`; actual
+runtime `UNVERIFIED_RUNTIME_MODEL`; reviewed base
+`ab18bfe5e3e756648465b39beb60f1cd69ca4237` plus the exact two-document
+Packet/Roadmap diff; and all required findings are **closed**. This final PASS
+is for evidence-accurate Blocked status publication only. It does not revise
+the historical five-file implementation **NEEDS_CORRECTION** result, does not
+authorize publishing Harness/test/Current-truth files, does not authorize
+closing Issue #188, and makes no root-cause, repair, M2-completion, or M3-start
+claim. Only the exact Packet + Roadmap Blocked publication on a future fresh
+latest-main status branch is authorized.
+
 ## Definition of Ready
 
 **PASS.** All readiness conditions are satisfied:
@@ -420,9 +492,10 @@ at first evidence and do not widen or repair the task.
   Orchestrator, and merged only after its final-head CI is green.
 
 No pre-DoR commit or publication was performed. Issue #188 exists, both final
-independent reviews pass, and this Ready sync authorizes only the exact
-two-document planning publication. Implementation remains unauthorized until
-that planning PR merges with green final-head CI.
+independent reviews pass, and the Ready sync authorized only the exact
+two-document planning publication. The implementation evidence above starts
+from the post-publication base; its five-file result is blocked from
+publication by the normal-permission-first gate-order violation.
 
 ### Independent Definition of Ready review
 
