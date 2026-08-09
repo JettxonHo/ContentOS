@@ -2,7 +2,7 @@
 
 **Status:** Implementation Baseline
 **Scope:** The bounded M1 owner-browser scenario, pinned runtime, isolation, security assertions, cleanup, and explicit exclusions
-**Last Updated:** 2026-08-07
+**Last Updated:** 2026-08-09
 
 This document records the browser scenario introduced by `M1-WEB-001` and its M2 Source intake, Source review/Approval, Timeline, and recovery companions. It verifies the private UI → API → Domain → PostgreSQL → UI loop plus native credentialed EventSource and Polling recovery; it remains a bounded milestone suite rather than broad product E2E coverage.
 
@@ -73,6 +73,29 @@ Two test-only switches provide deterministic verification:
 - `CONTENTOS_SMOKE_INJECT_TEARDOWN_FAILURE=1` completes real cleanup, then forces teardown to report failure.
 
 Neither switch changes product behavior or emits a credential.
+
+Browser setup diagnostics transport only the Integration Harness's already
+sanitized setup record. The Browser runner accepts the exact
+`contentos smoke setup failed: setup=<category> teardown=<state>` grammar,
+reconstructs one LF-terminated record from static setup and cleanup
+allowlists, and emits one of these fixed forms:
+
+```text
+CONTENTOS_BROWSER_HARNESS_ERROR:setup=<category> teardown=clean
+CONTENTOS_BROWSER_HARNESS_ERROR:setup=<category> teardown=failed cleanup=<categories> physical=<clean|incomplete> capsule=<removed|preserved>
+```
+
+The cleanup list remains in canonical order. Unknown, malformed, partial,
+duplicate/conflicting, or non-`Error` input fails closed to
+`setup=unclassified teardown=failed cleanup=root physical=incomplete capsule=preserved`.
+Global setup requires exactly one complete LF-terminated Browser record from
+the unchanged bounded output tail and exposes only its reconstructed fields in
+the fixed Playwright setup error. It never forwards a caught message, cause,
+stack, path, URL, credential, PID, port, or raw output.
+
+The bounded replay command is
+`fnm exec --using=24.18.0 corepack pnpm test:browser`; it runs sequentially at
+most three times and stops on the first red or missing exit status.
 
 ## 5. Security and accessibility boundary
 

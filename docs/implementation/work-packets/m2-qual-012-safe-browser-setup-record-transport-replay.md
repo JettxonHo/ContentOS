@@ -1,6 +1,6 @@
 # M2-QUAL-012 — Safe Browser Harness Setup Record Transport and Replay
 
-**Status:** Ready
+**Status:** In Review — independent review passed; awaiting GitHub CI
 
 **Issue:** [#178](https://github.com/JettxonHo/ContentOS/issues/178)
 
@@ -22,10 +22,9 @@
 - Planning Thread: `/root`
 - Planning Branch: `codex/m2-qual-012-browser-setup-transport-plan`
 - Planning Base SHA: `5e16883e51963548705715ecdef8a19bb119c028`
-- Implementation Thread: assigned after this packet becomes Ready
+- Implementation Thread: `/root/m2_qual_012_implementation`
 - Implementation Branch: `codex/m2-qual-012-browser-setup-transport-impl`
-- Implementation Base SHA: latest `origin/main` after this Ready packet merges;
-  record the exact SHA before edits or runtime commands
+- Implementation Base SHA: `215408bd054da1faef2847eb69e4fce17e4130da`
 - Dependencies: M2-QUAL-011 Blocked record merged through PR #177
 - Risk Classification: bounded Browser Harness diagnostic transport and replay
 
@@ -52,6 +51,65 @@ only `docker-unavailable` and collapses every other category to `setup-failed`,
 discarding teardown evidence. Playwright global setup then converts that token
 to one generic sentence. This transport loss is known; the original setup
 cause is not.
+
+## Implementation checkpoint
+
+The seven-file implementation is present on the clean implementation entry
+above. The pure Browser transport parser/formatter accepts the fixed current
+and compatibility setup categories, enforces canonical cleanup ordering,
+reconstructs only static fields, and fails closed to one unclassified failed
+record. The Browser runner emits that record and global setup requires exactly
+one complete non-conflicting LF-terminated Browser record before exposing the
+same fixed fields in its Playwright error. Focused transport and wiring tests
+pass (38 tests). `workspace:check` passes. The first sandbox `check` stopped on
+five existing `process-identity.test.ts` `spawn EPERM` cases; the unchanged
+check passed with normal process permissions (54 files, 574 tests, and all five
+application builds). Full Integration passed with normal process permissions
+(27 files, 185 tests; existing `pg@9` warning); its initial sandbox invocation
+failed at the pre-existing generic `setup=setup-failed teardown=clean`
+boundary.
+
+### Final review correction
+
+The final review correction adds table-driven focused coverage for all 12
+current setup categories and all 9 fixed compatibility categories, exports the
+existing `waitForReady` seam without changing its runtime logic, and verifies
+valid plus malformed/conflicting output with fake child streams. A dynamic
+mock test exercises the actual Browser runner catch wiring without Docker,
+spawn, or injection. These changes are testability-only and preserve the exact
+protocol/runtime checkpoint used for the three Browser attempts. Browser replay
+is not repeated because its three-attempt cap is already consumed; the final
+focused count is 38 tests.
+
+## Independent implementation review evidence
+
+**PASS.** Independent implementation correctness and scope reviews passed:
+
+- correctness: `/root/m2_qual_012_correctness_review`;
+- scope, governance, and security: `/root/m2_qual_012_scope_review`.
+
+Both reviewers used logical role `INDEPENDENT_REVIEWER`, requested
+`gpt-5.6-sol` High, and recorded runtime model
+`UNVERIFIED_RUNTIME_MODEL`. The 12-current/9-compatibility test-coverage and
+Implementation Thread metadata findings are closed; no remaining findings.
+
+## Replay evidence
+
+The required preflight emitted only `injection-env=unset` for the ten
+M2-QUAL-010 Harness/concurrent variables plus `CONTENTOS_BROWSER_INJECT_FAILURE`.
+The aggregate entry snapshot was
+`app-processes=0 compose-projects=0 compose-containers=0 harness-temp-roots=1`
+`playwright-artifacts=yes repo-local-pnpm-store=no`; the existing temporary
+root and Playwright artifact presence were retained and not treated as task
+owned. The exact command
+`fnm exec --using=24.18.0 corepack pnpm test:browser` ran sequentially three
+times. Attempts 1, 2, and 3 each explicitly exited `0` with all 16 Browser
+tests passing. After every attempt, the same aggregate fields were observed
+and the task-owned cleanup delta was zero. No Browser setup failure record was
+emitted, so no setup category or root cause is attributed. The terminal
+evidence is **Completed — Not Reproduced**; independent review passed and
+final-head GitHub CI is awaited. This does not prove the historical failure
+cannot recur.
 
 M2-QUAL-012 fixes only that Browser diagnostic transport. It does not copy or
 repair M2-QUAL-011. M2-QUAL-011, M2-QUAL-003, and M2-GOV-006 remain Blocked; M2

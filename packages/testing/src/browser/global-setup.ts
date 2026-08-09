@@ -2,13 +2,14 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { join } from 'node:path';
 
 import { SMOKE_STATE_FILE_ENV } from '../integration/env.ts';
+import { formatBrowserHarnessSetupError, parseBrowserHarnessErrorOutput } from './setup-failure-transport.ts';
 
 const READY_LINE = 'CONTENTOS_BROWSER_HARNESS_READY';
 const STARTUP_TIMEOUT_MS = 180_000;
 const TEARDOWN_TIMEOUT_MS = 75_000;
 const MAX_CLASSIFICATION_OUTPUT = 4_096;
 
-function waitForReady(child: ChildProcess): Promise<string> {
+export function waitForReady(child: ChildProcess): Promise<string> {
   return new Promise((resolve, reject) => {
     let output = '';
     let killTimer: NodeJS.Timeout | undefined;
@@ -42,11 +43,7 @@ function waitForReady(child: ChildProcess): Promise<string> {
           new Error(
             startupTimedOut
               ? 'Browser smoke harness did not become ready before the startup deadline.'
-              : output.includes('CONTENTOS_BROWSER_HARNESS_ERROR:docker-unavailable')
-                ? 'Docker engine is not available for the browser smoke harness.'
-                : output.includes('CONTENTOS_BROWSER_HARNESS_ERROR:setup-failed')
-                  ? 'Browser smoke harness reported a classified setup failure.'
-                  : 'Browser smoke harness exited before setup completed.',
+              : formatBrowserHarnessSetupError(parseBrowserHarnessErrorOutput(output)),
           ),
         ),
       );
