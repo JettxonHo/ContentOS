@@ -555,3 +555,31 @@ to enter its own static, independent-review, and publication-CI path. It does
 not authorize the Worker delta, modification or completion of M2-QUAL-003,
 Issue closure, root-cause or repair work, M2-GOV-006 or M2 completion, or M3
 entry.
+
+## Blocked Publication Status
+
+The exact-two Blocked record was published through PR #198,
+`docs: record blocked M2-QUAL-016 replay`, merged at
+`2026-08-09T11:14:04Z` with squash
+`b41d33b9fc84399619e056ef4ab94a70b1384b59`. Its final-head source was
+`50c5c374ced5b41e3771ba1afdd1f2682d37e9e0`. CI run `31310134092` passed all
+three required jobs: Docker-independent quality (`2m14s`), Integration smoke
+(`3m9s`), and M1/M2 browser smoke (`2m30s`).
+
+This publication merged only this Packet and the Roadmap. The Worker delta and
+original M2-QUAL-003 Packet remain unpublished/unchanged. Issues #196 and #147
+remain Open; the Work Item remains Blocked, with no root-cause, repair,
+completion, or downstream-status claim.
+
+## Final Merge-Status Independent Review
+
+**PASS.** `/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis`, role `INDEPENDENT_REVIEWER`,
+requested `gpt-5.6-sol` High, actual `UNVERIFIED_RUNTIME_MODEL`, reviewed base
+`b41d33b9fc84399619e056ef4ab94a70b1384b59` plus this exact-two Packet/Roadmap
+status diff. They verified PR #198, final-head, CI run, Issue state, and the
+unchanged/unpublished Worker and M2-QUAL-003 boundaries with no findings.
+
+This review authorizes only the exact-two merge-status publication. It does not
+authorize code, Issue closure, diagnosis or repair, M2-GOV-006 or M2
+completion, or M3 entry.
