@@ -223,6 +223,50 @@ the first eligible three-job CI result. A second red or missing first eligible
 result requires M2-QUAL-029. No unchanged rerun, replacement head, or Issue
 transition is authorized here.
 
+## Effective merge-status reconciliation
+
+Effective PR #236, titled docs: record blocked M2-QUAL-028 replay, used base
+4767d07b88e4d7087e770d017ee7ca323c8bae7d, final head
+306e317e82450eb8dc9d36d5e8902bfbe529d8de, and exactly two docs: this Packet
+and the Roadmap. Its first eligible CI run 31363832768 passed quality in 1m59,
+Integration in 2m59, and Browser in 2m16.
+
+The Orchestrator squash/main is
+fee37c125352302c07d221639ac007db3ec18565, merged at
+2026-08-10T06:59:14Z. The gh merge command was nonzero only after the remote
+merge because local main was owned by another worktree; read-only verification
+confirmed the remote merge and no second merge was attempted. The effective
+terminal remains Blocked. Issues #235, #232, and #229 remain Open; observer/test
+remain unpublished and both adequacy gaps remain unresolved, frozen, and
+unpublished.
+
+The current reconciliation identity is worktree
+/private/tmp/contentos-m2-qual-028-merge-status-wt, branch
+codex/m2-qual-028-merge-status-sync, base/HEAD
+fee37c125352302c07d221639ac007db3ec18565, with exactly two tracked
+modifications (Packet + Roadmap) and no other path. Reconciliation targeted
+Packet/Roadmap Prettier, repository:check, git diff --check, tracked
+exact-two, forbidden, and no-unexpected checks PASS. Its own reconciliation
+reviews and targeted docs/static/scope are PASS; only the next first eligible
+exact-head three-job CI result and any further Orchestrator merge action remain
+pending and non-effective.
+
+## Current reconciliation review evidence
+
+Two independent current reconciliation reviews are PASS with no findings:
+
+- /root/m2_qual_014_dor_correctness, role INDEPENDENT_REVIEWER, requested
+  gpt-5.6-sol High, actual UNVERIFIED_RUNTIME_MODEL;
+- /root/m2_qual_012_browser_setup_diagnosis, role INDEPENDENT_REVIEWER,
+  requested gpt-5.6-sol High, actual UNVERIFIED_RUNTIME_MODEL.
+
+Both reviewed base/HEAD
+fee37c125352302c07d221639ac007db3ec18565 and the corrected tracked exact-two
+Packet/Roadmap. Their authority is reconciliation-publication only. Reviews
+and targeted docs/static/scope are PASS; only the first eligible exact-head
+quality/Integration/Browser three-job CI result and Orchestrator squash merge
+remain pending and non-effective.
+
 ## Security, migration, observability, and DEC
 
 The frozen observer retains no names, Dirent values, paths, contents, error
@@ -256,18 +300,22 @@ remains Not Started. No Issue, Git, GitHub, M2, or M3 mutation is claimed.
 4. Exact Blocked label, security/no-raw-evidence, Issue, M2, M3, and no-DEC
    boundaries remain exact.
 5. Fresh candidate docs/static/scope checks PASS and fresh exact-two publication
-   reviews PASS with no publication docs findings. Only the first eligible
-   three-job CI and Orchestrator merge remain pending and non-effective.
+   reviews PASS with no publication docs findings. Effective PR236, its green
+   first eligible CI, and the Orchestrator merge are recorded. Reconciliation
+   reviews and targeted docs/static/scope are PASS; only the next first eligible
+   exact-head three-job CI result and any further Orchestrator merge action
+   remain pending and non-effective.
 
 ## Completion report
 
-- Summary: fresh-main exact-two Blocked publication candidate for the frozen
-  corrected preflight outcome; observer/test remain unpublished.
-- Files changed: this new Packet and docs/implementation/roadmap.md only.
-- Commands: before this reconstruction, only pure-Git identity/status reads
-  were run. Candidate docs/static/scope commands were run after reconstruction
-  and passed (RC0); no runtime, Git mutation, GitHub, or Issue command is
-  authorized.
+- Summary: effective PR236 and its green first eligible CI are recorded for
+  the fresh-main exact-two Blocked outcome; observer/test remain unpublished.
+- Files changed: this tracked Packet and docs/implementation/roadmap.md only
+  in the merge-status reconciliation.
+- Commands: reconciliation ran only targeted Packet/Roadmap documentation,
+  repository, diff, and tracked exact-two/forbidden/no-unexpected checks; all
+  passed (RC0). No runtime, Git mutation, GitHub, or Issue command was run by
+  this reconciliation agent.
 - Formatting chronology: the initial candidate Packet/Roadmap Prettier check
   was RC1 solely for Packet formatting and materialized only ignored locked
   node_modules; no tracked or unexpected artifact appeared. One authorized
@@ -278,19 +326,22 @@ remains Not Started. No Issue, Git, GitHub, M2, or M3 mutation is claimed.
 - Tests: no candidate runtime tests. Frozen TDD red is recorded as RC1 with
   exactly 1 failed / 12 skipped / 0 other failures; focused/root/slot counts
   are 0.
-- Acceptance criteria: frozen evidence, review boundaries, exact Blocked label,
-  fresh candidate docs/static/scope checks PASS, and fresh exact-two publication
-  reviews PASS with no publication docs findings; only first eligible CI and
-  merge remain pending/non-effective.
+- Acceptance criteria: effective PR236, final head, green first eligible CI,
+  squash/main, merge time, exact-two docs, and post-remote gh verification are
+  recorded; frozen evidence, fresh publication reviews, and docs/static/scope
+  checks remain PASS. Its own reconciliation reviews and targeted docs/static/
+  scope are PASS; only the next first eligible exact-head three-job CI result
+  and any further Orchestrator merge action remain pending/non-effective.
 - Security impact: no product/security behavior changed; no raw or secret
   evidence is retained.
 - Known limitations: this candidate does not prove cause, repair,
   non-recurrence, or broader Worker/Concurrent readiness; frozen adequacy gaps
   remain unresolved.
-- Incomplete items: first eligible exact-head quality/Integration/Browser CI
-  and Orchestrator merge remain pending/non-effective until their authorized
-  gates run; publication reviews and docs/static/scope checks are PASS.
+- Incomplete items: the next first eligible exact-head quality/Integration/
+  Browser CI result and any further Orchestrator merge action remain
+  pending/non-effective; its own reconciliation reviews, publication reviews,
+  and docs/static/scope checks are PASS.
 - Documentation updates: this Packet and Roadmap only.
 - Possible new DEC: none.
-- Git status: expected exact two — new Packet plus Roadmap modification; no
-  commit, push, PR, merge, or Issue mutation.
+- Git status: exact two tracked modifications — Packet plus Roadmap; no commit,
+  push, PR, merge, or Issue mutation by this reconciliation agent.
