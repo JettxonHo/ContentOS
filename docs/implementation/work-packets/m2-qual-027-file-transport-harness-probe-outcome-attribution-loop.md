@@ -644,46 +644,96 @@ exact-two docs Prettier write corrected that formatting. Final targeted
 Packet/Roadmap Prettier, `repository:check`, `git diff --check`, and
 exact-two/forbidden/no-unexpected scope checks all PASS. This is an
 operator/docs-formatting chronology only, not a runtime red, rerun, or cleanup
-event. Static/scope and fresh exact-two publication reviews are PASS. Only the
-first eligible exact-head three-job quality/Integration/Browser CI and
-Orchestrator squash merge remain pending and non-effective. A publication CI
-red or missing result closes its PR unmerged
+event. Static/scope and fresh exact-two publication reviews are PASS. At that
+candidate stage, the first eligible exact-head three-job quality/Integration/
+Browser CI and Orchestrator squash merge were pending; the effective
+publication facts are recorded below. A publication CI red or missing result
+closes its PR unmerged
 without unchanged rerun, replacement, or new head; at most one material
 fresh-main exact-two evidence correction may receive new reviews/static and a
 first eligible three-job CI result. A second red/missing result requires
-M2-QUAL-028. The terminal Blocked status remains exact and is not effective as
-a merged record until the Orchestrator completes the publication chain.
+M2-QUAL-028. At that candidate stage, the terminal Blocked status was not yet
+effective as a merged record; the effective publication is recorded below.
+
+## Effective publication and current reconciliation
+
+Effective PR #233, titled `docs: record blocked M2-QUAL-027 attribution`, used
+base `3490615cc789e0e5077d788770033bf12363f9fc`, final head
+`01ad0e73d434c60c45d94bd9d422dfb765fb81f8`, and exactly the Packet plus
+Roadmap. Its first eligible CI run `31356786230` was all-success: quality
+`2m15`, Integration `2m58`, and Browser `2m24`. Orchestrator squash/main is
+`a77fb8420a7e71f89af1c6eb09a1098bfe0bdfdd`, merged at
+`2026-08-10T04:54:39Z`. The effective terminal remains **Blocked — Harness
+Probe Attribution Not Verified**; Issues #232 and #229 remain Open. Observer,
+test, and other implementation code remain unpublished, and the frozen
+preflight-unexpected code/test adequacy gap remains unresolved, unrerun, and
+unpublished.
+
+The `gh` merge command returned nonzero only after the remote merge because the
+local `main` checkout was owned by another worktree. Read-only verification
+confirmed the remote merge, and no second merge was attempted.
+
+This merge-status reconciliation is the exact-two tracked Packet + Roadmap
+shape in worktree `/private/tmp/contentos-m2-qual-027-merge-status-wt`, branch
+`codex/m2-qual-027-merge-status-sync`, base/HEAD
+`a77fb8420a7e71f89af1c6eb09a1098bfe0bdfdd`, with no other path. Its targeted
+docs/static/scope checks and both reconciliation reviews PASS after the
+permitted local checks. Only the first eligible exact-head three-job
+quality/Integration/Browser CI and Orchestrator merge remain pending and
+non-effective. If a publication CI result is red or missing, close the PR
+unmerged without unchanged rerun, replacement, or new head; allow one material
+fresh exact-two correction with new reviews/static/first eligible three-job CI,
+and require M2-QUAL-028 after a second red or missing result.
+
+### Current reconciliation independent reviews
+
+The corrected tracked exact-two Packet + Roadmap at base/HEAD
+`a77fb8420a7e71f89af1c6eb09a1098bfe0bdfdd` was independently reviewed for this
+reconciliation by:
+
+- `/root/m2_qual_014_dor_correctness`, logical role
+  `INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual
+  `UNVERIFIED_RUNTIME_MODEL`; and
+- `/root/m2_qual_012_browser_setup_diagnosis`, logical role
+  `INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual
+  `UNVERIFIED_RUNTIME_MODEL`.
+
+Both reviews are **PASS with no findings** for reconciliation-publication only.
+They reviewed the corrected tracked exact-two shape and recorded effective
+publication facts; they do not reopen or alter the effective Blocked terminal,
+authorize code/test publication, runtime reruns, Issue transitions, repair, or
+M2/M3 changes. Targeted docs/static/scope checks are PASS; only the first
+eligible exact-head three-job quality/Integration/Browser CI and Orchestrator
+merge remain pending and non-effective.
 
 ## Completion report
 
-- **Summary:** Fresh exact-two Packet/Roadmap candidate for the frozen QUAL027
-  Blocked outcome; fresh exact-two publication reviews and docs/static checks
-  PASS; no observer/test publication.
+- **Summary:** Effective PR #233 and all-success first eligible CI are recorded
+  for the frozen QUAL027 Blocked outcome; this is an exact-two merge-status
+  reconciliation, with no observer/test publication.
 - **Files changed:** this Packet and `docs/implementation/roadmap.md` only.
-- **Commands:** the initial normal-permission targeted Packet/Roadmap Prettier
-  check materialized only ignored locked `node_modules` (no
-  tracked/forbidden/unexpected artifact) and was red only for Packet
-  formatting; one authorized exact-two docs Prettier write corrected it; final
-  targeted Packet/Roadmap Prettier, `repository:check`, `git diff --check`, and
-  exact-two/forbidden/no-unexpected scope checks PASS. These are
-  operator/docs-formatting events only, not runtime red, rerun, or cleanup;
-  no runtime, focused, root, Docker, or observer command ran in this candidate.
+- **Commands:** permitted targeted Packet/Roadmap docs/static/scope checks only;
+  no runtime, focused, root, Docker, observer, GitHub, or Issue command ran in
+  this reconciliation.
 - **Tests:** no candidate runtime tests; frozen implementation focused gate was
   `1 file / 12 tests` PASS, while root first red was ESLint `prefer-const`.
 - **Acceptance criteria:** local diagnostic evidence and frozen exact-four
-  review are recorded; fresh candidate targeted docs static/scope and fresh
-  exact-two publication reviews are PASS; only the first eligible exact-head
-  three-job quality/Integration/Browser CI and Orchestrator merge remain
-  pending.
+  review are recorded; effective PR #233, all-success first eligible CI, and
+  Orchestrator squash/main are recorded; current reconciliation docs/static
+  checks and independent reviews are PASS with no findings; only the first
+  eligible exact-head three-job quality/Integration/Browser CI and Orchestrator
+  merge remain pending/non-effective.
 - **Security impact:** no product/security boundary, raw output, or secret
   exposure; evidence remains fixed and aggregate only.
 - **Known limitations:** preflight unexpected-exception output contract and
   fixture coverage remain unresolved; real Phase-1 slots remain `0`.
 - **Incomplete items:** first eligible exact-head three-job
-  quality/Integration/Browser CI and Orchestrator merge remain pending;
-  publication reviews and static/scope are PASS. Downstream state is unchanged:
-  Issues #232/#229 remain Open and the M2 exit review has not advanced.
+  quality/Integration/Browser CI and Orchestrator merge remain
+  pending/non-effective; reconciliation reviews/static are PASS with no
+  findings, and effective PR #233 with its first eligible CI is complete.
+  Downstream state is unchanged: Issues #232/#229 remain Open and the M2 exit
+  review has not advanced.
 - **Documentation updates:** this Packet and Roadmap only.
 - **Possible new DEC:** none.
-- **Git status:** exact two candidate docs only; no commit/push/PR/merge/Issue
-  mutation performed by this implementer.
+- **Git status:** exact two tracked docs only; no commit/push/PR/merge/Issue
+  mutation performed by this reconciliation implementer.
