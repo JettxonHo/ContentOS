@@ -271,6 +271,45 @@ The first Agent is not implemented in M2. It consumes only Approved Source Versi
 
 The current reconciliation has two independent PASS/no-findings reviews: /root/m2_qual_014_dor_correctness and /root/m2_qual_012_browser_setup_diagnosis, both role INDEPENDENT_REVIEWER, requested gpt-5.6-sol High, actual UNVERIFIED_RUNTIME_MODEL. Both reviewed base/HEAD fee37c125352302c07d221639ac007db3ec18565 and the corrected tracked exact-two Packet/Roadmap; authority is reconciliation-publication only. Reviews and targeted docs/static/scope are PASS. Only the first eligible exact-head quality/Integration/Browser three-job CI result and Orchestrator squash merge remain pending and non-effective; the effective QUAL028 terminal remains Blocked and its recovery/Issue boundaries are unchanged.
 
+### M2-QUAL-029 current reconciliation review
+
+Effective PR #239 (`docs: record blocked M2-QUAL-029 replay`) used base
+`0c94e1b8f34185ff26d92ec9d1a6f235eb7a54c2`, final head
+`47deeb03ed4813719d2b3451e86f6c54c3e4b6f1`, and exactly two docs (Packet +
+Roadmap). First eligible CI run `31369654311` passed quality `2m00`,
+Integration `3m09`, and Browser `2m28`. Orchestrator squash/main
+`5d6423194c006838747ed7cccea453793253ac1e` merged at
+`2026-08-10T08:24:25Z`; the effective terminal remains Blocked and Issues
+#238/#235/#232/#229 remain Open. QUAL028's historical reference and history
+remain immutable. QUAL029 locally closed and verified both validation gaps:
+direct frozen-observer equality accepted the formatted one-line catch, and the
+counter/increment/assertion plus named/focused PASS proved one exit-setter
+assignment. Observer/test code and those corrections remain unpublished; the
+current Blocked boundary is the root TS2307 first red on the query-suffixed
+`./integration/observe-harness-probe.js?import-safe` import. No broader cause,
+repair, non-recurrence, or readiness claim is added.
+
+Current reconciliation identity is worktree
+`/private/tmp/contentos-m2-qual-029-merge-status-wt`, branch
+`codex/m2-qual-029-merge-status-sync`, base/HEAD
+`5d6423194c006838747ed7cccea453793253ac1e`, with exactly two tracked
+modifications (Packet + Roadmap) and no other path. Targeted Packet/Roadmap
+Prettier, `repository:check`, `git diff --check`, tracked exact-two, forbidden,
+and no-unexpected checks are PASS. Reconciliation reviews are PASS with no
+findings by `/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis`, both role
+`INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual
+`UNVERIFIED_RUNTIME_MODEL`, reviewing base/HEAD
+`5d6423194c006838747ed7cccea453793253ac1e` plus the corrected tracked
+exact-two Packet/Roadmap. Their authority is reconciliation-publication only.
+Reviews and docs/static/scope are PASS; only the next first eligible exact-head
+quality/Integration/Browser three-job CI result and Orchestrator squash merge
+remain pending and non-effective. The bounded recovery rule remains at most one
+material fresh exact-two evidence correction with new reviews/static/CI; a
+second red or missing first eligible result requires M2-QUAL-030, with no
+unchanged rerun, replacement head, or Issue transition. No runtime/code/GitHub/
+Issue action is claimed.
+
 ## 10. M3 — Research
 
 M3 introduces the first formal Agent Vertical Slice:

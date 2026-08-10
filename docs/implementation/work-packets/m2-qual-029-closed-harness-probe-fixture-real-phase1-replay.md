@@ -577,6 +577,153 @@ No runtime, safety, test, GitHub, Issue, milestone, or code action was taken in
 this publication candidate; the frozen history, bounded deviation, Blocked
 terminal, and recovery rules remain unchanged.
 
+## Effective merge-status reconciliation
+
+Effective PR #239, titled `docs: record blocked M2-QUAL-029 replay`, used base
+`0c94e1b8f34185ff26d92ec9d1a6f235eb7a54c2`, final head
+`47deeb03ed4813719d2b3451e86f6c54c3e4b6f1`, and exactly two docs: this Packet
+and the Roadmap. Its first eligible CI run `31369654311` passed quality in
+2m00, Integration in 3m09, and Browser in 2m28.
+
+The Orchestrator squash/main is
+`5d6423194c006838747ed7cccea453793253ac1e`, merged at
+`2026-08-10T08:24:25Z`. The effective terminal remains **Blocked — Harness
+Probe Attribution Not Verified**. Issues #238, #235, #232, and #229 remain
+Open. QUAL028's historical reference and history remain immutable. QUAL029
+locally closed and verified both validation gaps: direct frozen-observer
+equality accepted the formatted one-line catch, and the
+counter/increment/assertion plus named/focused PASS proved one exit-setter
+assignment. Observer/test code and those corrections remain unpublished; the
+current Blocked boundary is the root TS2307 first red on the query-suffixed
+`./integration/observe-harness-probe.js?import-safe` import. No broader cause,
+repair, non-recurrence, or readiness claim is added.
+
+The current reconciliation identity is worktree
+`/private/tmp/contentos-m2-qual-029-merge-status-wt`, branch
+`codex/m2-qual-029-merge-status-sync`, base/HEAD
+`5d6423194c006838747ed7cccea453793253ac1e`, with exactly two tracked
+modifications (Packet + Roadmap) and no other path. Reconciliation targeted
+Packet/Roadmap Prettier, `repository:check`, `git diff --check`, tracked
+exact-two, forbidden, and no-unexpected checks are PASS. Reconciliation reviews
+are PASS with no findings by `/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis`, both role
+`INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual
+`UNVERIFIED_RUNTIME_MODEL`, reviewing base/HEAD
+`5d6423194c006838747ed7cccea453793253ac1e` plus the corrected tracked
+exact-two Packet/Roadmap. Their authority is reconciliation-publication only.
+Reviews and docs/static/scope are PASS; only the next first eligible exact-head
+quality/Integration/Browser three-job CI result and Orchestrator squash merge
+remain pending and non-effective.
+
+The bounded recovery rule remains fixed: at most one material fresh-main
+exact-two evidence correction may receive new reviews, targeted static/scope
+checks, and the first eligible three-job CI result. A second red or missing
+first eligible result requires M2-QUAL-030. No unchanged rerun, replacement
+head, or Issue transition is authorized here.
+
+## Current reconciliation review evidence
+
+Reconciliation reviews are PASS with no findings by
+`/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis`, both role
+`INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual
+`UNVERIFIED_RUNTIME_MODEL`, reviewing base/HEAD
+`5d6423194c006838747ed7cccea453793253ac1e` plus the corrected tracked
+exact-two Packet/Roadmap. Their authority is reconciliation-publication only.
+Reviews and docs/static/scope are PASS. Only the next first eligible exact-head
+quality/Integration/Browser three-job CI result and Orchestrator squash merge
+remain pending and non-effective. This reconciliation does not reopen the
+effective Blocked terminal or authorize observer/test publication, runtime
+rerun, repair, Issue transition, M2/M3 change, or Git mutation.
+
+## Security, migration, observability, and DEC
+
+The frozen observer retains no names, Dirent values, paths, contents, error
+objects, PIDs, commands, arguments, environment values, status/signal detail,
+URLs, ports, secrets, stacks, logs, hashes, manifests, artifacts, or raw
+stdout/stderr. Durable evidence is limited to governance identities, fixed
+records, RCs, aggregate test/build counts, physical scope, and allowlisted
+enum/bucket fields. This reconciliation adds only documentation and no extra
+probe or hash mechanism.
+
+This reconciliation changes no product data, external input, credential,
+network/provider transmission, Authentication, Authorization, Object Storage,
+Queue, API, Schema, migration, configuration, logging policy, deletion range,
+or accepted security boundary. No migration, compatibility sequence, backfill,
+rollback, cleanup authority, or persistent diagnostic sink exists. No DEC is
+required.
+
+## Issue and milestone boundaries
+
+Issues #238, #235, #232, and #229 remain Open. The merged Blocked outcome closes
+no Issue. M2-GOV-006 remains Blocked, M2 remains In Progress, and M3 remains
+Not Started. No Issue, Git, GitHub, M2, or M3 mutation is claimed by this
+reconciliation.
+
+## Acceptance criteria
+
+1. The reconciliation candidate is exactly two tracked docs from base/HEAD
+   `5d6423194c006838747ed7cccea453793253ac1e`, with no unexpected path.
+2. Effective PR #239, final head, green first eligible CI, squash/main, merge
+   time, exact-two docs, and the effective Blocked terminal are recorded.
+3. Frozen implementation chronology and valid RC20 slot remain recorded. QUAL028's
+   historical reference and history remain immutable. QUAL029 locally closed
+   and verified both validation gaps: direct frozen-observer equality accepted
+   the formatted one-line catch, and the counter/increment/assertion plus
+   named/focused PASS proved one exit-setter assignment. Observer/test code and
+   those corrections remain unpublished; the current Blocked boundary is the
+   root TS2307 first red on the query-suffixed
+   `./integration/observe-harness-probe.js?import-safe` import. The bounded
+   docs-only deviation and no broader cause, repair, non-recurrence, or
+   readiness claim remain recorded.
+4. Reconciliation reviews and targeted docs/static/scope checks PASS; only the
+   next first eligible exact-head quality/Integration/Browser three-job CI and
+   Orchestrator squash merge remain pending and non-effective.
+5. Issue, M2, M3, recovery, proportionality, no-hash/no-extra-probe, and no-DEC
+   boundaries remain exact.
+
+## Completion report
+
+- **Summary:** Effective PR #239 and its green first eligible CI are recorded
+  for the fresh-main exact-two Blocked outcome; observer/test remain
+  unpublished and the local terminal remains Blocked.
+- **Files changed:** This tracked Packet and `docs/implementation/roadmap.md`
+  only in the merge-status reconciliation; no code or other path changed.
+- **Commands:** Reconciliation ran only targeted Packet/Roadmap Prettier,
+  `repository:check`, `git diff --check`, and tracked exact-two/forbidden/
+  no-unexpected scope checks; all passed RC0. No runtime, test, Git mutation,
+  GitHub, or Issue command was run by this reconciliation agent.
+- **Formatting chronology:** The fresh publication candidate's initial targeted
+  Prettier check passed RC0 but materialized only ignored locked `node_modules`;
+  no tracked, forbidden, or unexpected artifact appeared and no formatting
+  write occurred. This is documentation-tooling evidence only, not a runtime
+  red, rerun, cleanup, or terminal change.
+- **Tests:** No candidate runtime tests were run. Frozen named/focused/root/
+  slot counts and the RC2 TS2307 first red remain as recorded in the Packet.
+- **Acceptance criteria:** Effective PR #239, final head, green CI, squash/main,
+  merge time, exact-two docs, and current Blocked/recovery boundaries are
+  recorded; reconciliation reviews and targeted docs/static/scope checks PASS.
+  Only the next first eligible exact-head quality/Integration/Browser three-job
+  CI and Orchestrator squash merge remain pending and non-effective.
+- **Security impact:** No product/security behavior changed; no raw runtime or
+  secret evidence is retained, and no extra probe or hash mechanism was added.
+- **Known limitations:** QUAL028's historical reference and history remain
+  immutable. QUAL029 locally closed and verified both validation gaps: direct
+  frozen-observer equality accepted the formatted one-line catch, and the
+  counter/increment/assertion plus named/focused PASS proved one exit-setter
+  assignment. Observer/test code and those corrections remain unpublished;
+  the current Blocked boundary is the root TS2307 first red on the
+  query-suffixed `./integration/observe-harness-probe.js?import-safe` import.
+  This remains a bounded diagnostic record and proves no broader cause, repair,
+  non-recurrence, or Worker/Concurrent readiness.
+- **Incomplete items:** The next first eligible exact-head
+  quality/Integration/Browser CI result and any further Orchestrator squash
+  merge action remain pending/non-effective.
+- **Documentation updates:** This Packet and Roadmap only.
+- **Possible new DEC:** None.
+- **Git status:** Exactly two tracked modifications — Packet plus Roadmap; no
+  commit, push, PR, merge, or Issue mutation by this reconciliation agent.
+
 ## Definition of Done / Completion Report
 
 The implementation Completion Report must include: Summary; files changed;
