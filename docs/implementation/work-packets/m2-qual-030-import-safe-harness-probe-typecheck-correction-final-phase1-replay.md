@@ -9,6 +9,11 @@
 - Correction worktree: `/private/tmp/contentos-m2-qual-030-blocked-correction-wt`.
 - Correction branch: `codex/m2-qual-030-blocked-status-correction`.
 - Correction base/HEAD: `69f6d287828bf57f11a02732579feebbde50bdc4` (clean at start).
+- Effective publication: PR #243, title `docs: correct M2-QUAL-030 publication evidence`,
+  base `69f6d287828bf57f11a02732579feebbde50bdc4`, head `022ae893…`, exact two.
+- Reconciliation worktree: `/private/tmp/contentos-m2-qual-030-merge-status-wt`.
+- Reconciliation branch: `codex/m2-qual-030-merge-status-sync`.
+- Reconciliation base/HEAD: `bdbc39d343be8f36ec78b97bb2aa4e58eb32b8d7`.
 - Candidate shape: one permitted material fresh-main exact-two documentation
   correction — this Packet plus `docs/implementation/roadmap.md`; observer,
   test, and all code remain zero diff and unpublished.
@@ -32,13 +37,31 @@ harness step. No rerun, replacement, or new head followed; no cause is
 inferred from that failure. The PR closure is not a successful publication or
 merge and does not change the Blocked terminal.
 
-This worktree records the one permitted material docs-only correction after
-that red. Its targeted documentation/static checks are PASS. Fresh exact-two
-publication reviews are also PASS/no findings; only first eligible
-quality/Integration/Browser CI and Orchestrator merge remain pending. If this
-correction's first eligible CI is red or missing, it closes unmerged with no
-unchanged rerun or replacement and M2-QUAL-031 owns the next work; no further
-material correction is authorized here.
+The one permitted material docs-only correction was published by PR243; the
+effective CI and merge facts are recorded below. This merge-status worktree
+records exactly the two tracked Packet/Roadmap reconciliation paths. Its own
+targeted documentation/static checks and reconciliation reviews are PASS/no
+findings; only the first eligible exact-head quality/Integration/Browser CI and
+Orchestrator merge remain pending. If this reconciliation's first eligible CI is
+red or missing, it
+closes unmerged with no unchanged rerun or replacement and M2-QUAL-031 owns the
+next work; no further material correction is authorized here.
+
+### Effective PR243 publication and merge-status boundary
+
+PR #243 (`docs: correct M2-QUAL-030 publication evidence`) published exactly Packet +
+Roadmap from base `69f6d287828bf57f11a02732579feebbde50bdc4` to head
+`022ae893…`. Its first eligible CI run `31377206706` passed quality (`2m14`),
+Integration (`3m03`), and Browser (`2m14`). Orchestrator squash/main
+`bdbc39d343be8f36ec78b97bb2aa4e58eb32b8d7` merged at
+`2026-08-10T10:04:09Z`. The effective terminal remains Blocked because the
+observer/test and the trailing-blank gap remain unpublished and no runtime
+attribution result was earned.
+
+The `gh` merge command returned nonzero only because local `main` was occupied
+by another worktree; read-only remote verification confirmed the merge and no
+second merge was attempted. This is historical publication evidence, not a
+new Git/GitHub action by this reconciliation agent.
 
 ## Frozen QUAL030 evidence
 
@@ -76,7 +99,8 @@ named/focused/root, and slot gates.
 ## Proportionality, files, and boundary review
 
 The correction is limited to documenting the closed-unmerged PR242 result and
-rebuilding the exact-two terminal record from the clean `69f6…` base. No hash or
+the effective PR243 exact-two publication. This reconciliation rebuilds only
+the tracked Packet/Roadmap record from `bdbc39d…`. No hash or
 SHA mechanism, new fixture/probe/assertion, raw transcript, residue inspection,
 lsof/ps, cleanup, diagnosis, matrix expansion, Docker, Integration, Browser,
 Concurrent, Worker, Fetcher, Renderer, deployment, Current-truth, API, Schema,
@@ -120,27 +144,35 @@ publication. `/root/m2_qual_014_dor_correctness` and
 frozen exact-four, Completion Report, and PR242 history. They do not authorize
 a merge after PR242's red. Fresh correction reviews by
 `/root/m2_qual_014_dor_correctness` and
-`/root/m2_qual_012_browser_setup_diagnosis` PASS/no findings, with the role,
-model, base/evidence set, and authority stated above. Their authority is
-limited to correction exact-two publication. Only first eligible
-quality/Integration/Browser CI and Orchestrator merge remain pending.
+`/root/m2_qual_012_browser_setup_diagnosis` PASS/no findings for the prior
+correction publication, with the role, model, base/evidence set, and authority
+stated above. PR243's publication CI and squash merge are effective as recorded
+above. Current merge-status reconciliation reviews by
+`/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis` are PASS/no findings. Both held role
+`INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual
+`UNVERIFIED_RUNTIME_MODEL`, and reviewed base/HEAD
+`bdbc39d343be8f36ec78b97bb2aa4e58eb32b8d7` plus the corrected tracked exact-two;
+authority is reconciliation-publication only. Targeted docs/static checks are
+PASS; only the first eligible exact-head quality/Integration/Browser CI and
+Orchestrator merge remain pending.
 
 ## Required candidate checks and recovery
 
-Only these commands are authorized in this correction worktree: targeted
+Only these commands are authorized in this reconciliation worktree: targeted
 Packet/Roadmap Prettier check, `repository:check`, `git diff --check`, and a
 read-only exact-two scope predicate. No runtime, focused, root, observer, test,
 install, GitHub, Issue, or implementation command runs here. The checks must
 record any ignored dependency materialization and any docs-only formatting fact
 without converting it into runtime evidence.
 
-The candidate terminal remains **Blocked — Harness Probe Attribution Not
+The effective terminal remains **Blocked — Harness Probe Attribution Not
 Verified**. The trailing-blank observer gap remains unrepaired, unrerun, and
 unpublished; no filesystem cause, repair, non-recurrence, M2 completion, or M3
 start is claimed. PR242's Integration red is a closed-unmerged publication
 boundary, not a diagnostic finding. A red or missing first eligible CI for this
-correction closes unmerged with no rerun/replacement/new head and transfers the
-next bounded work to M2-QUAL-031.
+reconciliation closes unmerged with no rerun/replacement/new head and transfers
+the next bounded work to M2-QUAL-031.
 
 Issue lifecycle remains unchanged: a merged Blocked record closes none; a
 Completed terminal would close #241, #238, #235, and #232 while #229 stays Open.
@@ -149,41 +181,49 @@ and no DEC is opened.
 
 ## Acceptance criteria
 
-1. The correction worktree starts clean at base/HEAD `69f6…` and ends with
-   exactly Packet + Roadmap; observer/test/code are zero diff.
+1. The reconciliation worktree starts at base/HEAD
+   `bdbc39d343be8f36ec78b97bb2aa4e58eb32b8d7` and ends with exactly the two
+   tracked Packet + Roadmap modifications; observer/test/code are zero diff.
 2. PR242 is recorded accurately as title/base/head exact-two, CLOSED unmerged,
    quality/Browser success, Integration failure at the named smoke step, with
    no rerun/replacement/new head and no inferred cause.
 3. Frozen first-red chronology, two RC0 silent comparisons, sole test comment,
    counter preservation, trailing-blank gap, post-red closeout, and dual frozen
    review PASS are preserved without claiming unearned runtime gates.
-4. Fresh correction reviews and docs/static scope PASS distinctly from PR242;
-   only first eligible three-job CI and Orchestrator merge are pending, and a
-   new red/missing result transfers to M2-QUAL-031.
+4. PR243's exact-two CI and squash/main merge are recorded as effective while
+   PR242 remains closed-unmerged; reconciliation docs/static checks and reviews
+   are PASS/no findings, and only first eligible three-job CI and Orchestrator
+   merge remain pending. A new red/missing result transfers to M2-QUAL-031.
 5. Issue, M2-GOV-006, M2, M3, DEC, security, code, runtime, and Git/GitHub
    boundaries remain unchanged.
 
 ## Candidate completion report
 
-- Summary: one material fresh-main exact-two docs-only correction candidate for
-  the closed-unmerged PR242 red; terminal remains Blocked.
-- Files: only this Packet and `docs/implementation/roadmap.md` in the named
-  correction worktree/branch/base; no code publication or commit.
-- Commands: the initial targeted docs Prettier check returned RC1 on this
-  Packet and materialized 571 locked packages under ignored `node_modules`;
-  one permitted docs-only Prettier write changed the Packet and left Roadmap
-  unchanged. The final docs Prettier check returned RC0, `repository:check`
-  returned RC0, `git diff --check` returned RC0, and the read-only scope
-  predicate returned `QUAL030_CORRECTION_EXACT_TWO verified` RC0. No formatter
-  write touched code, and no tracked/forbidden/unexpected path was created.
-- Tests/runtime: none run in this correction worktree. Frozen first-red and
+- Summary: merge-status reconciliation of effective PR243's exact-two Blocked
+  publication; PR242 remains closed-unmerged and the effective terminal remains
+  Blocked.
+- Files: tracked Packet + Roadmap only in
+  `/private/tmp/contentos-m2-qual-030-merge-status-wt` on
+  `codex/m2-qual-030-merge-status-sync` at `bdbc39d343be8f36ec78b97bb2aa4e58eb32b8d7`;
+  no code publication or commit.
+- Commands: reconciliation-targeted docs Prettier and `repository:check` both
+  materialized 571 locked packages under ignored `node_modules`; both returned
+  RC0, with no formatter write. `git diff --check` returned RC0, and the
+  tracked exact-two scope predicate returned
+  `QUAL030_RECONCILIATION_EXACT_TWO verified` RC0. The first read-only
+  exact-two scope predicate stopped before evaluation because zsh rejected its
+  reserved read-only `status` variable; this operator/shell-only failure made
+  no file, runtime, or evidence mutation and was not a runtime/CI red or rerun
+  laundering. The corrected predicate then returned the PASS above. No tracked,
+  forbidden, or unexpected path appeared.
+- Tests/runtime: none run in this reconciliation worktree. Frozen first-red and
   post-red evidence above remains the only implementation/runtime record.
 - Security/migration/compatibility/DEC: none; no secrets or product behavior.
 - Limitations: observer/test unpublished; trailing-blank gap and all unearned
-  implementation gates remain as stated; PR242 is closed unmerged.
-- Pending: first eligible quality/Integration/Browser CI and Orchestrator merge;
-  fresh dual exact-two reviews and final docs Prettier/repository/diff/exact-two
-  checks already PASS. A new red/missing CI requires M2-QUAL-031.
+  implementation gates remain as stated; PR242 is closed unmerged while PR243
+  is effective.
+- Pending: first eligible exact-head quality/Integration/Browser CI and
+  Orchestrator merge. A new red/missing CI requires M2-QUAL-031.
 - Lifecycle: Issues #241/#238/#235/#232/#229 Open; M2-GOV-006 Blocked; M2 In
   Progress; M3 Not Started.
 - Role/model: `IMPLEMENTER`; requested `luna-worker`; configured
