@@ -11,10 +11,24 @@
 - Type: Diagnostic Quality Work Item
 - Publication worktree: `/private/tmp/contentos-m2-qual-026-blocked-status-wt`
 - Publication branch: `codex/m2-qual-026-blocked-status-sync`
-- Publication base/HEAD: `1dd385b7248aa920e671a3070585eb58ef2e9c8f`
+- Publication base: `1dd385b7248aa920e671a3070585eb58ef2e9c8f`
 - Publication logical role: `PUBLICATION_CANDIDATE`
-- Publication physical shape: exact-two `M Roadmap + ?? Packet`; no other path
-- Publication PR/final head: pending; no GitHub mutation has occurred
+- Publication final head: `99e3c38b199fe014e93d77fbd35425a9ee0b520b`
+- Publication physical shape: exact-two tracked Packet + tracked Roadmap; no
+  other path
+- Effective publication PR: [#230](https://github.com/JettxonHo/ContentOS/pull/230),
+  `docs: record blocked M2-QUAL-026 attribution`
+- Effective publication CI: run `31352390533`, quality `2m01s`, Integration
+  `3m04s`, Browser `2m25s`, all success
+- Effective squash/main: `23050e690d1bf6233528e676242e1f5260871b8d`, merged at
+  `2026-08-10T03:25:17Z`
+- Effective publication status: terminal Blocked; Issue #229 remains Open
+- Reconciliation worktree: `/private/tmp/contentos-m2-qual-026-merge-status-wt`
+- Reconciliation branch: `codex/m2-qual-026-merge-status-sync`
+- Reconciliation base/HEAD: `23050e690d1bf6233528e676242e1f5260871b8d`
+- Reconciliation logical role: `RECONCILIATION_CANDIDATE`
+- Reconciliation physical shape: exact-two tracked Packet + tracked Roadmap;
+  no other path
 - Planning worktree: `/private/tmp/contentos-m2-qual-026-plan-wt`
 - Planning branch: `codex/m2-qual-026-process-command-probe-plan`
 - Planning base/HEAD: `1dd385b7248aa920e671a3070585eb58ef2e9c8f`
@@ -119,18 +133,18 @@ passed. The final physical scope predicate passed with exact-two `M Roadmap +
 distinct from the implementation exact-four static gate (count `0`); no
 runtime rerun occurred.
 
-## Fresh-main publication docs validation
+## Historical fresh-main publication docs validation
 
-The fresh publication worktree initially lacked `node_modules`. The first
-normal-permission targeted Packet/Roadmap Prettier check passed; `pnpm exec`
-materialized the locked workspace dependencies as an ignored tooling side
-effect. No explicit install/workspace/runtime/safety command was invoked or
-claimed, no tracked/forbidden/unexpected artifact appeared, and no runtime
-gate ran. The subsequent authorized `repository:check` passed, pure-Git
-`git diff --check` passed, and the final physical scope remained exact-two
-`M Roadmap + ?? Packet` with no unexpected path. These are publication
-docs/static checks only; the publication candidate remains non-effective until
-its own reviews, eligible CI, and Orchestrator merge complete.
+The historical fresh publication worktree initially lacked `node_modules`.
+The first normal-permission targeted Packet/Roadmap Prettier check passed while
+`pnpm exec` materialized the locked workspace dependencies as an ignored
+tooling side effect. No explicit install/workspace/runtime/safety command was
+invoked or claimed, no tracked/forbidden/unexpected artifact appeared, and no
+runtime gate ran. The subsequent authorized `repository:check` passed,
+pure-Git `git diff --check` passed, and the final physical scope remained
+exact-two `M Roadmap + ?? Packet` with no unexpected path. These completed
+docs/static checks are part of effective PR #230 evidence; they are not
+pending or re-earned by the current reconciliation.
 
 ## Terminal result and lifecycle
 
@@ -182,24 +196,88 @@ Blocked publication. It does not authorize code or observer/test publication,
 runtime rerun, Issue transition, completion, repair, M2/M3 change, or any
 Git/GitHub mutation.
 
-## Fresh-main publication requirements
+## Current reconciliation reviews
 
-This worktree is a fresh-main exact-two Blocked publication candidate, not an
-effective publication. Its two independent publication reviews and targeted
-Packet/Roadmap static/scope checks are PASS. The first eligible final-head
-quality, Integration, and Browser CI jobs remain pending, as does the
-Orchestrator squash merge. None of these pending steps may be implied by the
-local candidate or by the frozen implementation reviews.
+Two independent current reconciliation reviews are PASS with no findings; all
+corrections are closed:
 
-Only after the recorded publication reviews and targeted docs static/scope
-PASS, first eligible final-head three-job CI green, and Orchestrator squash
-merge may this exact-two documentation record become effective. A CI red/missing result
-closes the candidate PR unmerged with no unchanged rerun, replacement, or new
-head. At most one material fresh-main exact-two evidence correction may
-proceed with new publication reviews, targeted static/scope, and first
-eligible three-job CI; a second CI red/missing result requires M2-QUAL-027.
-No code or observer/test publication is allowed. Issue #229 stays Open until
-a merged Completed outcome; a merged Blocked record leaves it Open.
+- `/root/m2_qual_014_dor_correctness`, logical role
+  `INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual
+  `UNVERIFIED_RUNTIME_MODEL`;
+- `/root/m2_qual_012_browser_setup_diagnosis`, logical role
+  `INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual
+  `UNVERIFIED_RUNTIME_MODEL`.
+
+Both reviewed base/HEAD `23050e690d1bf6233528e676242e1f5260871b8d` and the
+corrected tracked exact-two Packet/Roadmap. Their authority is limited solely
+to reconciliation-publication. They do not authorize code or observer/test
+publication, runtime rerun, Issue transition, completion, repair, M2/M3
+change, or any Git/GitHub mutation. Reconciliation targeted docs static/scope
+are PASS; only first eligible exact-head quality/Integration/Browser CI and
+Orchestrator squash merge remain pending.
+
+## Effective publication and current reconciliation
+
+The fresh-main exact-two publication is effective through PR #230,
+`docs: record blocked M2-QUAL-026 attribution`. It used base
+`1dd385b7248aa920e671a3070585eb58ef2e9c8f`, final head
+`99e3c38b199fe014e93d77fbd35425a9ee0b520b`, and exactly the tracked Packet and
+Roadmap. Its first eligible CI run `31352390533` passed all required jobs:
+quality `2m01s`, Integration `3m04s`, and Browser `2m25s`. The Orchestrator
+squash-merged current main as
+`23050e690d1bf6233528e676242e1f5260871b8d` at `2026-08-10T03:25:17Z`.
+The effective terminal status remains exactly
+`Blocked — Process Command Probe Attribution Not Verified`; Issue #229 remains
+Open, predecessor Issues and code remain unchanged, M2-GOV-006 remains
+Blocked, M2 remains In Progress, and M3 remains Not Started.
+
+The current reconciliation is a separate exact-two candidate in worktree
+`/private/tmp/contentos-m2-qual-026-merge-status-wt`, branch
+`codex/m2-qual-026-merge-status-sync`, base/HEAD
+`23050e690d1bf6233528e676242e1f5260871b8d`, with tracked `M` Packet and
+tracked `M` Roadmap and no other path. It is proposed and non-effective;
+its two independent reviews and targeted docs static/scope are already PASS;
+only first eligible exact-head quality/Integration/Browser CI and Orchestrator
+squash merge remain pending.
+
+## Current reconciliation requirements
+
+This reconciliation preserves the historical publication reviews/static/CI/
+merge as completed evidence; those facts are not pending or re-earned. Its
+own independent reviews and targeted docs static/scope checks are now PASS;
+first eligible exact-head quality, Integration, and Browser CI jobs, and
+Orchestrator squash merge remain pending. None of these pending steps may
+reverse the effective Blocked status or Issue state.
+
+Only after reconciliation reviews/static PASS, first eligible exact-head
+three-job CI green, and Orchestrator squash merge may this reconciliation
+become effective. A reconciliation CI red/missing result closes its PR
+unmerged with no unchanged rerun, replacement, or new head. At most one
+material fresh exact-two evidence correction may proceed with new reviews,
+static checks, and first eligible three-job CI; a second red/missing result
+requires M2-QUAL-027. No code or observer/test publication is allowed. The
+reconciliation cannot reverse the effective Blocked status or Issue #229.
+
+## Merge-status reconciliation chronology
+
+The reconciliation started from clean current main squash
+`23050e690d1bf6233528e676242e1f5260871b8d` in the dedicated worktree and
+branch recorded above. The Packet and Roadmap were manually updated with
+`apply_patch` only. No runtime, safety, install, workspace, focused, root,
+Integration, Browser, observer, test, cleanup, or Git/GitHub/Issue command ran
+in this reconciliation epoch. The initial post-patch targeted Packet/Roadmap
+Prettier check was red because of one accidental leading `-` in the Packet
+Completion Report. One bounded docs-only `apply_patch` correction removed that
+operator formatting error; the final targeted Prettier check passed, followed
+by passing `repository:check`, `git diff --check`, tracked-exact-two,
+forbidden, and no-unexpected checks. The first Prettier invocation also
+materialized locked ignored dependencies because the fresh worktree lacked
+`node_modules`; this tooling side effect created no tracked, forbidden, or
+unexpected path. The formatting red and correction were operator/docs-only,
+not a runtime or CI red, rerun laundering, or terminal-status change; no
+runtime rerun occurred. The actual frozen shape is exactly two tracked
+modifications—Packet and Roadmap—with no other path. These docs/static checks
+do not alter the effective publication facts.
 
 ## Security, migration, observability, and documentation
 
@@ -219,46 +297,55 @@ runbook, observer, or test update is authorized.
 
 ## Acceptance criteria
 
-1. The fresh-main publication candidate is exact-two from
-   `1dd385b7248aa920e671a3070585eb58ef2e9c8f`, with no forbidden or unexpected
-   path.
+1. The historical fresh-main publication is effective from base
+   `1dd385b7248aa920e671a3070585eb58ef2e9c8f` through PR #230 and squash/main
+   `23050e690d1bf6233528e676242e1f5260871b8d`; the current reconciliation is
+   exact-two from that squash with no forbidden or unexpected path.
 2. The terminal Blocked status, S1 SyntaxError, S4 harness-probe result,
    count-zero evidence, docs closeout, and implementation/reviewer metadata
    are preserved without raw evidence.
-3. Publication reviews and targeted docs static/scope checks are PASS for this
-   candidate. Only first eligible final-head quality/Integration/Browser CI and
-   Orchestrator squash merge remain pending until their own evidence is
-   complete.
+3. Historical publication reviews, targeted docs static/scope, first eligible
+   final-head quality/Integration/Browser CI, and Orchestrator merge are
+   complete and effective. The current reconciliation's targeted docs
+   static/scope and independent reviews are PASS; only first eligible
+   exact-head three-job CI and Orchestrator merge remain pending.
 4. Issue #229 and all linked Issue/M2/M3/DEC boundaries remain exact.
 
-## Publication candidate completion report
+## Merge-status reconciliation completion report
 
-- **Summary:** Fresh-main exact-two Blocked Packet/Roadmap publication
-  candidate reconstructed manually from the frozen terminal evidence; it is
-  not yet effective.
-- **Files changed:** This new Packet and `docs/implementation/roadmap.md`
-  only; no observer/test or forbidden path.
-- **Commands:** Initial pure-Git base/branch/shape predicates passed. The
-  targeted Packet/Roadmap Prettier check passed while `pnpm exec`
-  materialized locked ignored dependencies in the initially dependency-free
-  worktree; `repository:check` passed; pure-Git `git diff --check`, exact-two,
-  forbidden, and no-unexpected predicates passed. No explicit install,
-  workspace, runtime, safety, or test command was invoked or claimed.
+- **Summary:** PR #230 is the effective fresh-main exact-two Blocked
+  publication; this merge-status reconciliation records its immutable facts
+  and proposes a separate exact-two reconciliation from squash/main
+  `23050e690d1bf6233528e676242e1f5260871b8d`.
+- **Files changed:** Tracked QUAL026 Packet and
+  `docs/implementation/roadmap.md` only; no observer/test or forbidden path.
+- **Commands:** Historical publication docs static/scope and CI facts are
+  recorded above. Current reconciliation's initial post-patch targeted
+  Packet/Roadmap Prettier check was red for one accidental leading `-` in the
+  Packet Completion Report; one bounded docs-only `apply_patch` correction
+  followed, and final targeted Prettier, `repository:check`, pure-Git
+  `git diff --check`, tracked-exact-two, forbidden, and no-unexpected checks
+  passed. The first Prettier invocation materialized locked ignored
+  dependencies because `node_modules` was absent; no tracked, forbidden, or
+  unexpected repository path changed and no runtime gate ran. This was an
+  operator/docs formatting event only, not a runtime/CI red or terminal change.
 - **Tests:** No runtime, safety, install, workspace, focused, root,
   Integration, Browser, Worker, observer, or Concurrent tests are authorized
-  or run in this publication candidate.
-- **Acceptance criteria:** Frozen Blocked evidence and exact-two boundaries
-  are preserved; publication reviews and targeted docs static/scope are PASS,
-  while first eligible three-job CI and Orchestrator merge remain pending.
+  or run in this reconciliation candidate.
+- **Acceptance criteria:** Effective PR #230 facts and terminal Blocked
+  evidence are preserved; reconciliation reviews and targeted docs
+  static/scope are PASS; only first eligible exact-head quality/Integration/
+  Browser CI and Orchestrator squash merge remain pending.
 - **Security impact:** No product or security behavior changed; no raw
   sensitive evidence retained.
 - **Known limitations:** The process-command probe was not attributed; no
   observer-derived clear/red result or root-cause claim exists.
-- **Incomplete items:** First eligible three-job CI and Orchestrator merge
-  remain pending; reviews/static PASS does not make publication effective.
+- **Incomplete items:** First eligible exact-head three-job CI and
+  Orchestrator merge remain pending; reconciliation reviews/static/scope are
+  PASS and none can reverse effective publication or Issue state.
 - **Documentation updates:** Packet and Roadmap only.
 - **Possible new DEC:** None.
-- **Git status:** Publication candidate is expected to remain exact-two
-  `M Roadmap + ?? Packet` on base/HEAD
-  `1dd385b7248aa920e671a3070585eb58ef2e9c8f`; no stage/commit/push/PR/merge
+- **Git status:** Reconciliation is exact-two tracked `M` Packet plus tracked
+  `M` Roadmap on base/HEAD
+  `23050e690d1bf6233528e676242e1f5260871b8d`; no stage/commit/push/PR/merge
   or Issue mutation is authorized for this agent.
