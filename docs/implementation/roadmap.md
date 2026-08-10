@@ -267,6 +267,8 @@ The first Agent is not implemented in M2. It consumes only Approved Source Versi
 | `M2-QUAL-028 — Corrected Preflight-Outcome Harness-Probe Fresh-Main Replay` | Correct the frozen QUAL027 preflight unexpected-output contract through one bounded TDD fixture and preserve the fresh-main Blocked attribution record without publishing observer/test code. | QUAL027 effective Blocked through PR #233 and reconciliation PR #234; Issue #235 Open and linked to #232/#229 | **Blocked — Harness Probe Attribution Not Verified.** [Work Packet](work-packets/m2-qual-028-corrected-preflight-outcome-harness-probe-fresh-main-replay.md). Fresh publication candidate worktree /private/tmp/contentos-m2-qual-028-blocked-status-wt, branch codex/m2-qual-028-blocked-status-sync, base/HEAD 4767d07b88e4d7087e770d017ee7ca323c8bae7d, exact two docs only; observer/test remain unpublished. The frozen implementation metadata is thread /root/m2_qual_028_implementation, role IMPLEMENTER, requested luna-worker, configured gpt-5.6-luna Max, actual UNVERIFIED_RUNTIME_MODEL. Frozen evidence records one exact preflight RC0, pnpm 11.17.0/install/workspace RC0, the planned TDD red RC1 with 1 failed / 12 skipped / 0 other failures and the fixed expected-versus-received mismatch, one source patch/code Prettier write, then sole closed-delta RC1 QUAL028_DELTA blocked; implementation-sequence code static/focused/slots/root counts remained 0. Two code/test adequacy gaps remain frozen, unrepaired, unrerun, and unpublished: multiline-vs-one-line Prettier catch byte mismatch in the delta predicate (candidate test otherwise matches) and no setter-call counter for exactly-one exit assignment. Frozen exact-four closeout after the delta RC1 preserved implementation-sequence code static/focused/slots/root counts at 0; the Packet/Roadmap evidence write was followed by a first final exact-four Prettier RC1 solely for Packet formatting, one docs-only Packet/Roadmap Prettier write, and final exact-four Prettier/repository/diff/scope PASS. This is separate from the fresh candidate chronology. Fresh candidate docs/static/scope checks PASS. Fresh exact-two publication reviews PASS with no publication docs findings by /root/m2_qual_014_dor_correctness and /root/m2_qual_012_browser_setup_diagnosis, role INDEPENDENT_REVIEWER, requested gpt-5.6-sol High, actual UNVERIFIED_RUNTIME_MODEL, reviewing base/HEAD 4767d07b88e4d7087e770d017ee7ca323c8bae7d and the corrected exact-two against the frozen exact-four; the adequacy gaps remain frozen and unpublished. Authority is exact-two Blocked publication only. Only the first eligible quality/Integration/Browser CI result and Orchestrator merge remain pending/non-effective. Initial candidate Packet-only Prettier check was RC1; it materialized only ignored locked node_modules with no tracked or unexpected artifact. One authorized Packet/Roadmap-only Prettier write corrected formatting; final docs/static/scope verification is the separate closeout and is not a runtime red, rerun, or cleanup event. Effective PR #236 (`docs: record blocked M2-QUAL-028 replay`) used base 4767d07b88e4d7087e770d017ee7ca323c8bae7d, final head 306e317e82450eb8dc9d36d5e8902bfbe529d8de, and exactly two docs (Packet + Roadmap). Its first eligible CI run 31363832768 passed quality 1m59, Integration 2m59, and Browser 2m16. Orchestrator squash/main fee37c125352302c07d221639ac007db3ec18565 merged at 2026-08-10T06:59:14Z. The gh merge command was nonzero only after the remote merge because local main was owned by another worktree; read-only verification confirmed the remote merge and no second merge was attempted. The effective terminal remains Blocked and Issues #235/#232/#229 remain Open; observer/test remain unpublished and both adequacy gaps remain unresolved, frozen, and unpublished. Current reconciliation identity is /private/tmp/contentos-m2-qual-028-merge-status-wt, branch codex/m2-qual-028-merge-status-sync, base/HEAD fee37c125352302c07d221639ac007db3ec18565, with exactly two tracked modifications (Packet + Roadmap) and no other path. Reconciliation targeted Packet/Roadmap Prettier, repository:check, git diff --check, tracked exact-two, forbidden, and no-unexpected checks PASS. Reconciliation reviews and targeted docs/static/scope are PASS; only the next first eligible exact-head three-job CI result and any further Orchestrator merge action remain pending and non-effective. The full recovery rule remains one material fresh exact-two evidence correction at most; a second red or missing first eligible result requires M2-QUAL-029, with no unchanged rerun, replacement head, or Issue transition. One material correction is allowed; a second red or missing result requires M2-QUAL-029. Issue #235/#232/#229 remain Open; M2 remains In Progress; M3 remains Not Started; no DEC, security/product behavior, or Git/GitHub/Issue mutation is claimed. |
 | `M2-QUAL-029 — Closed Harness-Probe Fixture and Real Phase-1 Fresh-Main Replay` | Close only the two frozen QUAL028 validation gaps and run the existing Harness Probe Phase-1 observer without changing observer behavior. | QUAL028 effective Blocked and reconciled through PR #237 on main `0c94e1b8f34185ff26d92ec9d1a6f235eb7a54c2`; Issue #238 Open and linked to #235/#232/#229 | **Blocked — Harness Probe Attribution Not Verified.** [Work Packet](work-packets/m2-qual-029-closed-harness-probe-fixture-real-phase1-replay.md), Issue #238. Explicit handoff used thread `/root/m2_qual_029_implementation` and worktree `/private/tmp/contentos-m2-qual-029-plan-wt` at base/HEAD `0c94e1b8f34185ff26d92ec9d1a6f235eb7a54c2`, role `IMPLEMENTER`, requested `luna-worker`, configured `gpt-5.6-luna` Max, actual runtime `UNVERIFIED_RUNTIME_MODEL` with runtime identity unavailable; every governed process call was normal-permission-first in recorded order. Local shape reached exact four (observer, test, Packet, Roadmap), with observer/test unpublished. Baseline reconstruction/equality predicates passed RC0; first Node24 preflight, pnpm 11.17.0/frozen install/workspace, targeted Prettier/repository/diff checks, named fixture (`1 file / 1 passed / 12 skipped`), and focused file (`1 file / 13 tests passed`) passed once. Real slot 1 returned the valid fixed RC20 record `Harness harness-probe predicate=red reason=over-cap entries=over-cap failures=one`, so slots 2–3 were not consumed. The single root `check` then stopped RC2 at typecheck after format/lint passed on `src/harness-probe-observer.test.ts(269,20): TS2307 Cannot find module './integration/observe-harness-probe.js?import-safe'`; first-red rules prohibited rerun, replacement, code correction, extra probe, cleanup, and later implementation/runtime gates. Post-root, Packet/Roadmap evidence sync (including one targeted docs Prettier write) and allowed read-only diff/scope closeout ran. The final exact-four Prettier and `repository:check` are recorded as a bounded docs-only, non-runtime contract deviation beyond the ordinary-red clause; `git diff --check` and fixed exact-four/forbidden/no-unexpected scope `QUAL029_SCOPE verified` were permitted read-only closeout. The deviation is not rerun laundering, cannot restore Completed, and terminal remains Blocked; root test/builds, slots 2–3, and later implementation/runtime counts remain `0`/unearned. Frozen exact-four independent reviews by `/root/m2_qual_014_dor_correctness` and `/root/m2_qual_012_browser_setup_diagnosis` are PASS with no remaining docs/evidence findings (both role `INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual `UNVERIFIED_RUNTIME_MODEL`, reviewed base/HEAD `0c94e1b8f34185ff26d92ec9d1a6f235eb7a54c2`, corrected physical exact-four, and Completion Report). Their authority is limited to separate fresh-main exact-two Blocked Packet/Roadmap publication; no observer/test publication, runtime rerun/repair, Issue/M2/M3/Git action, or terminal-status change is authorized. Current fresh-main exact-two candidate is `/private/tmp/contentos-m2-qual-029-blocked-status-wt` on `codex/m2-qual-029-blocked-status-sync` at base/HEAD `0c94e1b8f34185ff26d92ec9d1a6f235eb7a54c2`, with exact-two Packet+Roadmap and observer/test/code zero. Its initial targeted Packet/Roadmap Prettier check RC0 materialized only ignored locked `node_modules`, with no tracked/forbidden/unexpected artifact and no formatting write; `repository:check` RC0, `git diff --check` RC0, and `QUAL029_EXACT_TWO verified` RC0. Current candidate docs/static/scope and exact-two publication reviews are PASS with no findings. Reviews by `/root/m2_qual_014_dor_correctness` and `/root/m2_qual_012_browser_setup_diagnosis`, both role `INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual `UNVERIFIED_RUNTIME_MODEL`, reviewed base/HEAD `0c94e1b8f34185ff26d92ec9d1a6f235eb7a54c2`, the corrected current exact-two, the frozen exact-four, and Completion Report; authority is exact-two Blocked publication only. Only the first eligible exact-head quality/Integration/Browser three-job CI and Orchestrator merge remain pending/non-effective. No runtime/code/GitHub/Issue action occurred. Final exact-two publication, CI, and merge remain unearned; no code/current-truth/DEC/Issue/M2/M3 mutation or broader attribution claim is made. Issues #238/#235/#232/#229 remain Open; M2 remains In Progress and M3 remains Not Started. |
 
+| `M2-QUAL-030 — Import-Safe Harness Probe Typecheck Correction and Final Phase-1 Replay` | Preserve the bounded import-safe typecheck correction and record the one permitted material fresh-main exact-two evidence correction after the prior publication red. | QUAL029 effective Blocked after PR #239 and reconciliation PR #240; Issue #241 Open and linked to #238/#235/#232/#229 | **Blocked — Harness Probe Attribution Not Verified.** [Work Packet](work-packets/m2-qual-030-import-safe-harness-probe-typecheck-correction-final-phase1-replay.md), Issue #241. Prior PR #242 (`docs: record blocked M2-QUAL-030 replay`) used base `69f6d287828bf57f11a02732579feebbde50bdc4`, head `673bc43…`, and exactly Packet + Roadmap; it is CLOSED unmerged. First eligible CI `31375793099` passed quality `2m16` and Browser `2m24` but failed Integration `2m58` at the Integration smoke harness step; no rerun, replacement, new head, or inferred cause followed. The unique permitted correction candidate is `/private/tmp/contentos-m2-qual-030-blocked-correction-wt` on `codex/m2-qual-030-blocked-status-correction`, base/HEAD `69f6d287828bf57f11a02732579feebbde50bdc4`, exact two docs only with observer/test/code zero diff and no copied code. Frozen evidence retains the two silent RC0 comparisons, sole test comment, QUAL029 counter, trailing-blank gap unrepaired/unrerun/unpublished, first code-Prettier red, unearned implementation counts, post-red docs closeout, and dual frozen review PASS. Candidate docs/static/scope checks PASS: initial docs Prettier RC1 materialized 571 ignored packages, one docs-only write corrected Packet formatting, final docs Prettier/repository/diff/exact-two (`QUAL030_CORRECTION_EXACT_TWO verified`) passed. Fresh dual exact-two reviews PASS/no findings by `/root/m2_qual_014_dor_correctness` and `/root/m2_qual_012_browser_setup_diagnosis`, role `INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual `UNVERIFIED_RUNTIME_MODEL`, with authority correction exact-two publication only. Only first eligible quality/Integration/Browser CI and Orchestrator merge remain pending. If this correction's first eligible CI is red or missing, it closes unmerged with no unchanged rerun/replacement and M2-QUAL-031 owns the next bounded work. Issues #241/#238/#235/#232/#229 remain Open; M2-GOV-006 remains Blocked; M2 remains In Progress; M3 remains Not Started; no runtime/code/GitHub/Issue/DEC mutation is claimed. |
+
 ### M2-QUAL-028 current reconciliation review
 
 The current reconciliation has two independent PASS/no-findings reviews: /root/m2_qual_014_dor_correctness and /root/m2_qual_012_browser_setup_diagnosis, both role INDEPENDENT_REVIEWER, requested gpt-5.6-sol High, actual UNVERIFIED_RUNTIME_MODEL. Both reviewed base/HEAD fee37c125352302c07d221639ac007db3ec18565 and the corrected tracked exact-two Packet/Roadmap; authority is reconciliation-publication only. Reviews and targeted docs/static/scope are PASS. Only the first eligible exact-head quality/Integration/Browser three-job CI result and Orchestrator squash merge remain pending and non-effective; the effective QUAL028 terminal remains Blocked and its recovery/Issue boundaries are unchanged.
@@ -275,40 +277,51 @@ The current reconciliation has two independent PASS/no-findings reviews: /root/m
 
 Effective PR #239 (`docs: record blocked M2-QUAL-029 replay`) used base
 `0c94e1b8f34185ff26d92ec9d1a6f235eb7a54c2`, final head
-`47deeb03ed4813719d2b3451e86f6c54c3e4b6f1`, and exactly two docs (Packet +
-Roadmap). First eligible CI run `31369654311` passed quality `2m00`,
-Integration `3m09`, and Browser `2m28`. Orchestrator squash/main
+`47deeb03ed4813719d2b3451e86f6c54c3e4b6f1`, and exactly two docs. First
+eligible CI run `31369654311` passed quality `2m00`, Integration `3m09`, and
+Browser `2m28`; Orchestrator squash/main
 `5d6423194c006838747ed7cccea453793253ac1e` merged at
-`2026-08-10T08:24:25Z`; the effective terminal remains Blocked and Issues
-#238/#235/#232/#229 remain Open. QUAL028's historical reference and history
-remain immutable. QUAL029 locally closed and verified both validation gaps:
-direct frozen-observer equality accepted the formatted one-line catch, and the
-counter/increment/assertion plus named/focused PASS proved one exit-setter
-assignment. Observer/test code and those corrections remain unpublished; the
-current Blocked boundary is the root TS2307 first red on the query-suffixed
-`./integration/observe-harness-probe.js?import-safe` import. No broader cause,
-repair, non-recurrence, or readiness claim is added.
+`2026-08-10T08:24:25Z`. Reconciliation PR #240 used base
+`5d6423194c006838747ed7cccea453793253ac1e`, final head `76e96f…`, exactly two
+docs, and CI run `31371008362` passed quality `2m13`, Integration `2m32`, and
+Browser `2m31`; Orchestrator squash/current main
+`69f6d287828bf57f11a02732579feebbde50bdc4` merged at
+`2026-08-10T08:42:09Z`. QUAL029 is effective Blocked: its gaps were locally
+verified but observer/test code remains unpublished, and the current root
+boundary is TS2307 on the query-suffixed import. No broader cause, repair,
+non-recurrence, or readiness claim is added.
 
-Current reconciliation identity is worktree
+Current QUAL029 reconciliation identity was
 `/private/tmp/contentos-m2-qual-029-merge-status-wt`, branch
-`codex/m2-qual-029-merge-status-sync`, base/HEAD
-`5d6423194c006838747ed7cccea453793253ac1e`, with exactly two tracked
-modifications (Packet + Roadmap) and no other path. Targeted Packet/Roadmap
-Prettier, `repository:check`, `git diff --check`, tracked exact-two, forbidden,
-and no-unexpected checks are PASS. Reconciliation reviews are PASS with no
-findings by `/root/m2_qual_014_dor_correctness` and
-`/root/m2_qual_012_browser_setup_diagnosis`, both role
+`codex/m2-qual-029-merge-status-sync`, at base/HEAD
+`5d6423194c006838747ed7cccea453793253ac1e`; its exact-two docs, static/scope
+checks, and reconciliation reviews were PASS. Effective current truth is main
+`69f6d287828bf57f11a02732579feebbde50bdc4` with QUAL029 Blocked and Issues
+#238/#235/#232/#229 Open. The unique QUAL030 material correction candidate is
+identified above and below; PR242 is closed unmerged and no runtime/code/
+GitHub/Issue action is claimed.
+
+### M2-QUAL-030 correction candidate
+
+The candidate worktree is `/private/tmp/contentos-m2-qual-030-blocked-correction-wt`
+on `codex/m2-qual-030-blocked-status-correction`, base/HEAD
+`69f6d287828bf57f11a02732579feebbde50bdc4`, with exactly Packet + Roadmap and
+observer/test/code zero diff. Prior PR242's first eligible Integration red is
+recorded above; no rerun, replacement, new head, or cause inference occurred.
+Prior exact-two publication reviews by `/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis` were PASS/no findings as
 `INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual
-`UNVERIFIED_RUNTIME_MODEL`, reviewing base/HEAD
-`5d6423194c006838747ed7cccea453793253ac1e` plus the corrected tracked
-exact-two Packet/Roadmap. Their authority is reconciliation-publication only.
-Reviews and docs/static/scope are PASS; only the next first eligible exact-head
-quality/Integration/Browser three-job CI result and Orchestrator squash merge
-remain pending and non-effective. The bounded recovery rule remains at most one
-material fresh exact-two evidence correction with new reviews/static/CI; a
-second red or missing first eligible result requires M2-QUAL-030, with no
-unchanged rerun, replacement head, or Issue transition. No runtime/code/GitHub/
-Issue action is claimed.
+`UNVERIFIED_RUNTIME_MODEL`, with authority limited to exact-two Blocked
+publication. The correction candidate was reviewed by the same two reviewers
+against base/HEAD `69f6d287828bf57f11a02732579feebbde50bdc4`, corrected exact2,
+frozen exact4, Completion Report, and PR242 history; both PASS/no findings with
+authority limited to correction exact-two publication. Candidate docs/static/
+scope checks are PASS. Only first eligible quality/Integration/Browser CI and
+Orchestrator merge remain pending.
+If this
+correction's first eligible CI is red or missing, its PR closes unmerged with no
+unchanged rerun/replacement and M2-QUAL-031 owns the next bounded work. Issue
+and milestone boundaries remain unchanged.
 
 ## 10. M3 — Research
 
