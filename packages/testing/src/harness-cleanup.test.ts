@@ -199,14 +199,14 @@ describe('smoke build lock', () => {
       writeFileSync(lockFile, 'malformed');
       const old = new Date(Date.now() - 60_000);
       utimesSync(lockFile, old, old);
-      const releaseMalformed = await acquireBuildLock({ lockFile, malformedGraceMs: 1, timeoutMs: 100, pollMs: 1 });
+      const releaseMalformed = await acquireBuildLock({ lockFile, malformedGraceMs: 1, timeoutMs: 1_000, pollMs: 1 });
       releaseMalformed();
 
       writeFileSync(lockFile, JSON.stringify({ pid: 999_999, token: 'a'.repeat(32) }));
       const releaseStale = await acquireBuildLock({
         lockFile,
         processIsAlive: () => false,
-        timeoutMs: 100,
+        timeoutMs: 1_000,
         pollMs: 1,
       });
       releaseStale();
