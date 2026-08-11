@@ -271,7 +271,8 @@ The first Agent is not implemented in M2. It consumes only Approved Source Versi
 
 | `M2-QUAL-031 — Harness Probe Observer Trailing-Blank Correction and Final Phase-1 Replay` | Reconcile the effective Blocked attribution record without publishing observer/test code. | QUAL030 effective Blocked after PR #243 and reconciliation PR #244; Issues #245/#241/#238/#235/#232/#229 Open | **Blocked — Harness Probe Attribution Not Verified.** [Work Packet](work-packets/m2-qual-031-harness-probe-observer-trailing-blank-correction-final-phase1-replay.md). Historical PR #246 (`docs: record blocked M2-QUAL-031 replay`) used base `d8553d8...`, head `fe67ee7...`, and exact2 Packet + Roadmap. Effective reconciliation PR #247 (`docs: reconcile M2-QUAL-031 merge status`) used base `3daaa50...`, head `4cf33d3...`, exact2 Packet + Roadmap; run `31385389148` passed quality `2m04`, Integration `3m00`, and Browser `2m04`; squash/current main `9188f9b...` merged at `2026-08-10T11:55:32Z`. PR247 is effective with no CI or merge pending. Observer/test/code and the frozen attribution gap remain unpublished; Issues #245/#241/#238/#235/#232/#229 remain Open; M2 remains In Progress, M3 remains Not Started, no DEC, and recovery is historical QUAL032. |
 | `M2-QUAL-032 — Zsh-Safe Scope Predicate Variable Correction and Final Phase-1 Replay` | Preserve the historical bounded RC20 attribution while recording its failed publication quality gate and handing recovery to QUAL033. | QUAL031 effective through PR #247; Issue #248 Open | **Blocked — Publication Quality Gate Red.** Frozen local evidence retained a valid RC20 attribution. PR #249 (`docs: record reproduced M2-QUAL-032 replay`) is CLOSED and unmerged after run `31494958813`; quality failed at the malformed-lock success `acquireBuildLock` on line 202 of the combined test title before the dead-owner and live-lock assertions; Integration and Browser succeeded. No rerun, replacement, or new head followed. Issue #248 remains Open; recovery is M2-QUAL-033. |
-| `M2-QUAL-033 — Build-Lock Success-Path Test Timeout Stabilization and QUAL032 Publication Recovery` | Stabilize only the two success-path build-lock test timeouts and recover the QUAL032 publication boundary without changing production lock behavior. | QUAL032 PR #249 closed unmerged after run `31494958813` quality red; Issue #250 Open linked to #248/#229 | **In Review — Exact-three evidence/reviews/static PASS; publication pending.** [Work Packet](work-packets/m2-qual-033-build-lock-success-path-test-timeout-stabilization-qual032-publication-recovery.md). Planning exact2 is `/private/tmp/contentos-m2-qual-033-plan-wt` on `codex/m2-qual-033-build-lock-test-stability-plan`, base/HEAD `9188f9b...`; eventual implementation exact3 is Packet + Roadmap + `harness-cleanup.test.ts`. Handoff is recorded on thread `/root/m2_qual_030_planning`, role `IMPLEMENTER`, requested `luna-worker`, configured `gpt-5.6-luna` Max, actual `UNVERIFIED_RUNTIME_MODEL`. Two independent implementation-evidence reviews PASSed with no findings/all documentation findings closed. The two success-path `timeoutMs: 100` literals became `1_000`; exact diff/static/scope, named `1 passed / 13 skipped`, full `14`, and root `54 files / 578 tests` plus five builds all passed once. Production helper/negative `20ms` assertions are unchanged; no Integration/Browser/observer/Worker/Concurrent/Docker suite ran. PR249 remains CLOSED/unmerged with no rerun/replacement/new head. Only exact-head publication static (if still required by contract), first eligible three-job CI, and Orchestrator-only squash merge remain pending; Issue #250/#248 lifecycle and no M2 exit review remain unchanged. |
+| `M2-QUAL-033 — Build-Lock Success-Path Test Timeout Stabilization and QUAL032 Publication Recovery` | Stabilize only the two success-path build-lock test timeouts and recover the QUAL032 publication boundary without changing production lock behavior. | QUAL032 PR #249 closed unmerged after run `31494958813` quality red; Issue #250 Open linked to #248/#229 | **Completed.** [Work Packet](work-packets/m2-qual-033-build-lock-success-path-test-timeout-stabilization-qual032-publication-recovery.md). The exact-three test/document candidate passed its local gates and independent reviews; PR #251 (`test: stabilize build-lock reclamation timing`) was effective on current main `f29b670` after first eligible run `31500007706` passed quality, Integration, and Browser, merged at `2026-08-11T14:12:54Z`. PR #251 closed #250, #248, #245, #241, #238, #235, and #232; #229 and the Worker chain remain Open. PR #252 (`docs: reconcile M2-QUAL-033 merge status`) is CLOSED and unmerged: run `31500810408` passed quality and Browser but failed Integration only in the existing expired-lease generation-N+1 Job wait after `process.started` (`184/185`); no rerun, replacement head, or inferred cause followed. QUAL034 owns the next Worker publication/revalidation boundary. |
+| `M2-QUAL-034 — Worker Outbox Observation Repair Publication and Final Revalidation` | Publish a fresh-main exact-two Blocked record for the frozen QUAL034 Worker Outbox observation evidence without publishing Worker or QUAL003 code/docs. | QUAL033 effective through PR #251; PR #252 closed unmerged on the non-target expired-lease generation-N+1 red; Issue #253 Open linked to #229/#226/#222/#218/#215/#208/#204/#196/#147; body parity re-synchronized by the Orchestrator after the final docs sync | **Blocked — Final exact-four documentation formatting gate red.** [Work Packet](work-packets/m2-qual-034-worker-outbox-observation-repair-publication-final-revalidation.md). Fresh candidate `/private/tmp/contentos-m2-qual-034-blocked-status-wt`, branch `codex/m2-qual-034-blocked-status-sync`, base/HEAD `f29b67023f0c3634d7666e7ed7b3026900f8a01a`; physical status `M docs/implementation/roadmap.md` + `?? docs/implementation/work-packets/m2-qual-034-worker-outbox-observation-repair-publication-final-revalidation.md`, with Worker/QUAL003/code zero diff and no unexpected path. Frozen chronology records one binding/three bounded waits, Worker 3×7/7, root 54/578+5 builds, Integration 27/185, Browser 16/16, Concurrent outer RC0, then final exact-four Packet-only Prettier RC1 with later static/scope checks unearned. Candidate construction Prettier write returned RC0, reported both files unchanged, and materialized 571 ignored dependencies; subsequent targeted Prettier/repository/diff/exact-two code-zero/no-unexpected checks each passed once. Current exact-two reviews by `/root/m2_qual_014_dor_correctness` and `/root/m2_qual_012_browser_setup_diagnosis` PASSed with no findings (INDEPENDENT_REVIEWER, requested `gpt-5.6-sol` High, actual `UNVERIFIED_RUNTIME_MODEL`, reviewed base/HEAD `f29b67023f0c3634d7666e7ed7b3026900f8a01a` against frozen exact-four/Completion); authority is exact-two Blocked publication only. Pending only first eligible exact-head quality/Integration/Browser CI and Orchestrator squash merge; red/missing closes unmerged with no same-head rerun/replacement and recovery QUAL035. All Issues remain Open, code/QUAL003 unpublished, stale QUAL003 appendix disclosure preserved. |
 
 ### M2-QUAL-033 independent implementation review
 
@@ -339,6 +340,45 @@ or evidence laundering.
 Final planning checks are recorded as PASS: targeted Packet/Roadmap Prettier,
 `repository:check`, `git diff --check`, and `QUAL033_PLANNING_EXACT_TWO
 verified`.
+
+### M2-QUAL-034 fresh exact-two Blocked candidate
+
+The fresh publication candidate is `/private/tmp/contentos-m2-qual-034-blocked-status-wt`
+on `codex/m2-qual-034-blocked-status-sync`, base/HEAD
+`f29b67023f0c3634d7666e7ed7b3026900f8a01a`. Its physical status is
+`M docs/implementation/roadmap.md` plus
+`?? docs/implementation/work-packets/m2-qual-034-worker-outbox-observation-repair-publication-final-revalidation.md`;
+the Packet is untracked and no other path is present. Worker, QUAL003, and
+code remain zero diff. The candidate carries forward the frozen one-binding /
+three-wait evidence, focused Worker 3×7/7, root 54/578 plus five builds,
+Integration 27/185, Browser 16/16, Concurrent outer RC0, final exact-four
+Packet-only Prettier RC1, unearned later static/scope counts, and the stale
+unpublished QUAL003 appendix disclosure. Terminal status is
+**Blocked — Final exact-four documentation formatting gate red**; all Issues
+remain Open and recovery is QUAL035.
+
+Construction formatting chronology is factual: the one Orchestrator-authorized
+candidate Packet/Roadmap Prettier write returned `RC=0`, reported both files
+unchanged, and materialized 571 ignored dependencies. The subsequent targeted
+Packet/Roadmap Prettier check, `repository:check`, `git diff --check`, and
+read-only `QUAL034_CANDIDATE_EXACT_TWO verified` code-zero/no-unexpected
+predicate each ran once and passed `RC=0`. These were documentation/static
+checks only, not implementation/runtime reruns or evidence laundering.
+
+**Current exact-two review and Completion Report (candidate):** the corrected
+candidate was reviewed by `/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis`, both
+`INDEPENDENT_REVIEWER`, requested `gpt-5.6-sol` High, actual
+`UNVERIFIED_RUNTIME_MODEL`; they reviewed base/HEAD
+`f29b67023f0c3634d7666e7ed7b3026900f8a01a` against the frozen exact-four
+evidence and Completion Report and returned PASS/no findings. Authority is
+exact-two Blocked publication only. The only remaining sequence is the first
+eligible exact-head quality/Integration/Browser three-job CI, then
+Orchestrator squash merge; red/missing closes unmerged with no same-head
+rerun/replacement and recovery QUAL035. Issue #253 body parity was
+re-synchronized by the Orchestrator after this docs sync. Only the new
+Packet and Roadmap are in the candidate; Worker/QUAL003/code remain
+unpublished, and no runtime/test/Git/GitHub/Issue/commit/merge action occurred.
 
 ### M2-QUAL-028 current reconciliation review
 
