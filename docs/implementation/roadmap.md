@@ -245,6 +245,35 @@ Browser, audit, database-generation, or migration replay. Mandatory docs-PR
 three-job CI is publication eligibility only and cannot reclassify Record 002,
 M2, or M3.
 
+### M2-GOV-013 — Issue-State Schema Publication Recovery
+
+| Work Item                                                                                                                                              | Goal                                                                                                                                                 | Depends on                                                                                                                                                                                                                                                                       | Status boundary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`M2-GOV-013 — M2 Acceptance Record 002 Issue-State Schema Recovery`](work-packets/m2-gov-013-m2-acceptance-record-002-issue-state-schema-recovery.md) | Recover strict Blocked Record 002 publication with the observed GitHub Issue state/reason schema while preserving deterministic expected-byte proof. | GOV012 planning PR #283/run `31592395469` attempt-1 exact-three-job success and squash `053548d462bd3eb7bb21591c0005f856269cad08`; frozen GOV006 exact-six source; GOV012 P0–P2 and P3 source/failed-head targets passed; #144 null-reason predicate first red; Issue #284 Open. | **Ready — dual corrected-head Definition of Ready PASS; planning publication and explicit Orchestrator handoff pending.** GOV012's #144 predicate required `OPEN + null` and returned RC 1 with `issue-state-invalid`; later Issue predicates and P4+ are zero. No expected directory or repository write, GitHub mutation, diagnosis, retry, or cleanup followed. New-epoch read-only queries observed all seven relevant Issues as `OPEN + ""`, completed sentinels as `CLOSED + COMPLETED`, and not-planned sentinels as `CLOSED + NOT_PLANNED`. GOV013 fixes a 2/12/2 lifecycle and preserves the deterministic expected-byte contract with exact state-dependent Issue predicates. The first DoR review's three blocking ledger findings were corrected through canonical JSON, standalone-heading validation, and complete literal publication/postmerge ledgers; corrected-head correctness and governance reviewers both returned PASS/no findings/no BQ/no DEC. Final exact-two checks and #284 parity follow review metadata. Record 002 remains ineffective; M2 remains In Progress, M3 remains Not Started, and Issues #144/#274/#276/#278/#280/#282/#284 remain Open. |
+
+The successful exact-twelve shape is eleven tracked modifications plus new
+Record 002: five frozen standalone documents, the GOV008/GOV009/GOV010/GOV011/
+GOV012/GOV013 Packets, and Roadmap. All Issue triples are read before expected
+artifact creation. Every repository patch has immediate target-only status and
+whole-file equality to a prevalidated outside-repository expected artifact.
+Publication merge makes Record 002 effective Blocked while M2 stays In
+Progress and M3 Not Started. Only a later merged tracked GOV013 Packet/Roadmap
+exact-two reconciliation permits all seven Issues to close as Completed and
+verify `CLOSED + COMPLETED`. No direct/local exit, runtime, test, audit,
+database-generation, or migration replay occurs.
+
+The first GOV013 Definition of Ready review found three executable-ledger
+defects and did not authorize execution: pretty JSON conflicted with canonical
+serialization equality; a review heading could self-duplicate under substring
+counting; and postmerge reconciliation was only narrative shorthand. The
+corrected Packet freezes canonical one-line JSON, uses exact standalone-heading
+line counting, expands all seven publication validators, fixes publication and
+postmerge review evidence bytes, and provides the complete literal fresh-tree,
+Issue, expected-file, physical-effect, formatter/static/scope, hygiene, Git,
+attempt-1 CI, merge, seven-close, and seven-readback postmerge ledger. These
+corrections change only governance executability; predecessor evidence,
+Record 002 ineffectiveness, M2/M3 state, and Issue lifecycle remain unchanged.
+
 ## 10. M3 — Research
 
 M3 introduces the first formal Agent Vertical Slice:
