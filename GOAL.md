@@ -1,6 +1,6 @@
 # GOAL-MVP-TEXT-001 — Deliver the Text-first Private MVP
 
-**Status:** Active — G0 completed; G1 not started
+**Status:** Active — G0 completed; G1 implementation in review
 **Human approval:** Confirmed 2026-08-12
 **Authority:** DEC-295, current Product/Architecture/Security/Quality specifications, and `AGENTS.md`
 **Execution model:** One phase and one bounded Issue/PR at a time
@@ -63,7 +63,7 @@ Goal approval authorizes planning and bounded repository implementation after th
 
 ### G0 — M2 baseline acceptance
 
-**Current status:** Completed. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision. M2 is Completed and M3/G1 is eligible but Not Started.
+**Current status:** Completed. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision. M2 is Completed; that decision made G1 eligible, and G1 is now In Review.
 
 - Start from latest merged `main`.
 - Reuse the merged M2 implementation and existing acceptance harness; do not reconstruct historical failed publication protocols.
@@ -72,6 +72,8 @@ Goal approval authorizes planning and bounded repository implementation after th
 - Complete when one concise M2 Acceptance Record is reviewed and merged, with M2 Completed and M3 eligible to start.
 
 ### G1 — Research thin slice
+
+**Current status:** In Review under Issue #289. The deterministic local implementation and affected verification are complete; independent review, PR CI, and squash merge remain before G1 becomes effective. G2 is Not Started.
 
 - Consume exact owner-scoped Approved Source Versions.
 - Produce structured Research with Summary, Facts/Claims, Evidence, Open Questions, and Needs Verification.

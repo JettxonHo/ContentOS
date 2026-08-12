@@ -14,9 +14,9 @@ Source → Research → Human Opinion 或 Research-based Mode
 
 ## 当前状态
 
-仓库已完成 **M0**、**M1 — 产品骨架与领域基础** 和 **M2 — 来源与工作流基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。[M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) 记录了基于当前 main 的私有 Source/Workflow 基础通过决定。M3 Research 已具备启动资格，但尚未开始。
+仓库已完成 **M0**、**M1 — 产品骨架与领域基础** 和 **M2 — 来源与工作流基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。[M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) 记录了基于当前 main 的私有 Source/Workflow 基础通过决定。当前受审变更已实现 G1/M3 Research 薄切片；G2 尚未开始。
 
-当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 投递与 lease reconciliation，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat/Result 边界。`M2-FETCH-001C` 已将既有受控 transport 和 Candidate/Snapshot preparation 注册到一个 `contentos-fetcher` BullMQ consumer：它校验固定的当前 generation Job、经 API Claim、执行一次抓取并提交精确 Result。PostgreSQL 与 API 仍是 Task/Source 状态权威；Fetcher 不连接数据库。活动 Workspace 现在提供粘贴文本、`.md`/`.txt` 上传、可持久恢复的 URL capture intake、Source Working Copy 审核和显式保存、不可变 Version 历史、准确 Review Candidate 的人工 Approval，以及通过既有 SSE/Polling 恢复路径刷新的安全 Timeline。Source Approval 不会推进 `source_review`，也不会追加 Workflow Timeline Event；归档 Package 不提供审核命令。仓库仍不提供 Research、Agent、Render、Export、发布、部署或开发服务器。
+当前仓库提供 Source/Workflow/Fetcher 基础与 G1 Research：活动 Workspace 可以从精确 Approved Source Versions 生成确定性的带证据 Research，允许用户校正/审核条目、checkpoint 不可变 Version、精确 Approval，并在 Source 依赖变化后显示 Outdated。PostgreSQL 与 API 保持权威，Raw Provider output 仅保存在服务端。真实 Provider、通用 Agent Runtime、Human Opinion、Blog、Xiaohongshu、Render、Export、发布和生产部署仍未实现。
 
 `M2-WEB-001B` 现在已接入活动 Workspace：它允许显式保存标准化 Working Copy、审核不可变 Version、确认当前准确 Review Candidate 的人工 Approval，并通过既有 SSE/Polling 恢复控制器显示有界安全 REST Timeline。Source Approval 不会推进 `source_review`，也不会追加 Workflow Timeline Event；归档 Package 仍不提供这些命令。
 
@@ -118,7 +118,7 @@ corepack pnpm test:integration
 
 运行 `corepack pnpm test:integration:concurrent` 可并发启动两个完整、由 token 所有的 smoke run，并验证它们的目录、状态、Compose 项目、端口、凭据和清理操作彼此隔离，也与无关 harness run 隔离。
 
-安装固定的 Chromium revision（`corepack pnpm exec playwright install chromium`）后，运行 `corepack pnpm test:browser` 以演练 M1/M2 owner-browser suite。其安全、清理和范围边界请阅读 [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md) 和 [M2 Acceptance Harness](docs/quality/m2-acceptance-harness.md)。
+安装固定的 Chromium revision（`corepack pnpm exec playwright install chromium`）后，运行 `corepack pnpm test:browser` 以演练 M1/M2/G1 owner-browser suite。其安全、清理和范围边界请阅读 [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md) 和 [M2 Acceptance Harness](docs/quality/m2-acceptance-harness.md)。
 
 这些命令仍只是受限的 M1 基础，加上当前已实现的 M2 Source、delivery、Fetcher execution 和 Source-evidence slices。当前没有 `dev`、广泛的产品 E2E suite、持久 request/delivery/lease/recovery/result 边界之外的 Workflow Engine、Agent、Render 或内容发布功能。
 
@@ -128,14 +128,14 @@ corepack pnpm test:integration
 
 - 一个 Docker-independent Job：Workspace 解析、`corepack pnpm check` 和 `corepack pnpm repository:check`（Markdown 本地链接、Canonical Decision Register 和 Secret 检查）；
 - 一个 Docker-dependent Job：通过现有隔离 smoke harness 执行 `corepack pnpm test:integration`；
-- 一个 M1/M2 browser Job：固定的 Playwright Chromium 针对隔离运行时运行 `corepack pnpm test:browser`。
+- 一个 M1/M2/G1 browser Job：固定的 Playwright Chromium 针对隔离运行时运行 `corepack pnpm test:browser`。
 
 该 workflow 不引用 repository Secrets、不持久化凭据、不上传 artifacts，也不进行部署或发布。它是受限基线，而非完整发布门禁。变更合并前三个 Job 必须全部通过。完整范围请阅读 [CI Skeleton](docs/quality/ci-skeleton.md)。
 
 ## 下一步实施工作
 
-1. M2 — 来源与工作流基础 — 已由 [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) 完成。M3 Research 已具备启动资格，但尚未开始。
-2. 仅通过 [GOAL.md](GOAL.md) 中受限的 G1 Work Item 启动 M3；真实 Provider 调用仍需单独授权。
+1. 审阅、通过 CI 并合并受限的 [G1 Research Work Item](docs/implementation/work-packets/g1-research-thin-slice.md)。
+2. G1 生效后再启动 G2 Human Opinion/Research-based Mode 与 Blog；真实 Provider 调用仍需单独授权。
 
 本仓库不承诺完成日期。
 

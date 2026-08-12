@@ -308,6 +308,244 @@ export const sourceApprovals = pgTable(
   ],
 );
 
+export const researchArtifacts = pgTable(
+  'research_artifacts',
+  {
+    id: uuid('id').primaryKey(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('research_artifacts_package_unique').on(table.contentPackageId),
+    unique('research_artifacts_id_package_owner_unique').on(table.id, table.contentPackageId, table.ownerUserId),
+    foreignKey({
+      name: 'research_artifacts_package_owner_fk',
+      columns: [table.contentPackageId, table.ownerUserId],
+      foreignColumns: [contentPackages.id, contentPackages.ownerUserId],
+    }).onDelete('restrict'),
+    index('research_artifacts_owner_idx').on(table.ownerUserId),
+  ],
+);
+
+export const researchRuns = pgTable(
+  'research_runs',
+  {
+    id: uuid('id').primaryKey(),
+    requestId: uuid('request_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    providerAlias: varchar('provider_alias', { length: 100 }).notNull(),
+    inputSnapshot: jsonb('input_snapshot').$type<readonly unknown[]>().notNull(),
+    rawOutput: text('raw_output').notNull(),
+    state: varchar('state', { length: 16 }).notNull(),
+    safeErrorCode: varchar('safe_error_code', { length: 64 }),
+    researchId: uuid('research_id'),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('research_runs_request_owner_unique').on(table.requestId, table.ownerUserId),
+    foreignKey({
+      name: 'research_runs_package_owner_fk',
+      columns: [table.contentPackageId, table.ownerUserId],
+      foreignColumns: [contentPackages.id, contentPackages.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'research_runs_artifact_package_owner_fk',
+      columns: [table.researchId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [researchArtifacts.id, researchArtifacts.contentPackageId, researchArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    index('research_runs_owner_package_idx').on(table.ownerUserId, table.contentPackageId, table.createdAt),
+    check('research_runs_state_check', sql`${table.state} IN ('succeeded', 'failed')`),
+    check('research_runs_provider_alias_check', sql`char_length(${table.providerAlias}) BETWEEN 1 AND 100`),
+    check('research_runs_raw_output_check', sql`octet_length(${table.rawOutput}) BETWEEN 0 AND 1000000`),
+    check(
+      'research_runs_state_fields_check',
+      sql`(${table.state} = 'succeeded' AND ${table.safeErrorCode} IS NULL AND ${table.researchId} IS NOT NULL) OR (${table.state} = 'failed' AND ${table.safeErrorCode} IS NOT NULL AND ${table.researchId} IS NULL)`,
+    ),
+  ],
+);
+
+export const researchVersions = pgTable(
+  'research_versions',
+  {
+    id: uuid('id').primaryKey(),
+    researchId: uuid('research_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    versionNumber: integer('version_number').notNull(),
+    parentVersionId: uuid('parent_version_id'),
+    body: jsonb('body').$type<Record<string, unknown>>().notNull(),
+    contentHash: char('content_hash', { length: 64 }).notNull(),
+    schemaVersion: varchar('schema_version', { length: 32 }).notNull(),
+    origin: varchar('origin', { length: 32 }).notNull(),
+    createdById: uuid('created_by_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('research_versions_id_research_unique').on(table.id, table.researchId),
+    unique('research_versions_id_research_package_owner_unique').on(
+      table.id,
+      table.researchId,
+      table.contentPackageId,
+      table.ownerUserId,
+    ),
+    unique('research_versions_research_number_unique').on(table.researchId, table.versionNumber),
+    foreignKey({
+      name: 'research_versions_artifact_package_owner_fk',
+      columns: [table.researchId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [researchArtifacts.id, researchArtifacts.contentPackageId, researchArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'research_versions_parent_research_fk',
+      columns: [table.parentVersionId, table.researchId],
+      foreignColumns: [table.id, table.researchId],
+    }).onDelete('restrict'),
+    index('research_versions_owner_package_idx').on(table.ownerUserId, table.contentPackageId),
+    check('research_versions_number_check', sql`${table.versionNumber} >= 1`),
+    check('research_versions_body_check', sql`jsonb_typeof(${table.body}) = 'object'`),
+    check('research_versions_hash_check', sql`${table.contentHash} ~ '^[0-9a-f]{64}$'`),
+    check('research_versions_schema_check', sql`${table.schemaVersion} = 'research/v1'`),
+    check('research_versions_origin_check', sql`${table.origin} IN ('generated', 'user_checkpoint')`),
+  ],
+);
+
+export const researchVersionSources = pgTable(
+  'research_version_sources',
+  {
+    researchVersionId: uuid('research_version_id').notNull(),
+    researchId: uuid('research_id').notNull(),
+    sourceId: uuid('source_id').notNull(),
+    sourceVersionId: uuid('source_version_id').notNull(),
+    role: varchar('role', { length: 16 }).notNull(),
+    label: varchar('label', { length: 200 }),
+    ordinal: integer('ordinal').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.researchVersionId, table.sourceId] }),
+    unique('research_version_sources_version_ordinal_unique').on(table.researchVersionId, table.ordinal),
+    foreignKey({
+      name: 'research_version_sources_research_version_fk',
+      columns: [table.researchVersionId, table.researchId],
+      foreignColumns: [researchVersions.id, researchVersions.researchId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'research_version_sources_source_version_fk',
+      columns: [table.sourceVersionId, table.sourceId],
+      foreignColumns: [sourceVersions.id, sourceVersions.sourceId],
+    }).onDelete('restrict'),
+    check('research_version_sources_role_check', sql`${table.role} IN ('primary', 'supporting')`),
+    check('research_version_sources_ordinal_check', sql`${table.ordinal} BETWEEN 1 AND 6`),
+  ],
+);
+
+export const researchWorkingCopies = pgTable(
+  'research_working_copies',
+  {
+    id: uuid('id').primaryKey(),
+    researchId: uuid('research_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    body: jsonb('body').$type<Record<string, unknown>>().notNull(),
+    schemaVersion: varchar('schema_version', { length: 32 }).notNull(),
+    revision: integer('revision').notNull(),
+    checkpointedRevision: integer('checkpointed_revision'),
+    baseVersionId: uuid('base_version_id').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('research_working_copies_research_unique').on(table.researchId),
+    unique('research_working_copies_id_research_unique').on(table.id, table.researchId),
+    foreignKey({
+      name: 'research_working_copies_artifact_package_owner_fk',
+      columns: [table.researchId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [researchArtifacts.id, researchArtifacts.contentPackageId, researchArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'research_working_copies_base_version_fk',
+      columns: [table.baseVersionId, table.researchId],
+      foreignColumns: [researchVersions.id, researchVersions.researchId],
+    }).onDelete('restrict'),
+    check('research_working_copies_revision_check', sql`${table.revision} >= 1`),
+    check(
+      'research_working_copies_checkpoint_check',
+      sql`${table.checkpointedRevision} IS NULL OR ${table.checkpointedRevision} BETWEEN 1 AND ${table.revision}`,
+    ),
+    check('research_working_copies_body_check', sql`jsonb_typeof(${table.body}) = 'object'`),
+    check('research_working_copies_schema_check', sql`${table.schemaVersion} = 'research/v1'`),
+  ],
+);
+
+export const researchHeads = pgTable(
+  'research_heads',
+  {
+    researchId: uuid('research_id').primaryKey(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    workingCopyId: uuid('working_copy_id').notNull(),
+    latestVersionId: uuid('latest_version_id').notNull(),
+    reviewCandidateVersionId: uuid('review_candidate_version_id').notNull(),
+    approvedVersionId: uuid('approved_version_id'),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'research_heads_artifact_package_owner_fk',
+      columns: [table.researchId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [researchArtifacts.id, researchArtifacts.contentPackageId, researchArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'research_heads_working_copy_fk',
+      columns: [table.workingCopyId, table.researchId],
+      foreignColumns: [researchWorkingCopies.id, researchWorkingCopies.researchId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'research_heads_latest_version_fk',
+      columns: [table.latestVersionId, table.researchId],
+      foreignColumns: [researchVersions.id, researchVersions.researchId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'research_heads_review_version_fk',
+      columns: [table.reviewCandidateVersionId, table.researchId],
+      foreignColumns: [researchVersions.id, researchVersions.researchId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'research_heads_approved_version_fk',
+      columns: [table.approvedVersionId, table.researchId],
+      foreignColumns: [researchVersions.id, researchVersions.researchId],
+    }).onDelete('restrict'),
+  ],
+);
+
+export const researchApprovals = pgTable(
+  'research_approvals',
+  {
+    id: uuid('id').primaryKey(),
+    researchId: uuid('research_id').notNull(),
+    approvedVersionId: uuid('approved_version_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    approvedById: uuid('approved_by_id').notNull(),
+    validationSummary: jsonb('validation_summary').notNull(),
+    approvedAt: timestamp('approved_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('research_approvals_research_version_unique').on(table.researchId, table.approvedVersionId),
+    foreignKey({
+      name: 'research_approvals_artifact_package_owner_fk',
+      columns: [table.researchId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [researchArtifacts.id, researchArtifacts.contentPackageId, researchArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'research_approvals_version_research_fk',
+      columns: [table.approvedVersionId, table.researchId],
+      foreignColumns: [researchVersions.id, researchVersions.researchId],
+    }).onDelete('restrict'),
+    check('research_approvals_owner_check', sql`${table.approvedById} = ${table.ownerUserId}`),
+    check('research_approvals_validation_summary_check', sql`jsonb_typeof(${table.validationSummary}) = 'object'`),
+  ],
+);
+
 export const workflowTemplates = pgTable(
   'workflow_templates',
   {

@@ -3,6 +3,7 @@ import type {
   ContentPackageRepository,
   SessionRepository,
   SourceRepository,
+  ResearchRepository,
   UrlCaptureCommandRepository,
   UrlCaptureResultRepository,
   UrlCaptureIntakeQueryPort,
@@ -19,6 +20,7 @@ import { createDatabaseConnection, DATABASE_UNAVAILABLE_ERROR_CODE } from './cli
 import { DrizzleContentPackageRepository } from './content-package-repository.js';
 import { DrizzleSessionRepository } from './session-repository.js';
 import { DrizzleSourceRepository } from './source-repository.js';
+import { DrizzleResearchRepository } from './research-repository.js';
 import { DrizzleUrlCaptureResultRepository } from './url-capture-result-repository.js';
 import { DrizzleWorkflowCommandRepository } from './workflow-command-repository.js';
 import { DrizzleWorkflowDispatchRepository } from './workflow-dispatch-repository.js';
@@ -44,6 +46,7 @@ export interface DatabaseRuntime {
   readonly sessions: SessionRepository;
   readonly contentPackages: ContentPackageRepository;
   readonly sources: SourceRepository;
+  readonly research: ResearchRepository;
   readonly approvedSourceInputs: ApprovedSourceInputPort;
   readonly workflowQuery: WorkflowQueryPort;
   readonly urlCaptureIntake: UrlCaptureIntakeQueryPort;
@@ -65,6 +68,7 @@ export function createDatabaseRuntime(databaseUrl: string): DatabaseRuntime {
     sessions: new DrizzleSessionRepository(connection),
     contentPackages: new DrizzleContentPackageRepository(connection),
     sources: new DrizzleSourceRepository(connection),
+    research: new DrizzleResearchRepository(connection),
     approvedSourceInputs: new DrizzleApprovedSourceInputProjection(connection),
     workflowQuery: new DrizzleWorkflowQueryProjection(connection),
     urlCaptureIntake: new DrizzleUrlCaptureIntakeProjection(connection),

@@ -2,9 +2,9 @@
 
 **Status:** Implementation Baseline
 **Scope:** The bounded M1 owner-browser scenario, pinned runtime, isolation, security assertions, cleanup, and explicit exclusions
-**Last Updated:** 2026-08-09
+**Last Updated:** 2026-08-13
 
-This document records the browser scenario introduced by `M1-WEB-001` and its M2 Source intake, Source review/Approval, Timeline, and recovery companions. It verifies the private UI → API → Domain → PostgreSQL → UI loop plus native credentialed EventSource and Polling recovery; it remains a bounded milestone suite rather than broad product E2E coverage.
+This document records the browser scenario introduced by `M1-WEB-001`, its M2 Source/Workflow companions, and the G1 Research thin slice. It verifies the private UI → API → Domain → PostgreSQL → UI loop plus native credentialed EventSource and Polling recovery; it remains a bounded milestone suite rather than broad product E2E coverage.
 
 Related documents: [Integration Smoke Harness](integration-smoke-harness.md), [CI Skeleton](ci-skeleton.md), [Test Strategy](test-strategy.md), [Content Package Foundation](../architecture/content-package-foundation.md), [Authentication Foundation](../security/authentication-foundation.md), and the [Roadmap](../implementation/roadmap.md).
 
@@ -35,6 +35,8 @@ The deterministic browser suite proves:
 - a stale revision is rejected and the owner can reload the authoritative revision;
 - Archive requires explicit confirmation, preserves one archived package, and is not Delete; and
 - logout revokes the session and a protected Workspace route returns to Login.
+
+The G1 companion creates and approves one exact Source Version, generates deterministic evidence-linked Research, directly corrects and reviews the item, saves the Working Copy, checkpoints an immutable Research Version, approves that exact Version, and verifies the reviewed state after refresh.
 
 The typed Web client always uses `credentials: include`, maps the common API error envelope, and stores no token, password, or API response in browser storage.
 
@@ -105,7 +107,7 @@ The UI uses explicit labels, semantic headings, keyboard-focus indicators, live 
 
 ## 6. Explicit exclusions
 
-This baseline does not test or implement Workflow write commands, Agent Runtime, Research, content generation, Render, Export, publishing, multi-user behavior, deployment, or production browsers. It does not create tables, migrations, Domain semantics, or a second data-access path.
+This baseline does not test or implement a real Provider, autonomous tools, generic Agent Runtime, Human Opinion, Blog, Xiaohongshu, Render, Export, publishing, multi-user behavior, deployment, or production browsers. The G1 scenario uses only the deterministic Fake Provider and validated text rendering.
 
 ## 7. Decision traceability
 

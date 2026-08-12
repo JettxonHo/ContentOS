@@ -9,6 +9,13 @@ import {
   ContentPackageService,
   type ContentPackageId,
   SourceService,
+  ResearchService,
+  FakeResearchProvider,
+  type ResearchArtifactId,
+  type ResearchWorkingCopyId,
+  type ResearchVersionId,
+  type ResearchApprovalId,
+  type ResearchRunId,
   UrlCaptureService,
   type SourceId,
   type RawSnapshotId,
@@ -40,6 +47,7 @@ import { HealthController } from './health.controller';
 import { ApiExceptionFilter } from './http/api-exception.filter';
 import { TrustedOriginGuard } from './http/trusted-origin.guard';
 import { SourceController } from './source/source.controller';
+import { ResearchController } from './research/research.controller';
 import { UrlCaptureController } from './url-capture/url-capture.controller';
 import { FetcherGatewayController } from './fetcher-gateway/fetcher-gateway.controller';
 import { WorkflowController } from './workflow/workflow.controller';
@@ -53,6 +61,7 @@ import {
   CONTENT_PACKAGE_SERVICE,
   OBJECT_STORE,
   SOURCE_SERVICE,
+  RESEARCH_SERVICE,
   URL_CAPTURE_SERVICE,
   FETCHER_GATEWAY_SERVICE,
   FETCHER_RESULT_SERVICE,
@@ -70,6 +79,7 @@ export class AppModule {
         AuthController,
         ContentPackageController,
         SourceController,
+        ResearchController,
         UrlCaptureController,
         FetcherGatewayController,
         WorkflowController,
@@ -136,6 +146,23 @@ export class AppModule {
               },
               { now: () => new Date() },
               new AjvNormalizedBodyValidator(),
+            ),
+        },
+        {
+          provide: RESEARCH_SERVICE,
+          inject: [DatabaseService],
+          useFactory: (database: DatabaseService): ResearchService =>
+            new ResearchService(
+              database.research,
+              new FakeResearchProvider(),
+              {
+                generateResearchId: () => randomUUID() as ResearchArtifactId,
+                generateWorkingCopyId: () => randomUUID() as ResearchWorkingCopyId,
+                generateVersionId: () => randomUUID() as ResearchVersionId,
+                generateApprovalId: () => randomUUID() as ResearchApprovalId,
+                generateRunId: () => randomUUID() as ResearchRunId,
+              },
+              { now: () => new Date() },
             ),
         },
         {

@@ -175,7 +175,7 @@ Login
 
 ## 9. M2 — Source and Workflow Foundation
 
-**Current status: Completed. M3 is eligible and Not Started.**
+**Current status: Completed. G1/M3 Research is in review under Issue #289.**
 
 ### Goal
 
@@ -212,23 +212,27 @@ Agent tools, external Model Providers, active Renderer execution, Export deliver
 
 ### Next step
 
-Start G1/M3 Research only through a concise Ready Issue/Work Item under [GOAL.md](../../GOAL.md). Real Provider credentials, paid calls, or external effects remain separately authorized; Fake Provider evidence comes first.
+G1/M3 Research is implemented as the bounded Issue #289 candidate. Real Provider credentials, paid calls, or external effects remain separately authorized; the current slice uses only the deterministic Fake Provider.
 
 ### Superseded M2 publication-recovery chain
 
 `M2-GOV-008` through `M2-GOV-014` preserve historical attempts to publish the frozen GOV006 Blocked record through exact-file and literal-command protocols. GOV012 and GOV013 planning merged, but their implementations stopped at their documented first red; GOV014 planning never merged. None produced an effective Acceptance Record 002.
 
-DEC-295 and `GOAL-MVP-TEXT-001` replace that recursive publication approach with one fresh current-main G0 exit review. The old Work Packets remain immutable historical evidence and are not executable dependencies. Issue #144 remains Open as the M2 exit authority. After the rebaseline merge, Issues #274, #276, #278, #280, #282, #284, and #287 were closed as `not planned`, with comments that their objectives were not completed. No historical first red is reclassified as success.
+DEC-295 and `GOAL-MVP-TEXT-001` replaced that recursive publication approach with one fresh current-main G0 exit review. The old Work Packets remain immutable historical evidence and are not executable dependencies. PR #288 merged the Passed M2 Acceptance Record 002 and Issue #144 closed Completed. Issues #274, #276, #278, #280, #282, #284, and #287 closed as `not planned`, with comments that their objectives were not completed. No historical first red is reclassified as success.
 
 ## 10. M3 — Research
 
-M3 introduces the first formal Agent Vertical Slice:
+**Current status: In Review.** [G1 — Approved Sources to Approved Research Thin Slice](work-packets/g1-research-thin-slice.md) implements the bounded candidate under Issue #289; it is not effective until independent review, required CI, and squash merge pass.
 
-- Agent Runtime foundation and Research Agent;
-- Fake Provider and one separately authorized real Provider Adapter;
-- Frozen Input, validation, evidence, and controlled Candidate handling;
-- Research Review, Approval, and Research Version;
-- a small deterministic/Eval baseline covering the active Research contract.
+The G1 candidate provides:
+
+- a deterministic Fake Provider behind a project-owned `ResearchProvider` interface, without a generic Agent platform;
+- exact Approved Source Version input snapshots, validated structured output, and restricted Raw Output persistence;
+- owner-scoped Research Working Copy review, immutable Versions, exact human Approval, and Outdated propagation;
+- protected REST/OpenAPI routes and an active Workspace Research panel; and
+- deterministic unit, real-database Integration, and Browser evidence.
+
+One real Provider Adapter remains separately gated by credentials and cost authorization. G2 does not start before this G1 candidate is reviewed and merged.
 
 Writer, Packaging, and Visual Agents do not precede Approved Research.
 

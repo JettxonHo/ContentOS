@@ -62,6 +62,11 @@ describe('api smoke', () => {
         '/v1/content-packages/{packageId}/workflow',
         '/v1/content-packages/{packageId}/workflow/events',
         '/v1/content-packages/{packageId}/workflow/stream',
+        '/v1/content-packages/{packageId}/research',
+        '/v1/content-packages/{packageId}/research/generations',
+        '/v1/content-packages/{packageId}/research/working-copy',
+        '/v1/content-packages/{packageId}/research/versions',
+        '/v1/content-packages/{packageId}/research/approval',
       ]),
     );
     expect(document.components?.securitySchemes).toHaveProperty('contentos_session');
@@ -99,6 +104,27 @@ describe('api smoke', () => {
       const responses = sourcePaths[pathName]?.[method]?.responses ?? {};
       expect(Object.keys(responses).sort()).toEqual([...expectedStatuses].sort());
     }
+    const expectedResearchResponses = [
+      ['/v1/content-packages/{packageId}/research', 'get', ['200', '401', '404', '409', '422', '500']],
+      [
+        '/v1/content-packages/{packageId}/research/generations',
+        'post',
+        ['201', '401', '404', '409', '422', '500', '502'],
+      ],
+      ['/v1/content-packages/{packageId}/research/working-copy', 'patch', ['200', '401', '404', '409', '422', '500']],
+      ['/v1/content-packages/{packageId}/research/versions', 'post', ['201', '401', '404', '409', '422', '500']],
+      ['/v1/content-packages/{packageId}/research/approval', 'post', ['201', '401', '404', '409', '422', '500']],
+    ] as const;
+    for (const [pathName, method, expectedStatuses] of expectedResearchResponses) {
+      const responses = sourcePaths[pathName]?.[method]?.responses ?? {};
+      expect(Object.keys(responses).sort()).toEqual([...expectedStatuses].sort());
+      expect(sourcePaths[pathName]?.[method]?.security).toEqual([{ contentos_session: [] }]);
+    }
+    const researchSuccess = JSON.stringify(
+      sourcePaths['/v1/content-packages/{packageId}/research']?.get?.responses?.['200']?.content?.['application/json'],
+    );
+    expect(researchSuccess).toMatch(/workingCopy.*latestVersion.*approvedVersionId.*outdated/);
+    expect(researchSuccess).not.toMatch(/rawOutput|providerAlias|safeErrorCode/i);
     const urlCaptureResponses =
       sourcePaths['/v1/content-packages/{packageId}/url-capture-requests']?.post?.responses ?? {};
     expect(Object.keys(urlCaptureResponses).sort()).toEqual(['201', '401', '404', '409', '422']);

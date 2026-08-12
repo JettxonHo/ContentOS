@@ -93,6 +93,7 @@ describe('postgres smoke', () => {
     // M1-SEC-001 and M1-CP-001 introduce the Session and Content Package tables.
     // M2-SRC-001 adds Source, Raw Snapshot, Working Copy, Version, Head, and Approval tables.
     // M2-WF-002 adds the URL Source Reference, Capture Request, Task, and Outbox tables.
+    // G1 adds Research Artifact, Run, Version Input, Working Copy, Head, and Approval tables.
     // Drizzle's own migration journal lives in its dedicated schema and is not product state.
     const tables = await composeExec(state, 'postgres', [
       'sh',
@@ -103,6 +104,13 @@ describe('postgres smoke', () => {
     expect(tables.stdout.trim().split('\n')).toEqual([
       'auth_sessions',
       'content_packages',
+      'research_approvals',
+      'research_artifacts',
+      'research_heads',
+      'research_runs',
+      'research_version_sources',
+      'research_versions',
+      'research_working_copies',
       'source_approvals',
       'source_heads',
       'source_raw_snapshots',

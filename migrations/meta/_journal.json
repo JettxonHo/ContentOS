@@ -64,6 +64,13 @@
       "when": 1785984456389,
       "tag": "0008_tricky_wolf_cub",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786554035449,
+      "tag": "0009_breezy_thundra",
+      "breakpoints": true
     }
   ]
 }

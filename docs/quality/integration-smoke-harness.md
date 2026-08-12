@@ -2,9 +2,9 @@
 
 **Status:** Implementation Baseline
 **Scope:** The API/process integration smoke command, its isolation design, what it verifies, and its boundary against other quality entry points
-**Last Updated:** 2026-08-09
+**Last Updated:** 2026-08-13
 
-This document records the executable integration smoke baseline introduced by `M0-QUAL-002`, extended through M2 Source, Worker, Fetcher, Gateway, Workflow, and Approved-input foundations. `M2-QUAL-001` adds a continuous authenticated URL Command → Worker → Queue → Fetcher → Source Approval acceptance scenario and an unmodified-process loopback SSRF denial; see the [M2 Acceptance Harness](m2-acceptance-harness.md). It is a Docker-dependent companion to the [Local Quality Toolchain](local-quality-toolchain.md). It does not itself collect browser tests; the browser suite reuses its isolated runtime through the separate [M1 Browser Thin Slice](browser-thin-slice.md).
+This document records the executable integration smoke baseline introduced by `M0-QUAL-002`, extended through M2 Source/Workflow and the G1 owner-scoped Research foundation. `M2-QUAL-001` adds a continuous authenticated URL Command → Worker → Queue → Fetcher → Source Approval acceptance scenario and an unmodified-process loopback SSRF denial; see the [M2 Acceptance Harness](m2-acceptance-harness.md). It is a Docker-dependent companion to the [Local Quality Toolchain](local-quality-toolchain.md). It does not itself collect browser tests; the browser suite reuses its isolated runtime through the separate [M1 Browser Thin Slice](browser-thin-slice.md).
 
 Related documents: [Local Quality Toolchain](local-quality-toolchain.md), [CI Skeleton](ci-skeleton.md), [Test Strategy](test-strategy.md), [Release Gates](release-gates.md), [Repository Structure](../architecture/repository-structure.md), and the [Roadmap](../implementation/roadmap.md).
 
@@ -16,7 +16,7 @@ The M0 CI workflow runs `corepack pnpm test:integration` as its own Docker-depen
 
 `corepack pnpm test:integration` is one explicit, repeatable, black-box command that verifies the five application entry points and the local-state baseline through real processes and containers. M1 extends it to apply the reviewed migrations and exercise the API's single-user Session and owner-scoped Content Package boundaries against isolated PostgreSQL. M2-SRC-001 extends it to exercise the Pasted-text Source Capture, Working Copy edit, Version creation, Approval, role-limit enforcement, owner-scope isolation, and revision-conflict paths.
 
-It proves the baseline is wired together before later Milestones depend on that wiring. It is not a Vertical Slice and does not exercise Workflow Engine, Agent, Render, or publishing behavior.
+It proves the baseline is wired together before later Milestones depend on that wiring. The G1 additions exercise the Research vertical slice through the API, but not a real Provider, generic Agent Runtime, Render, or publishing behavior.
 
 ## 2. Command boundary
 
@@ -55,11 +55,12 @@ A Vitest `globalSetup` performs, once per run: a Docker availability check, a bu
 - **web:** responds over loopback with a successful HTTP status.
 - **api:** liveness and security headers; OpenAPI JSON; fail-closed redacted configuration startup; correct/incorrect login; bounded throttling; HttpOnly SameSite cookie behavior; protected Session inspection; exact-Origin denial; persisted token hashing; expiry; revocation; cookie clearing; and replay denial.
 - **worker, fetcher, renderer:** each emits `process.started`, responds to `SIGTERM` with `process.stopping`, and exits cleanly with code `0`.
-- **postgres:** healthy, loopback-reachable, authenticates the correct credential over TCP, rejects a wrong credential, and contains only the reviewed product tables (`auth_sessions`, `content_packages`, `sources`, `source_raw_snapshots`, `source_working_copies`, `source_versions`, `source_heads`, `source_approvals`) plus Drizzle's migration journal.
+- **postgres:** healthy, loopback-reachable, authenticates the correct credential over TCP, rejects a wrong credential, and contains only the exact reviewed product table inventory, including the additive G1 Research Artifact/Run/Version-input/Working-Copy/Head/Approval tables, plus Drizzle's migration journal.
 - **redis:** healthy, loopback-reachable, returns `PONG` for the correct credential, rejects a wrong credential, and holds no key.
 - **object storage:** healthy, loopback-reachable, accepts a correct AWS SigV4 signature, rejects a wrong signature, rejects anonymous access, proves the real adapter's conditional-put collision behavior, verifies bytes/hash/size/content type and metadata, and leaves no probe bucket or object after the run.
 - **Source database safety:** exact JSON/schema/UTF-8 bounds, complete owner/package/source composite constraints, rollback of capture/Version/Approval units, concurrent role limits, duplicate-checkpoint and Approval serialization, archived-Package reads/writes, and deterministic archive/write races.
 - **Workflow notification:** exact owner-scoped SSE preflight, immediate no-Instance and instantiated notifications, cache/CORS headers, explicit bounded `HEAD`, Event-backed and same-sequence Task-only changes, and no state write from stream reads.
+- **Research:** exact Approved Source inputs, deterministic idempotent generation, restricted Raw Output, optimistic review edit, immutable checkpoint, exact Approval, owner non-disclosure, invalid/missing input failure, and Outdated propagation after a later Source Approval.
 
 `corepack pnpm test:integration:concurrent` starts two complete smoke commands at the same time through this real harness. Before either spawn, the parent persists two exact claims and empty managed-process controls under its unique root. Authenticated ready-state and hashed credential-isolation evidence are retained as each child publishes them, so the two ready-state files do not need to coexist. Child exit competes with discovery: an exit before that child's state is captured fails promptly with a bounded classification-only diagnostic. A remaining exact child receives bounded `SIGTERM`/`SIGKILL`; the parent then validates only the pre-created claim/control records to stop exact detached API/Web groups, bring down exact Compose projects, remove exact child roots, and finally remove its empty parent root. It never scans or changes unrelated temporary roots, processes, or projects. The gate asserts distinct run directories, ready-state files, Compose projects, ports, temporary credentials, and cleanup sentinels, then requires both commands to succeed with no owned residue.
 
@@ -130,7 +131,7 @@ polling, teardown, cleanup, ownership, and process behavior remain unchanged.
 
 ## 7. Scope boundary
 
-This harness is local-only. It is not a browser or full product end-to-end test, queue behavior test, Renderer or Playwright test, Agent Eval, recovery drill, or release gate. It verifies all reviewed migrations, the Drizzle Session, Content Package, and Source repositories through the API, owner non-disclosure, revision conflicts, Archive, pagination, Source role-limit enforcement, Working Copy revision conflicts, Version creation, Approval uniqueness, Source owner-scope isolation, and PostgreSQL authentication against a disposable `tmpfs` database. It runs no migration against `contentos-local` and persists no test data beyond the isolated run.
+This harness is local-only. It is not a browser or full product end-to-end test, queue behavior test, Renderer or Playwright test, Agent Eval, recovery drill, or release gate. It verifies all reviewed migrations and the Session, Content Package, Source, Workflow, and Research adapters through the API, including owner non-disclosure, revision conflicts, immutable Versions, exact Approval, and Research Outdated propagation against a disposable `tmpfs` database. It runs no migration against `contentos-local` and persists no test data beyond the isolated run.
 
 ## 8. Decision traceability
 

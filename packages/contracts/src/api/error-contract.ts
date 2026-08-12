@@ -17,6 +17,14 @@ export const API_ERROR_CODES = [
   'SOURCE_VERSION_NOT_ELIGIBLE',
   'SOURCE_VERSION_ALREADY_EXISTS',
   'SOURCE_ALREADY_APPROVED',
+  'RESEARCH_NOT_FOUND',
+  'APPROVED_SOURCE_REQUIRED',
+  'RESEARCH_REVISION_CONFLICT',
+  'RESEARCH_VERSION_NOT_FOUND',
+  'RESEARCH_VERSION_NOT_ELIGIBLE',
+  'RESEARCH_VERSION_ALREADY_EXISTS',
+  'RESEARCH_ALREADY_APPROVED',
+  'RESEARCH_PROVIDER_OUTPUT_INVALID',
   'INTERNAL_ERROR',
 ] as const;
 
@@ -37,7 +45,7 @@ export interface ApiErrorResponse {
 
 export interface PortableJsonSchema {
   readonly $schema?: string;
-  readonly type?: 'object' | 'array' | 'string' | 'integer' | 'null';
+  readonly type?: 'object' | 'array' | 'string' | 'integer' | 'boolean' | 'null';
   readonly additionalProperties?: boolean;
   readonly required?: string[];
   readonly properties?: Record<string, PortableJsonSchema>;
