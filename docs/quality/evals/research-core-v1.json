@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "contentos-research-eval/v1",
+  "dataset": {
+    "id": "research-core",
+    "version": 1,
+    "group": "core_regression",
+    "cases": [
+      {
+        "id": "grounded-single-source",
+        "inputs": [
+          {
+            "sourceId": "00000000-0000-4000-8000-000000000001",
+            "sourceVersionId": "00000000-0000-4000-8000-000000000002",
+            "role": "primary",
+            "label": "Primary source",
+            "text": "Verified evidence supports one bounded conclusion.\n\nSecondary context remains reviewable."
+          }
+        ],
+        "goldConstraints": {
+          "minimumResearchItems": 1,
+          "minimumOpenQuestions": 1,
+          "requiredEvidence": [
+            {
+              "sourceId": "00000000-0000-4000-8000-000000000001",
+              "sourceVersionId": "00000000-0000-4000-8000-000000000002",
+              "paragraphIndex": 0
+            }
+          ]
+        }
+      },
+      {
+        "id": "grounded-multiple-sources",
+        "inputs": [
+          {
+            "sourceId": "00000000-0000-4000-8000-000000000003",
+            "sourceVersionId": "00000000-0000-4000-8000-000000000004",
+            "role": "primary",
+            "label": "Primary source",
+            "text": "The primary source states the first bounded fact."
+          },
+          {
+            "sourceId": "00000000-0000-4000-8000-000000000005",
+            "sourceVersionId": "00000000-0000-4000-8000-000000000006",
+            "role": "supporting",
+            "label": "Supporting source",
+            "text": "The supporting source states a distinct corroborating fact."
+          }
+        ],
+        "goldConstraints": {
+          "minimumResearchItems": 2,
+          "minimumOpenQuestions": 1,
+          "requiredEvidence": [
+            {
+              "sourceId": "00000000-0000-4000-8000-000000000003",
+              "sourceVersionId": "00000000-0000-4000-8000-000000000004",
+              "paragraphIndex": 0
+            },
+            {
+              "sourceId": "00000000-0000-4000-8000-000000000005",
+              "sourceVersionId": "00000000-0000-4000-8000-000000000006",
+              "paragraphIndex": 0
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "configuration": {
+    "id": "research-fake-core",
+    "version": 1,
+    "agentSpec": "research/v1",
+    "provider": "fake-research/v1",
+    "validator": "research-v1",
+    "runtimePolicy": "deterministic-local-zero-cost",
+    "dataset": "research-core@1"
+  },
+  "run": {
+    "id": "research-core-v1-baseline-run-001",
+    "configuration": "research-fake-core@1",
+    "dataset": "research-core@1",
+    "caseResults": [
+      {
+        "caseId": "grounded-single-source",
+        "result": "passed",
+        "metrics": { "grounding": 1, "coverage": 1, "structure": 1 },
+        "criticalFailures": []
+      },
+      {
+        "caseId": "grounded-multiple-sources",
+        "result": "passed",
+        "metrics": { "grounding": 1, "coverage": 1, "structure": 1 },
+        "criticalFailures": []
+      }
+    ],
+    "aggregate": {
+      "passedCases": 2,
+      "totalCases": 2,
+      "criticalFailures": 0,
+      "providerCostUsd": 0
+    }
+  },
+  "humanReview": {
+    "id": "research-core-v1-baseline-review-001",
+    "run": "research-core-v1-baseline-run-001",
+    "reviewer": "/root/g4_mvp_acceptance_review",
+    "decision": "accepted",
+    "notes": "Grounding, coverage, and structure are deterministic baseline dimensions; this Fake Provider baseline is not real-model quality evidence."
+  },
+  "baseline": {
+    "id": "research-core-v1-baseline",
+    "acceptedRun": "research-core-v1-baseline-run-001",
+    "decision": "accepted"
+  }
+}

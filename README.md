@@ -14,9 +14,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0**, **M1 — Product Skeleton and Domain Foundation**, and **M2 — Source and Workflow Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision for the private Source/Workflow foundation. G1/M3 Research and G2 Human Opinion/Blog are effective; the G3 Xiaohongshu content thin slice is implemented by the current candidate.
+The repository has completed **M0**, **M1 — Product Skeleton and Domain Foundation**, **M2 — Source and Workflow Foundation**, and effective G1–G3 delivery through Research, Human Opinion/Blog, and Xiaohongshu text. Candidate [M5 Acceptance Record 001](docs/implementation/m5-acceptance-record-001.md) records a Passed current-main text-first MVP acceptance. Its bounded review corrections and final independent review passed; first eligible PR CI and merge effect remain.
 
-This repository now provides workspace installation, quality checks, builds, five process entry points, isolated local state services, authentication, Content Package/Source/Workflow/Fetcher foundations, G1 Research, effective G2 Human Opinion/Blog, and the G3 Xiaohongshu content candidate. The active Workspace can independently generate and review provenance-bound Blog and Xiaohongshu text from the same Content Foundation; Xiaohongshu supports a deterministic eight-page Packaging Plan, structured page edit/reorder, immutable checkpoint, exact Approval, Outdated state, and eligible `post.md` / `pages.json` download. PostgreSQL and the API remain authoritative; Raw Provider output is server-side only. No real Provider, generic Agent runtime, Render, image/ZIP Export Package, publishing, production deployment, or development server exists yet.
+This repository now provides workspace installation, quality checks, builds, five process entry points, isolated local state services, authentication, Source/Workflow/Fetcher foundations, Research, Human Opinion, and independently approved Blog/Xiaohongshu text with eligible `article.md`, `post.md`, and `pages.json` downloads. The candidate M5 record validates this complete private text-first path on current main. PostgreSQL and the API remain authoritative; Raw Provider output is server-side only. No real Provider, generic Agent runtime, Render, image/ZIP Export Package, automatic publishing, production deployment, or development server exists yet.
 
 ## MVP boundary
 
@@ -31,7 +31,7 @@ The repository currently contains:
 - Product, Architecture, Security, and Quality Current-truth specifications;
 - Implementation governance: [Roadmap](docs/implementation/roadmap.md), [Milestone Exit Criteria](docs/implementation/milestone-exit-criteria.md), and [Work Item template](docs/implementation/work-item-template.md).
 
-The current workspace contains five applications and six packages. G1 adds no package or application: Research domain/service logic lives in `core`, strict HTTP contracts in `contracts`, additive tables/repository in `database`, protected composition in `api`, and the review panel in `web`. Remaining planned packages stay absent until bounded Work Items require them.
+The current workspace contains five applications and six packages. G1–G3 add no package or application: Research, Opinion, Blog, and Xiaohongshu rules live in `core`; strict HTTP contracts live in `contracts`; additive persistence lives in `database`; protected composition lives in `api`; and the private review flows live in `web`. Remaining planned packages stay absent until bounded post-MVP Work Items require them.
 
 ## Authoritative documentation map
 
@@ -39,7 +39,7 @@ The current workspace contains five applications and six packages. G1 adds no pa
 - Product: [definition](docs/product/product-definition.md), [users and jobs](docs/product/user-and-jobs.md), [MVP scope](docs/product/mvp-scope.md)
 - Architecture: [domain overview](docs/architecture/domain-overview.md), [Content Package foundation](docs/architecture/content-package-foundation.md), [Source foundation](docs/architecture/source-foundation.md), [technical architecture](docs/architecture/technical-architecture.md), [repository structure](docs/architecture/repository-structure.md), [workflow overview](docs/architecture/workflow-overview.md)
 - Security: [security baseline](docs/security/security-baseline.md), [authentication foundation](docs/security/authentication-foundation.md)
-- Quality: [test strategy](docs/quality/test-strategy.md), [release gates](docs/quality/release-gates.md), [local quality toolchain](docs/quality/local-quality-toolchain.md), [integration smoke harness](docs/quality/integration-smoke-harness.md), [M1 browser thin slice](docs/quality/browser-thin-slice.md), [M2 acceptance harness](docs/quality/m2-acceptance-harness.md), [CI skeleton](docs/quality/ci-skeleton.md)
+- Quality: [test strategy](docs/quality/test-strategy.md), [release gates](docs/quality/release-gates.md), [Research Eval baseline](docs/quality/evals/research-core-v1.json), [local quality toolchain](docs/quality/local-quality-toolchain.md), [integration smoke harness](docs/quality/integration-smoke-harness.md), [browser acceptance](docs/quality/browser-thin-slice.md), [M2 acceptance harness](docs/quality/m2-acceptance-harness.md), [CI skeleton](docs/quality/ci-skeleton.md)
 - Implementation: [roadmap](docs/implementation/roadmap.md), [exit criteria](docs/implementation/milestone-exit-criteria.md), [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md), [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md), [Work Item template](docs/implementation/work-item-template.md), and [agent collaboration workflow](docs/implementation/agent-collaboration-workflow.md)
 - [Decision Register](docs/decisions/decisions.md)
 - [Contribution guide](CONTRIBUTING.md)
@@ -82,7 +82,7 @@ corepack pnpm repository:check
 
 Before a commit, run `corepack pnpm check`. It runs `format:check`, `lint`, `typecheck`, `test`, and `build` without starting Docker services, reaching the network, or reading Secrets. The Docker-dependent `test:integration`, `test:integration:concurrent`, and `test:browser` commands are excluded from `check`. `corepack pnpm repository:check` (and the focused `check:docs`, `check:decisions`, and `check:secrets`) run dependency-free repository-integrity checks over Git-tracked files.
 
-After a successful build, the processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web provides login, Dashboard, Content Package creation, Source review, and active Research review. API provides liveness, authentication, owner-scoped Content Package/Source/Workflow/Research routes, the private non-OpenAPI Fetcher Gateway, and `/openapi.json`. Research supports get, deterministic generation, Working Copy edit, immutable checkpoint, and exact Approval; it exposes no Raw Provider output. Worker and Fetcher retain their existing scoped delivery identities. Web and API startup require the validated values documented in `.env.example`.
+After a successful build, the processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web provides login, Dashboard, Content Package and Source review, Research review, Human Opinion confirmation, explicit Creator-led/Research-based selection, independent Blog/Xiaohongshu editing, checkpoint, exact Approval, provenance review, and portable text downloads. API provides liveness, authentication, owner-scoped Content Package/Source/Workflow/Research/Opinion/Blog/Xiaohongshu routes, the private non-OpenAPI Fetcher Gateway, and `/openapi.json`. Deterministic local Fake Providers expose no Raw Provider output; Worker and Fetcher retain their scoped delivery identities. Web and API startup require the validated values documented in `.env.example`.
 
 Generate a local owner-password hash interactively, then apply the committed database migration only after supplying the intended PostgreSQL URL through the environment:
 
@@ -112,13 +112,13 @@ To verify the five application skeletons and the local state services work toget
 corepack pnpm test:integration
 ```
 
-This starts an isolated `contentos-smoke-*` Compose project that replaces persistent volumes with `tmpfs`, binds ephemeral ports to `127.0.0.1` only, uses a run-unique temporary directory and credentials outside the repository, applies the reviewed migrations, and exercises Session, Content Package, and Pasted-text Source API behavior. It never reads, mounts, or changes the `contentos-local` named volumes.
+This starts an isolated `contentos-smoke-*` Compose project that replaces persistent volumes with `tmpfs`, binds ephemeral ports to `127.0.0.1` only, uses a run-unique temporary directory and credentials outside the repository, applies the reviewed migrations, and exercises the private API/PostgreSQL path through Sources, Research, Opinion, Blog, Xiaohongshu, exact Approval, Outdated propagation, owner/archive denial, and portable exports. It never reads, mounts, or changes the `contentos-local` named volumes.
 
 Run `corepack pnpm test:integration:concurrent` to launch two complete token-owned smoke runs concurrently and verify that their directories, state, Compose projects, ports, credentials, and cleanup remain isolated from each other and from unrelated harness runs.
 
-After installing the pinned Chromium revision with `corepack pnpm exec playwright install chromium`, run `corepack pnpm test:browser` to exercise the M1/M2/G1 owner-browser suite. Read [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md) and [M2 Acceptance Harness](docs/quality/m2-acceptance-harness.md) for its security, cleanup, and scope boundaries.
+After installing the pinned Chromium revision with `corepack pnpm exec playwright install chromium`, run `corepack pnpm test:browser` to exercise the current owner-browser suite through both approved text branches and the three downloads. Read [Browser Acceptance](docs/quality/browser-thin-slice.md) and [M2 Acceptance Harness](docs/quality/m2-acceptance-harness.md) for its security, cleanup, and scope boundaries.
 
-These commands remain a bounded M1 foundation plus the active M2 Source, delivery, Fetcher execution, and Source-evidence slices. There is no `dev`, broad product E2E suite, Workflow Engine beyond the current durable request/delivery/lease/recovery/result boundary, Agent, Render, or publishing-content feature yet.
+These commands cover the private text-first MVP plus the retained M2 delivery/recovery boundary. There is no `dev`, real Provider execution, generic Agent runtime, Design/Render/image package, automatic publishing, production deployment, or broad post-MVP operations suite.
 
 ## Continuous integration
 
@@ -126,15 +126,14 @@ A bounded GitHub Actions workflow at [.github/workflows/ci.yml](.github/workflow
 
 - a Docker-independent job: workspace resolution, `corepack pnpm check`, and `corepack pnpm repository:check` (Markdown local-link, Canonical Decision register, and Secret checks);
 - a Docker-dependent job: `corepack pnpm test:integration` through the existing isolated smoke harness.
-- an M1/M2/G1 browser job: pinned Playwright Chromium runs `corepack pnpm test:browser` against an isolated runtime.
+- a current text-first browser job: pinned Playwright Chromium runs `corepack pnpm test:browser` against an isolated runtime.
 
 The workflow references no repository Secrets, persists no credentials, uploads no artifacts, and performs no deployment or release. It is a bounded baseline, not a full release gate. All three jobs must pass before a change can merge. Read [CI Skeleton](docs/quality/ci-skeleton.md) for the full scope.
 
 ## Next implementation steps
 
-1. G1 Research is effective through PR #290.
-2. G2 Human Opinion/Research-based Mode and Blog is effective through PR #292.
-3. Review, verify CI, and merge the bounded [G3 Xiaohongshu content Work Item](docs/implementation/work-packets/g3-xiaohongshu-content-thin-slice.md); real Provider calls remain separately authorized.
+1. Review, verify CI, and merge the bounded [G4 text-first MVP Acceptance Record](docs/implementation/work-packets/g4-text-first-mvp-acceptance.md).
+2. Keep real Provider calls, production deployment, Design/Render, rich packages, backup/restore, and automatic publishing behind separately approved post-MVP Work Items.
 
 No completion date is committed by this repository.
 

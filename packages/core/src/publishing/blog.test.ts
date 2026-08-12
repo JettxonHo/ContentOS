@@ -112,6 +112,27 @@ describe('Human Opinion and Blog v1', () => {
     const body = validateBlogBody(JSON.parse(await new FakeBlogProvider().generate(foundation, 'research_based')));
     expect(body.markdown).not.toMatch(/\b(?:I|me|my|we|us|our)\b/i);
     expect(body.internalProvenance.every((entry) => entry.opinionVersionId === null)).toBe(true);
+
+    for (const fabricated of ['我认为这值得尝试。', '我们亲自验证了这个结论。', '咱们都知道答案。', '本人推荐照做。']) {
+      expect(() =>
+        validateBlogBody({ ...body, markdown: `# Title\n\n${fabricated}\n\n## References\n\n- Source` }),
+      ).toThrow('INVALID_BLOG');
+    }
+  });
+
+  it('fails closed on direct-quote syntax until exact Evidence quote binding exists', async () => {
+    const body = validateBlogBody(JSON.parse(await new FakeBlogProvider().generate(foundation, 'research_based')));
+    for (const quoted of [
+      '# Title\n\n> Supported claim\n\n## References\n\n- Source',
+      '# Title\n\n“Supported claim”\n\n## References\n\n- Source',
+      '# Title\n\n‘Supported claim’\n\n## References\n\n- Source',
+      '# Title\n\n「Supported claim」\n\n## References\n\n- Source',
+      '# Title\n\n『Supported claim』\n\n## References\n\n- Source',
+      '# Title\n\n"Supported claim"\n\n## References\n\n- Source',
+      '# Title\n\n<blockquote>Supported claim</blockquote>\n\n## References\n\n- Source',
+    ]) {
+      expect(() => validateBlogBody({ ...body, markdown: quoted })).toThrow('INVALID_BLOG');
+    }
   });
 
   it('rejects unknown fields, lone surrogates, and creator content without Opinion provenance', () => {

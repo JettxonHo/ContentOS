@@ -240,7 +240,7 @@ Writer, Packaging, and Visual Agents do not precede Approved Research.
 
 `GOAL-MVP-TEXT-001/G2` implements the bounded text-first thin slice on effective G1 Research: one fixed Human Opinion question with deterministic interpretation and explicit confirmation/correction, Creator-led or Research-based Blog generation through a deterministic Fake Provider, public references plus internal provenance, Working Copy/Version/exact Approval, dependency Outdated state, and eligible `article.md` download. Real Provider execution, generic Agent infrastructure, Xiaohongshu, rendering, rich assets, and publishing remain outside G2.
 
-**Current status: In Review.** The corrected local candidate under Issue #291 has completed root quality (58 files / 595 tests plus five builds), isolated Integration (29 files / 188 tests), and pinned-Chromium Browser (18/18) gates. Four bounded first-review blockers are corrected with direct regressions for immutable references, checkpoint-bound Approval, concurrent request idempotency, and export identity; targeted independent re-review passed with no blocking findings. First eligible PR CI and squash merge remain required before G2 becomes effective.
+**Current status: Completed.** G2 became effective through PR #292, squash `7ddc4f1de1130f0edd345e623ee6722e6cab3259`, with Issue #291 Closed/Completed.
 
 M4 implements:
 
@@ -254,7 +254,7 @@ M4 is an internal milestone: it validates Human Opinion, Citation, Provenance, e
 
 M5 adds the independent Xiaohongshu text branch:
 
-**Current status: Publication Ready.** `GOAL-MVP-TEXT-001/G3` is tracked by Issue #293 and the [G3 Xiaohongshu content Work Packet](work-packets/g3-xiaohongshu-content-thin-slice.md). It starts from effective G2 squash `7ddc4f1de1130f0edd345e623ee6722e6cab3259`; local root (60 files / 602 tests plus five builds), Integration (29 files / 188 tests), and Browser (18/18) gates pass, and independent review reports no merge blockers. The candidate adds explicit Creator-led/Research-based selection, independently reviewable structured page fields and provenance, exact-foundation generation/Approval validation, corrected Research/long-input handling, and eligible exact Approved-Version `post.md` / `pages.json` export. First eligible PR CI and squash merge remain pending; G4 is the text-first MVP acceptance, while Design and Render remain post-MVP under DEC-295.
+**Current status: G3 Completed; G4 Publication Ready.** G3 became effective through PR #294, squash `dfdc84027e0c3d7ece2b155069d828f215309396`, with Issue #293 Closed/Completed and first eligible quality, Integration, and Browser CI successful. G4 is tracked by Issue #295 and the [G4 text-first MVP acceptance Work Packet](work-packets/g4-text-first-mvp-acceptance.md). Current-main root passed after review corrections (61/605 plus five builds), Integration passed (29/188), and Concurrent, Browser (18/18), repository, registry audit, and migration no-diff evidence passed. The accepted Research Core Eval baseline records 2/2 cases, zero Critical Failures, and zero Provider cost; Blog rejects Chinese/English Research-based first-person content and fails closed on the finite unbound Direct Quote set. Candidate [M5 Acceptance Record 001](m5-acceptance-record-001.md) reports no Blocking Defect, and final independent review passed with no blockers. First eligible PR CI and squash merge remain before the M5 decision and Goal completion become effective. Design and Render remain post-MVP under DEC-295.
 
 - Packaging Agent and Packaging Plan;
 - Platform Profile;

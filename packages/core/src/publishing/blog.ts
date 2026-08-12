@@ -14,7 +14,9 @@ export type BlogContentMode = 'creator_led' | 'research_based';
 
 export const OPINION_QUESTION = 'What should readers understand, feel, or do after reading this?' as const;
 const LONE_SURROGATE_PATTERN = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u;
-const FIRST_PERSON_PATTERN = /\b(?:I|me|my|mine|myself|we|us|our|ours|ourselves)\b/iu;
+const FIRST_PERSON_PATTERN = /(?:\b(?:I|me|my|mine|myself|we|us|our|ours|ourselves)\b|我|我们|咱们|本人)/iu;
+const DIRECT_QUOTE_PATTERN =
+  /(?:^|\n)\s*>\s*\S|<blockquote(?:\s[^>]*)?>[\s\S]*?<\/blockquote\s*>|“[^”\n]+”|‘[^’\n]+’|「[^」\n]+」|『[^』\n]+』|"[^"\n]+"/iu;
 
 function text(value: unknown, max: number): string {
   if (
@@ -177,6 +179,11 @@ export function validateBlogBody(value: unknown): BlogBody {
     body.contentMode === 'research_based' &&
     FIRST_PERSON_PATTERN.test(`${body.title}\n${body.summary}\n${body.markdown}`)
   ) {
+    throw new BlogError('INVALID_BLOG');
+  }
+  // The text-first MVP has no typed Direct Quote Usage relation. Fail closed
+  // rather than accepting wording that cannot be matched to exact Evidence.
+  if (DIRECT_QUOTE_PATTERN.test(body.markdown)) {
     throw new BlogError('INVALID_BLOG');
   }
   if (body.contentMode === 'creator_led' && body.internalProvenance.some((entry) => entry.opinionVersionId === null)) {
