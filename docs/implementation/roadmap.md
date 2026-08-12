@@ -717,6 +717,35 @@ operations remain independent literal invocations with fixed cwd and
 structured status. Safe-count applies only to exact-seven publication; the
 postmerge docs-only phase does not repeat a runtime observer.
 
+### M2-GOV-009 — Per-File Record 002 Publication Reconstruction Recovery
+
+| Work Item                                                                                                                                                                                | Goal                                                                                                                                | Depends on                                                                                                                                                                          | Status boundary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`M2-GOV-009 — M2 Acceptance Record 002 Per-File Publication Reconstruction Recovery`](work-packets/m2-gov-009-m2-acceptance-record-002-per-file-publication-reconstruction-recovery.md) | Recover the strict Blocked Record 002 publication with eight independent per-file reconstruction writes and no exit-evidence rerun. | GOV008 planning PR #275 merged at `469828ad7557b37e4dae68a973c814bb16f6e1a0`; frozen GOV006 exact-six source; GOV008 atomic P3 first red; Issue #276 Open/body parity synchronized. | **Ready — exact-two planning publication and handoff pending.** GOV006/GOV008 reds remain immutable. Exactly eight sequential per-file writes update every exact-eight destination; any failure transfers to GOV010. Dual DoR reviewers `/root/m2_gov_006_dor_correctness` and `/root/m2_gov_006_dor_governance`, role `DEFINITION_OF_READY_REVIEWER`, requested Sol High, actual `UNVERIFIED_RUNTIME_MODEL`, returned PASS/no findings/no BQ/no DEC on corrected exact-two/frozen source/#276 parity. Final planning checks PASS. Planning PR/3CI/merge and explicit handoff remain. Record002 becomes effective Blocked only after exact-eight merge; M2 stays In Progress, M3 Not Started, #144/#274/#276 Open until merged postmerge exact-two. |
+
+The five standalone destinations must byte-equal the frozen GOV006 final
+working-tree bytes. GOV008 Packet and Roadmap use bounded evidence/status
+updates rather than whole-file equality. Publication review metadata permits
+one additional patch limited to Record002, GOV008/GOV009 Packets, and Roadmap;
+postmerge metadata remains exact two. Every command is an independent literal
+invocation with fixed cwd and structured status; same-head rerun, combined
+command, wrapper, pipe, heredoc, exit/runtime/test/audit/migration change, and
+Record001/code/config/DEC/M3 mutation are prohibited.
+
+### M2-GOV-009 DoR correction
+
+GOV009 now requires exactly eight sequential per-file `apply_patch` writes,
+one for every exact-eight destination. The eighth write updates only the
+already-merged GOV009 Packet's In Review status, implementer/handoff metadata,
+and actual P0–P4 evidence; pre-review shape remains seven tracked `M` plus
+untracked Record 002. GOV008 evidence predicates require exact fixed strings
+for base `469828ad7557b37e4dae68a973c814bb16f6e1a0`, P0–P2/source PASS, the sole
+P3 `AGENTS.md` context mismatch, atomic/no-write first red, five-cmp/nine-rg
+and P4+ zero, no retry, and transfer to GOV009. Roadmap predicates likewise
+fix GOV006/GOV008/GOV009 status, Record 002 ineffectiveness, M2 In Progress,
+M3 Not Started, and Issues #144/#274 Open. P7 and postmerge final sequences are
+fully literal rather than referring to an earlier list.
+
 ## 10. M3 — Research
 
 M3 introduces the first formal Agent Vertical Slice:
