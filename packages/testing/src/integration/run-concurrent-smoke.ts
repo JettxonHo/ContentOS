@@ -536,6 +536,18 @@ export async function coordinateConcurrentSmoke(options: {
   return states;
 }
 
+export const CONCURRENT_FINAL_SUCCESS_RECORD =
+  'Harness concurrent final coordinator=verified children=2 isolation=verified cleanup=verified\n';
+
+export async function coordinateAndEmitConcurrentSmoke(
+  options: Parameters<typeof coordinateConcurrentSmoke>[0],
+  write: (record: string) => void,
+): Promise<readonly SmokeState[]> {
+  const states = await coordinateConcurrentSmoke(options);
+  write(CONCURRENT_FINAL_SUCCESS_RECORD);
+  return states;
+}
+
 export async function discoverOwnedStates(options: {
   readonly claims: readonly SmokeOwnershipClaim[];
   readonly timeoutMs?: number;
@@ -895,21 +907,24 @@ async function main(): Promise<void> {
     }),
     startCompleteSmoke(claims[1]!, mode, { CONTENTOS_SMOKE_USE_PARENT_BUILD: '1' }),
   ] as const;
-  await coordinateConcurrentSmoke({
-    claims,
-    children,
-    onAuthenticatedState: (state) => {
-      const childToken = state.ownership!.childToken;
-      evidenceByChild.set(childToken, captureRuntimeEvidence(state));
-      sentinelPaths.add(writeOwnedSentinels([state])[0]!);
+  await coordinateAndEmitConcurrentSmoke(
+    {
+      claims,
+      children,
+      onAuthenticatedState: (state) => {
+        const childToken = state.ownership!.childToken;
+        evidenceByChild.set(childToken, captureRuntimeEvidence(state));
+        sentinelPaths.add(writeOwnedSentinels([state])[0]!);
+      },
+      onStatesReady: (states) => {
+        assertDistinctRuntime(states, evidenceByChild);
+        if (sentinelPaths.size !== 2) throw new Error('Concurrent smoke cleanup sentinel paths collided.');
+        if (injectTermination !== undefined) children[0].signal(injectTermination);
+      },
+      verifyOwnedCleanup: async (expectedClaims) => cleanupAndVerifyClaims(expectedClaims),
     },
-    onStatesReady: (states) => {
-      assertDistinctRuntime(states, evidenceByChild);
-      if (sentinelPaths.size !== 2) throw new Error('Concurrent smoke cleanup sentinel paths collided.');
-      if (injectTermination !== undefined) children[0].signal(injectTermination);
-    },
-    verifyOwnedCleanup: async (expectedClaims) => cleanupAndVerifyClaims(expectedClaims),
-  });
+    process.stdout.write.bind(process.stdout),
+  );
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
