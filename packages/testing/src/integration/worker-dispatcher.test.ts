@@ -215,6 +215,7 @@ describe('M2-WF-003A Worker integration', () => {
         (value) => value !== undefined,
         () => `worker stdout=${worker.stdout.join('').trim()} stderr=${worker.stderr.join('').trim()}`,
       );
+      const outboxId = fixture.outboxId;
       expect(job.name).toBe('fetcher-task');
       expect(job.data).toEqual({ taskId: fixture.taskId, taskKind: 'url_capture', envelopeVersion: 'fetcher-task/v1' });
       expect(job.opts.attempts).toBe(1);
@@ -222,13 +223,18 @@ describe('M2-WF-003A Worker integration', () => {
       expect(job.opts.removeOnFail).toBe(true);
       expect(JSON.stringify(job.data)).not.toContain('worker');
 
-      const ledger = await boundary.query<{
-        state: string;
-        delivery_generation: number;
-        dispatch_attempt_count: number;
-      }>('SELECT state, delivery_generation, dispatch_attempt_count FROM workflow_outbox_records WHERE id = $1', [
-        fixture.outboxId,
-      ]);
+      const ledger = await waitFor(
+        () =>
+          boundary.query<{
+            state: string;
+            delivery_generation: number;
+            dispatch_attempt_count: number;
+          }>('SELECT state, delivery_generation, dispatch_attempt_count FROM workflow_outbox_records WHERE id = $1', [
+            outboxId,
+          ]),
+        (rows) => rows[0]?.state === 'dispatched',
+        () => `worker stdout=${worker.stdout.join('').trim()} stderr=${worker.stderr.join('').trim()}`,
+      );
       expect(ledger[0]).toEqual({ state: 'dispatched', delivery_generation: 1, dispatch_attempt_count: 1 });
       expect(
         (
@@ -245,9 +251,10 @@ describe('M2-WF-003A Worker integration', () => {
       expect(repaired.data).toEqual(job.data);
       expect(repaired.opts.removeOnComplete).toBe(true);
       expect(repaired.opts.removeOnFail).toBe(true);
-      const repairedLedger = await boundary.query<{ state: string }>(
-        'SELECT state FROM workflow_outbox_records WHERE id = $1',
-        [fixture.outboxId],
+      const repairedLedger = await waitFor(
+        () => boundary.query<{ state: string }>('SELECT state FROM workflow_outbox_records WHERE id = $1', [outboxId]),
+        (rows) => rows[0]?.state === 'dispatched',
+        () => `worker stdout=${worker.stdout.join('').trim()} stderr=${worker.stderr.join('').trim()}`,
       );
       expect(repairedLedger[0]).toEqual({ state: 'dispatched' });
     } finally {
@@ -416,14 +423,19 @@ describe('M2-WF-003A Worker integration', () => {
       );
       expect(repairedJob.id).toBe(targetJobId);
       expect(repairedJob.data).toEqual(targetJob.data);
-      const repairedLedger = await boundary.query<{
-        state: string;
-        delivery_generation: number;
-        dispatch_attempt_count: number;
-      }>(
-        `SELECT state, delivery_generation, dispatch_attempt_count
-         FROM workflow_outbox_records WHERE id = $1`,
-        [target.outboxId],
+      const repairedLedger = await waitFor(
+        () =>
+          boundary.query<{
+            state: string;
+            delivery_generation: number;
+            dispatch_attempt_count: number;
+          }>(
+            `SELECT state, delivery_generation, dispatch_attempt_count
+             FROM workflow_outbox_records WHERE id = $1`,
+            [target.outboxId],
+          ),
+        (rows) => rows[0]?.state === 'dispatched',
+        () => `worker stdout=${worker.stdout.join('').trim()} stderr=${worker.stderr.join('').trim()}`,
       );
       expect(repairedLedger[0]).toEqual({ state: 'dispatched', delivery_generation: 1, dispatch_attempt_count: 2 });
     } finally {
