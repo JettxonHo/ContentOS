@@ -1,6 +1,6 @@
 # GOAL-MVP-TEXT-001 — Deliver the Text-first Private MVP
 
-**Status:** Active — G0 completed; G1 implementation in review
+**Status:** Active — G0–G2 completed; G3 implementation in review
 **Human approval:** Confirmed 2026-08-12
 **Authority:** DEC-295, current Product/Architecture/Security/Quality specifications, and `AGENTS.md`
 **Execution model:** One phase and one bounded Issue/PR at a time
@@ -63,7 +63,7 @@ Goal approval authorizes planning and bounded repository implementation after th
 
 ### G0 — M2 baseline acceptance
 
-**Current status:** Completed. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision. M2 is Completed; that decision made G1 eligible, and G1 is now In Review.
+**Current status:** Completed. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision. M2 is Completed; that decision made G1 eligible.
 
 - Start from latest merged `main`.
 - Reuse the merged M2 implementation and existing acceptance harness; do not reconstruct historical failed publication protocols.
@@ -73,7 +73,7 @@ Goal approval authorizes planning and bounded repository implementation after th
 
 ### G1 — Research thin slice
 
-**Current status:** In Review under Issue #289. The deterministic local implementation and affected verification are complete; independent review, PR CI, and squash merge remain before G1 becomes effective. G2 is Not Started.
+**Current status:** Completed through the reviewed and merged G1 publication. G2 is also effective, and G3 is now In Review.
 
 - Consume exact owner-scoped Approved Source Versions.
 - Produce structured Research with Summary, Facts/Claims, Evidence, Open Questions, and Needs Verification.
@@ -83,6 +83,8 @@ Goal approval authorizes planning and bounded repository implementation after th
 
 ### G2 — Human Opinion and Blog
 
+**Current status:** Completed through PR #292, squash `7ddc4f1de1130f0edd345e623ee6722e6cab3259`. G3 is now In Review under Issue #293.
+
 - Ask the minimum focused question needed for creator-led content.
 - Preserve Raw Response → AI Interpretation → user-confirmed Opinion.
 - Allow explicit Research-based Mode without fabricated first-person claims.
@@ -90,6 +92,8 @@ Goal approval authorizes planning and bounded repository implementation after th
 - Complete when a user can download approved `article.md` with public References and internal Provenance.
 
 ### G3 — Xiaohongshu text branch
+
+**Current status:** In Review under Issue #293. Local implementation and affected verification are complete; independent re-review, PR CI, and squash merge remain before G3 becomes effective.
 
 - Generate independently from the Approved Content Foundation, never by shortening Blog.
 - Support Platform/Cover titles, ordered text pages, Caption, CTA, Hashtags, References, editing, and ordering.

@@ -7,6 +7,7 @@ import type {
   SourceRepository,
   ResearchRepository,
   BlogRepository,
+  XiaohongshuRepository,
   UrlCaptureCommandRepository,
   UrlCaptureResultRepository,
   FetcherGatewayClaimRepository,
@@ -25,6 +26,7 @@ export class DatabaseService implements OnModuleDestroy {
   readonly sources: SourceRepository;
   readonly research: ResearchRepository;
   readonly blog: BlogRepository;
+  readonly xiaohongshu: XiaohongshuRepository;
   readonly urlCapture: UrlCaptureCommandRepository;
   readonly fetcherGateway: FetcherGatewayClaimRepository;
   readonly urlCaptureResults: UrlCaptureResultRepository;
@@ -38,6 +40,7 @@ export class DatabaseService implements OnModuleDestroy {
     this.sources = this.runtime.sources;
     this.research = this.runtime.research;
     this.blog = this.runtime.blog;
+    this.xiaohongshu = this.runtime.xiaohongshu;
     this.urlCapture = this.runtime.urlCapture;
     this.fetcherGateway = this.runtime.fetcherGateway;
     this.urlCaptureResults = this.runtime.urlCaptureResults;

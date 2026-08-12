@@ -13,6 +13,13 @@ import {
   FakeResearchProvider,
   BlogService,
   FakeBlogProvider,
+  XiaohongshuService,
+  FakePackagingProvider,
+  type XiaohongshuArtifactId,
+  type XiaohongshuWorkingCopyId,
+  type XiaohongshuVersionId,
+  type XiaohongshuApprovalId,
+  type XiaohongshuRunId,
   type BlogArtifactId,
   type BlogWorkingCopyId,
   type BlogVersionId,
@@ -58,6 +65,7 @@ import { TrustedOriginGuard } from './http/trusted-origin.guard';
 import { SourceController } from './source/source.controller';
 import { ResearchController } from './research/research.controller';
 import { BlogController } from './blog/blog.controller';
+import { XiaohongshuController } from './xiaohongshu/xiaohongshu.controller';
 import { UrlCaptureController } from './url-capture/url-capture.controller';
 import { FetcherGatewayController } from './fetcher-gateway/fetcher-gateway.controller';
 import { WorkflowController } from './workflow/workflow.controller';
@@ -73,6 +81,7 @@ import {
   SOURCE_SERVICE,
   RESEARCH_SERVICE,
   BLOG_SERVICE,
+  XIAOHONGSHU_SERVICE,
   URL_CAPTURE_SERVICE,
   FETCHER_GATEWAY_SERVICE,
   FETCHER_RESULT_SERVICE,
@@ -92,6 +101,7 @@ export class AppModule {
         SourceController,
         ResearchController,
         BlogController,
+        XiaohongshuController,
         UrlCaptureController,
         FetcherGatewayController,
         WorkflowController,
@@ -192,6 +202,23 @@ export class AppModule {
                 blogRun: () => randomUUID() as BlogRunId,
                 opinion: () => randomUUID() as OpinionArtifactId,
                 opinionVersion: () => randomUUID() as OpinionVersionId,
+              },
+              { now: () => new Date() },
+            ),
+        },
+        {
+          provide: XIAOHONGSHU_SERVICE,
+          inject: [DatabaseService],
+          useFactory: (database: DatabaseService): XiaohongshuService =>
+            new XiaohongshuService(
+              database.xiaohongshu,
+              new FakePackagingProvider(),
+              {
+                artifact: () => randomUUID() as XiaohongshuArtifactId,
+                version: () => randomUUID() as XiaohongshuVersionId,
+                workingCopy: () => randomUUID() as XiaohongshuWorkingCopyId,
+                approval: () => randomUUID() as XiaohongshuApprovalId,
+                run: () => randomUUID() as XiaohongshuRunId,
               },
               { now: () => new Date() },
             ),

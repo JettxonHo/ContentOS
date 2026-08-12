@@ -33,6 +33,8 @@ import type {
   InterpretOpinionRequest,
   ConfirmOpinionRequest,
   GenerateBlogRequest,
+  XiaohongshuResponse,
+  XiaohongshuBodyDto,
   EditBlogRequest,
   CheckpointBlogRequest,
   ApproveBlogRequest,
@@ -269,6 +271,52 @@ export class ContentOsApiClient {
     const response = await this.fetcher(
       `${this.origin}/v1/content-packages/${encodeURIComponent(packageId)}/blog/export`,
       { credentials: 'include', headers: { accept: 'text/markdown' } },
+    );
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: { code?: ApiErrorCode } } | null;
+      throw new WebApiError(response.status, payload?.error?.code ?? 'INTERNAL_ERROR');
+    }
+    return response.text();
+  }
+
+  getXiaohongshu(packageId: string): Promise<XiaohongshuResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/xiaohongshu`);
+  }
+  generateXiaohongshu(packageId: string, input: GenerateBlogRequest): Promise<XiaohongshuResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/xiaohongshu/generations`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+  editXiaohongshu(
+    packageId: string,
+    input: { readonly expectedRevision: number; readonly body: XiaohongshuBodyDto },
+  ): Promise<XiaohongshuResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/xiaohongshu/working-copy`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
+  }
+  checkpointXiaohongshu(packageId: string, input: { readonly expectedRevision: number }): Promise<XiaohongshuResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/xiaohongshu/versions`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+  approveXiaohongshu(packageId: string, input: { readonly versionId: string }): Promise<XiaohongshuResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/xiaohongshu/approval`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async exportXiaohongshu(packageId: string, kind: 'post' | 'pages'): Promise<string> {
+    const response = await this.fetcher(
+      `${this.origin}/v1/content-packages/${encodeURIComponent(packageId)}/xiaohongshu/export/${kind}`,
+      {
+        credentials: 'include',
+        headers: { accept: kind === 'post' ? 'text/markdown' : 'application/json' },
+      },
     );
     if (!response.ok) {
       const payload = (await response.json().catch(() => null)) as { error?: { code?: ApiErrorCode } } | null;

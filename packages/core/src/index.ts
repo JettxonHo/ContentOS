@@ -4,6 +4,7 @@ export * from './content-package/content-package-service.js';
 export * from './security/authentication.js';
 export * from './research/research.js';
 export * from './publishing/blog.js';
+export * from './publishing/xiaohongshu.js';
 export * from './source/normalized-body-validator.js';
 export * from './source/approved-source-input.js';
 export * from './source/fetcher-candidate.js';

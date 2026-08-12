@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 import { describe, expect, it } from 'vitest';
-import type { BlogResource, OpinionResource, ResearchResource } from '@contentos/contracts';
+import type { BlogResource, OpinionResource, ResearchResource, XiaohongshuResource } from '@contentos/contracts';
 
 import { composeExec } from './compose.js';
 import { requireState, type SmokeState } from './env.js';
@@ -128,6 +128,151 @@ describe('Human Opinion and Blog protected API', () => {
     });
     const confirmed = ((await confirmedResponse.json()) as { data: { opinion: OpinionResource } }).data.opinion;
     expect(confirmed.confirmedVersionId).toMatch(/^[0-9a-f-]{36}$/);
+    const xiaohongshuRequestId = randomUUID();
+    const [xiaohongshuGeneratedResponse, xiaohongshuDuplicateResponse] = await Promise.all([
+      fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/generations`, {
+        method: 'POST',
+        headers: headers(state, cookie),
+        body: JSON.stringify({ requestId: xiaohongshuRequestId, contentMode: 'creator_led' }),
+      }),
+      fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/generations`, {
+        method: 'POST',
+        headers: headers(state, cookie),
+        body: JSON.stringify({ requestId: xiaohongshuRequestId, contentMode: 'creator_led' }),
+      }),
+    ]);
+    expect(xiaohongshuGeneratedResponse.status).toBe(201);
+    expect(xiaohongshuDuplicateResponse.status).toBe(201);
+    const xiaohongshuGenerated = (
+      (await xiaohongshuGeneratedResponse.json()) as { data: { xiaohongshu: XiaohongshuResource } }
+    ).data.xiaohongshu;
+    const xiaohongshuDuplicate = (
+      (await xiaohongshuDuplicateResponse.json()) as { data: { xiaohongshu: XiaohongshuResource } }
+    ).data.xiaohongshu;
+    expect(xiaohongshuGenerated.workingCopy.body.pages).toHaveLength(8);
+    expect(xiaohongshuDuplicate.latestVersion.id).toBe(xiaohongshuGenerated.latestVersion.id);
+    const reorderedPages = [
+      xiaohongshuGenerated.workingCopy.body.pages[1]!,
+      xiaohongshuGenerated.workingCopy.body.pages[0]!,
+      ...xiaohongshuGenerated.workingCopy.body.pages.slice(2),
+    ];
+    const xiaohongshuEditedResponse = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/working-copy`,
+      {
+        method: 'PATCH',
+        headers: headers(state, cookie),
+        body: JSON.stringify({
+          expectedRevision: xiaohongshuGenerated.workingCopy.revision,
+          body: {
+            ...xiaohongshuGenerated.workingCopy.body,
+            selectedPlatformTitle: xiaohongshuGenerated.workingCopy.body.platformTitleCandidates[1],
+            pages: reorderedPages,
+            caption: 'Owner-reviewed Xiaohongshu caption.',
+          },
+        }),
+      },
+    );
+    expect(xiaohongshuEditedResponse.status).toBe(200);
+    const xiaohongshuEdited = (
+      (await xiaohongshuEditedResponse.json()) as { data: { xiaohongshu: XiaohongshuResource } }
+    ).data.xiaohongshu;
+    expect(xiaohongshuEdited.workingCopy.body.pages[0]!.id).toBe('page-2');
+    expect(xiaohongshuEdited.latestVersion.body.caption).not.toBe('Owner-reviewed Xiaohongshu caption.');
+    const xiaohongshuCheckpointResponse = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/versions`,
+      {
+        method: 'POST',
+        headers: headers(state, cookie),
+        body: JSON.stringify({ expectedRevision: xiaohongshuEdited.workingCopy.revision }),
+      },
+    );
+    expect(xiaohongshuCheckpointResponse.status).toBe(201);
+    const xiaohongshuCheckpointed = (
+      (await xiaohongshuCheckpointResponse.json()) as { data: { xiaohongshu: XiaohongshuResource } }
+    ).data.xiaohongshu;
+    const pageOne = xiaohongshuCheckpointed.latestVersion.body.pages.find((page) => page.id === 'page-1')!;
+    const tamperXiaohongshu = await composeExec(state, 'postgres', [
+      'sh',
+      '-c',
+      `PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -tAc "UPDATE xiaohongshu_versions SET plan=jsonb_set(jsonb_set(plan, '{pages,0,researchItemIds,0}', to_jsonb('bogus'::text)), '{pages,0,opinionVersionId}', to_jsonb('bogus'::text)), body=jsonb_set(body, '{pages,1,researchItemIds,0}', to_jsonb('bogus'::text)) WHERE id='${xiaohongshuCheckpointed.latestVersion.id}'"`,
+    ]);
+    expect(tamperXiaohongshu.ok).toBe(true);
+    const rejectedXiaohongshuApproval = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/approval`,
+      {
+        method: 'POST',
+        headers: headers(state, cookie),
+        body: JSON.stringify({ versionId: xiaohongshuCheckpointed.latestVersion.id }),
+      },
+    );
+    expect(rejectedXiaohongshuApproval.status).toBe(409);
+    expect((await rejectedXiaohongshuApproval.json()) as { error: { code: string } }).toMatchObject({
+      error: { code: 'BLOG_VERSION_NOT_ELIGIBLE' },
+    });
+    const restoreXiaohongshu = await composeExec(state, 'postgres', [
+      'sh',
+      '-c',
+      `PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -tAc "UPDATE xiaohongshu_versions SET plan=jsonb_set(jsonb_set(plan, '{pages,0,researchItemIds,0}', to_jsonb('${pageOne.researchItemIds[0]}'::text)), '{pages,0,opinionVersionId}', to_jsonb('${pageOne.opinionVersionId}'::text)), body=jsonb_set(body, '{pages,1,researchItemIds,0}', to_jsonb('${pageOne.researchItemIds[0]}'::text)) WHERE id='${xiaohongshuCheckpointed.latestVersion.id}'"`,
+    ]);
+    expect(restoreXiaohongshu.ok).toBe(true);
+    const xiaohongshuApprovalResponse = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/approval`,
+      {
+        method: 'POST',
+        headers: headers(state, cookie),
+        body: JSON.stringify({ versionId: xiaohongshuCheckpointed.latestVersion.id }),
+      },
+    );
+    expect(xiaohongshuApprovalResponse.status).toBe(201);
+    const xiaohongshuApproved = (
+      (await xiaohongshuApprovalResponse.json()) as { data: { xiaohongshu: XiaohongshuResource } }
+    ).data.xiaohongshu;
+    expect(xiaohongshuApproved.approvalValidationSummary).toMatchObject({ result: 'passed', pageCount: 8 });
+    const newerXiaohongshuEdit = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/working-copy`,
+      {
+        method: 'PATCH',
+        headers: headers(state, cookie),
+        body: JSON.stringify({
+          expectedRevision: xiaohongshuApproved.workingCopy.revision,
+          body: { ...xiaohongshuApproved.workingCopy.body, caption: 'Unapproved newer Xiaohongshu caption.' },
+        }),
+      },
+    );
+    const newerXiaohongshu = ((await newerXiaohongshuEdit.json()) as { data: { xiaohongshu: XiaohongshuResource } })
+      .data.xiaohongshu;
+    expect(
+      (
+        await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/versions`, {
+          method: 'POST',
+          headers: headers(state, cookie),
+          body: JSON.stringify({ expectedRevision: newerXiaohongshu.workingCopy.revision }),
+        })
+      ).status,
+    ).toBe(201);
+    const postExport = await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/export/post`, {
+      headers: { cookie },
+    });
+    expect(postExport.status).toBe(200);
+    expect(postExport.headers.get('content-disposition')).toContain('post.md');
+    const postMarkdown = await postExport.text();
+    expect(postMarkdown).toContain(`contentosArtifactId: ${xiaohongshuApproved.id}`);
+    expect(postMarkdown).toContain(`contentosVersionId: ${xiaohongshuApproved.approvedVersionId}`);
+    expect(postMarkdown).toContain('## Page 1:');
+    expect(postMarkdown).toContain('Owner-reviewed Xiaohongshu caption.');
+    expect(postMarkdown).not.toContain('Unapproved newer Xiaohongshu caption.');
+    const pagesExport = await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/export/pages`, {
+      headers: { cookie },
+    });
+    expect(pagesExport.status).toBe(200);
+    expect(pagesExport.headers.get('content-disposition')).toContain('pages.json');
+    expect(
+      (await pagesExport.json()) as { artifactId: string; versionId: string; body: { pages: unknown[] } },
+    ).toMatchObject({
+      artifactId: xiaohongshuApproved.id,
+      versionId: xiaohongshuApproved.approvedVersionId,
+      body: { pages: expect.arrayContaining([expect.objectContaining({ id: 'page-1' })]) },
+    });
     const requestId = randomUUID();
     const [generatedResponse, concurrentDuplicateResponse] = await Promise.all([
       fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/blog/generations`, {
@@ -281,14 +426,62 @@ describe('Human Opinion and Blog protected API', () => {
       headers: { cookie },
     });
     expect(((await outdatedResponse.json()) as { data: { blog: BlogResource } }).data.blog.outdated).toBe(true);
+    const xiaohongshuOutdatedResponse = await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu`, {
+      headers: { cookie },
+    });
+    expect(
+      ((await xiaohongshuOutdatedResponse.json()) as { data: { xiaohongshu: XiaohongshuResource } }).data.xiaohongshu
+        .outdated,
+    ).toBe(true);
+    const freshXiaohongshuCandidateResponse = await fetch(
+      `${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/generations`,
+      {
+        method: 'POST',
+        headers: headers(state, cookie),
+        body: JSON.stringify({ requestId: randomUUID(), contentMode: 'creator_led' }),
+      },
+    );
+    expect(freshXiaohongshuCandidateResponse.status).toBe(201);
+    expect(
+      ((await freshXiaohongshuCandidateResponse.json()) as { data: { xiaohongshu: XiaohongshuResource } }).data
+        .xiaohongshu,
+    ).toMatchObject({ outdated: true, reviewCandidateOutdated: false });
     expect(
       (await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/blog/export`, { headers: { cookie } })).status,
+    ).toBe(409);
+    expect(
+      (
+        await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/export/post`, {
+          headers: { cookie },
+        })
+      ).status,
+    ).toBe(409);
+    expect(
+      (
+        await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/export/pages`, {
+          headers: { cookie },
+        })
+      ).status,
     ).toBe(409);
 
     const otherCookie = await session(state, '00000000-0000-4000-8000-000000000099');
     expect(
       (await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/blog`, { headers: { cookie: otherCookie } }))
         .status,
+    ).toBe(404);
+    expect(
+      (
+        await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu`, {
+          headers: { cookie: otherCookie },
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu/export/post`, {
+          headers: { cookie: otherCookie },
+        })
+      ).status,
     ).toBe(404);
     const packageResponse = await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}`, { headers: { cookie } });
     const revision = ((await packageResponse.json()) as { data: { contentPackage: { revision: number } } }).data
@@ -304,6 +497,9 @@ describe('Human Opinion and Blog protected API', () => {
     ).toBe(200);
     expect(
       (await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/blog`, { headers: { cookie } })).status,
+    ).toBe(409);
+    expect(
+      (await fetch(`${state.apiOrigin}/v1/content-packages/${packageId}/xiaohongshu`, { headers: { cookie } })).status,
     ).toBe(409);
   });
 });

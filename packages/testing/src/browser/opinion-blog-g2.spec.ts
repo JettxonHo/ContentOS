@@ -19,7 +19,7 @@ function password(value: SmokeState): string {
   return result;
 }
 
-test('G2: owner confirms Human Opinion, approves a Blog Version, and exports article.md', async ({ page }) => {
+test('G2/G3: owner approves and exports independent Blog and Xiaohongshu text Versions', async ({ page }) => {
   const value = state();
   await page.goto(value.webOrigin);
   await page.getByLabel('Owner password').fill(password(value));
@@ -65,8 +65,33 @@ test('G2: owner confirms Human Opinion, approves a Blog Version, and exports art
   await page.getByRole('button', { name: 'Export article.md' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('article.md');
+  await page.getByRole('button', { name: /Xiaohongshu/ }).click();
+  await expect(page.getByRole('button', { name: 'Generate Xiaohongshu Candidate' })).toBeDisabled();
+  await page.getByLabel('Xiaohongshu mode').selectOption('creator_led');
+  await page.getByRole('button', { name: 'Generate Xiaohongshu Candidate' }).click();
+  await expect(page.getByText('Eight-page Packaging candidate generated.')).toBeVisible();
+  await expect(page.getByText(/page-8/)).toBeVisible();
+  await expect(page.getByText('Platform Title Candidates')).toBeVisible();
+  await expect(page.getByText(/Emphasis:/).first()).toBeVisible();
+  await expect(page.getByText(/Visual brief:/).first()).toBeVisible();
+  await expect(page.getByText(/Research items:/).first()).toBeVisible();
+  await expect(page.getByText('Public References')).toBeVisible();
+  await page.getByLabel('Caption').fill('Owner-reviewed Xiaohongshu caption.');
+  await page.getByRole('button', { name: 'Move page down' }).first().click();
+  await page.getByRole('button', { name: 'Save Xiaohongshu draft' }).click();
+  await expect(page.getByText('Xiaohongshu Working Copy saved.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Approve Xiaohongshu Version' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Checkpoint Xiaohongshu Version' }).click();
+  await page.getByRole('button', { name: 'Approve Xiaohongshu Version' }).click();
+  await expect(page.getByText('Exact Xiaohongshu Version approved.')).toBeVisible();
+  const postDownloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export post.md' }).click();
+  expect((await postDownloadPromise).suggestedFilename()).toBe('post.md');
+  const pagesDownloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export pages.json' }).click();
+  expect((await pagesDownloadPromise).suggestedFilename()).toBe('pages.json');
   await page.reload();
-  await page.getByRole('button', { name: /Opinion & creation/ }).click();
-  await expect(page.getByLabel('Summary')).toHaveValue('Owner-reviewed Blog summary.');
+  await page.getByRole('button', { name: /Xiaohongshu/ }).click();
+  await expect(page.getByLabel('Caption')).toHaveValue('Owner-reviewed Xiaohongshu caption.');
   await expect(page.getByText('Approved', { exact: true })).toBeVisible();
 });

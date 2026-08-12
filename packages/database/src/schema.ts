@@ -852,6 +852,137 @@ export const blogApprovals = pgTable(
   ],
 );
 
+export const xiaohongshuStates = pgTable(
+  'xiaohongshu_states',
+  {
+    artifactId: uuid('artifact_id').primaryKey(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    workingCopyId: uuid('working_copy_id').notNull(),
+    body: jsonb('body').$type<Record<string, unknown>>().notNull(),
+    plan: jsonb('plan').$type<Record<string, unknown>>().notNull(),
+    revision: integer('revision').notNull(),
+    checkpointedRevision: integer('checkpointed_revision'),
+    latestVersionId: uuid('latest_version_id').notNull(),
+    approvedVersionId: uuid('approved_version_id'),
+    approvalValidationSummary: jsonb('approval_validation_summary'),
+    researchVersionId: uuid('research_version_id').notNull(),
+    opinionVersionId: uuid('opinion_version_id'),
+    contentMode: varchar('content_mode', { length: 32 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('xiaohongshu_states_package_unique').on(table.contentPackageId),
+    unique('xiaohongshu_states_artifact_package_owner_unique').on(
+      table.artifactId,
+      table.contentPackageId,
+      table.ownerUserId,
+    ),
+    foreignKey({
+      name: 'xiaohongshu_states_package_owner_fk',
+      columns: [table.contentPackageId, table.ownerUserId],
+      foreignColumns: [contentPackages.id, contentPackages.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'xiaohongshu_states_research_version_fk',
+      columns: [table.researchVersionId],
+      foreignColumns: [researchVersions.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'xiaohongshu_states_opinion_version_fk',
+      columns: [table.opinionVersionId],
+      foreignColumns: [opinionVersions.id],
+    }).onDelete('restrict'),
+    check('xiaohongshu_states_revision_check', sql`${table.revision} >= 1`),
+    check('xiaohongshu_states_mode_check', sql`${table.contentMode} IN ('creator_led', 'research_based')`),
+  ],
+);
+
+export const xiaohongshuVersions = pgTable(
+  'xiaohongshu_versions',
+  {
+    id: uuid('id').primaryKey(),
+    artifactId: uuid('artifact_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    versionNumber: integer('version_number').notNull(),
+    body: jsonb('body').$type<Record<string, unknown>>().notNull(),
+    plan: jsonb('plan').$type<Record<string, unknown>>().notNull(),
+    researchVersionId: uuid('research_version_id').notNull(),
+    opinionVersionId: uuid('opinion_version_id'),
+    contentMode: varchar('content_mode', { length: 32 }).notNull(),
+    origin: varchar('origin', { length: 32 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('xiaohongshu_versions_artifact_number_unique').on(table.artifactId, table.versionNumber),
+    foreignKey({
+      name: 'xiaohongshu_versions_state_fk',
+      columns: [table.artifactId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [xiaohongshuStates.artifactId, xiaohongshuStates.contentPackageId, xiaohongshuStates.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'xiaohongshu_versions_research_version_fk',
+      columns: [table.researchVersionId],
+      foreignColumns: [researchVersions.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'xiaohongshu_versions_opinion_version_fk',
+      columns: [table.opinionVersionId],
+      foreignColumns: [opinionVersions.id],
+    }).onDelete('restrict'),
+    check('xiaohongshu_versions_number_check', sql`${table.versionNumber} >= 1`),
+    check('xiaohongshu_versions_mode_check', sql`${table.contentMode} IN ('creator_led', 'research_based')`),
+    check('xiaohongshu_versions_origin_check', sql`${table.origin} IN ('generated', 'user_checkpoint')`),
+  ],
+);
+
+export const xiaohongshuRuns = pgTable(
+  'xiaohongshu_runs',
+  {
+    id: uuid('id').primaryKey(),
+    requestId: uuid('request_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    providerAlias: varchar('provider_alias', { length: 100 }).notNull(),
+    rawOutput: text('raw_output').notNull(),
+    artifactId: uuid('artifact_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('xiaohongshu_runs_request_owner_unique').on(table.requestId, table.ownerUserId),
+    foreignKey({
+      name: 'xiaohongshu_runs_package_owner_fk',
+      columns: [table.contentPackageId, table.ownerUserId],
+      foreignColumns: [contentPackages.id, contentPackages.ownerUserId],
+    }).onDelete('restrict'),
+    check('xiaohongshu_runs_raw_output_check', sql`octet_length(${table.rawOutput}) BETWEEN 0 AND 1000000`),
+  ],
+);
+
+export const xiaohongshuApprovals = pgTable(
+  'xiaohongshu_approvals',
+  {
+    id: uuid('id').primaryKey(),
+    artifactId: uuid('artifact_id').notNull(),
+    approvedVersionId: uuid('approved_version_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    validationSummary: jsonb('validation_summary').notNull(),
+    approvedAt: timestamp('approved_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('xiaohongshu_approvals_artifact_version_unique').on(table.artifactId, table.approvedVersionId),
+    foreignKey({
+      name: 'xiaohongshu_approvals_version_fk',
+      columns: [table.approvedVersionId],
+      foreignColumns: [xiaohongshuVersions.id],
+    }).onDelete('restrict'),
+    check('xiaohongshu_approvals_summary_check', sql`jsonb_typeof(${table.validationSummary}) = 'object'`),
+  ],
+);
+
 export const workflowTemplates = pgTable(
   'workflow_templates',
   {

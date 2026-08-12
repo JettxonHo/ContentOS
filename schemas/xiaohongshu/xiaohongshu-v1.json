@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contentos.local/schemas/xiaohongshu/xiaohongshu-v1.json",
+  "title": "ContentOS Xiaohongshu Artifact v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "platformProfileVersion",
+    "contentMode",
+    "platformTitleCandidates",
+    "selectedPlatformTitle",
+    "coverTitle",
+    "coverSubtitle",
+    "pages",
+    "caption",
+    "cta",
+    "hashtags",
+    "publicReferences"
+  ],
+  "properties": {
+    "platformProfileVersion": { "const": "xiaohongshu-profile/v1" },
+    "contentMode": { "enum": ["creator_led", "research_based"] },
+    "platformTitleCandidates": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/text100" }
+    },
+    "selectedPlatformTitle": { "$ref": "#/$defs/text100" },
+    "coverTitle": { "$ref": "#/$defs/text80" },
+    "coverSubtitle": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/text120" }] },
+    "pages": { "type": "array", "minItems": 8, "maxItems": 8, "items": { "$ref": "#/$defs/page" } },
+    "caption": { "$ref": "#/$defs/text2000" },
+    "cta": { "$ref": "#/$defs/text200" },
+    "hashtags": { "type": "array", "minItems": 3, "maxItems": 8, "items": { "$ref": "#/$defs/text50" } },
+    "publicReferences": { "type": "array", "minItems": 1, "maxItems": 6, "items": { "$ref": "#/$defs/reference" } }
+  },
+  "$defs": {
+    "safe": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?:[^\\uD800-\\uDFFF]|[\\uD800-\\uDBFF][\\uDC00-\\uDFFF])+$"
+    },
+    "text50": { "$ref": "#/$defs/safe", "maxLength": 50 },
+    "text80": { "$ref": "#/$defs/safe", "maxLength": 80 },
+    "text100": { "$ref": "#/$defs/safe", "maxLength": 100 },
+    "text120": { "$ref": "#/$defs/safe", "maxLength": 120 },
+    "text200": { "$ref": "#/$defs/safe", "maxLength": 200 },
+    "text300": { "$ref": "#/$defs/safe", "maxLength": 300 },
+    "text1000": { "$ref": "#/$defs/safe", "maxLength": 1000 },
+    "text2000": { "$ref": "#/$defs/safe", "maxLength": 2000 },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "sourceVersionId"],
+      "properties": { "label": { "$ref": "#/$defs/text200" }, "sourceVersionId": { "$ref": "#/$defs/text100" } }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "purpose",
+        "heading",
+        "content",
+        "emphasis",
+        "density",
+        "visualBrief",
+        "researchItemIds",
+        "opinionVersionId"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/text50" },
+        "purpose": { "$ref": "#/$defs/text100" },
+        "heading": { "$ref": "#/$defs/text100" },
+        "content": { "$ref": "#/$defs/text1000" },
+        "emphasis": { "enum": ["headline", "body", "quote"] },
+        "density": { "enum": ["low", "medium"] },
+        "visualBrief": { "$ref": "#/$defs/text300" },
+        "researchItemIds": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/text100" } },
+        "opinionVersionId": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/text100" }] }
+      }
+    }
+  }
+}
