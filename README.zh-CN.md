@@ -14,9 +14,9 @@ Source → Research → Human Opinion 或 Research-based Mode
 
 ## 当前状态
 
-仓库已完成 **M0**、**M1 — 产品骨架与领域基础**、**M2 — 来源与工作流基础**，以及已生效的 G1–G3 Research、Human Opinion/Blog 与 Xiaohongshu 文本交付。候选 [M5 Acceptance Record 001](docs/implementation/m5-acceptance-record-001.md) 记录了当前 main 的 text-first MVP 验收通过；有界审阅修正与最终独立审阅均已通过，仍等待首个合格 PR CI 与 merge 生效。
+仓库已完成 **M0–M5** 与正式私有 text-first MVP。[M5 Acceptance Record 001](docs/implementation/m5-acceptance-record-001.md) 已通过 PR #296、首轮必需 CI 与 squash `987eb7a051a97f1522069a9673e976e0cf06b901` 生效；Issue #295 已 Closed/Completed。
 
-当前仓库提供 Source/Workflow/Fetcher 基础、Research、Human Opinion，以及可独立 Approval 的 Blog/Xiaohongshu 文本和合格 `article.md`、`post.md`、`pages.json` 下载。候选 M5 记录已在当前 main 验证这条完整私有 text-first 路径。PostgreSQL 与 API 保持权威，Raw Provider output 仅保存在服务端。真实 Provider、通用 Agent Runtime、Render、图片/ZIP Export Package、自动发布和生产部署仍未实现。
+当前仓库提供 Source/Workflow/Fetcher 基础、Research、Human Opinion，以及可独立 Approval 的 Blog/Xiaohongshu 文本和合格 `article.md`、`post.md`、`pages.json` 下载。已生效的 M5 记录在当前 main 验证这条完整私有 text-first 路径。PostgreSQL 与 API 保持权威，Raw Provider output 仅保存在服务端。真实 Provider、通用 Agent Runtime、Render、图片/ZIP Export Package、自动发布和生产部署仍未实现。
 
 `M2-WEB-001B` 现在已接入活动 Workspace：它允许显式保存标准化 Working Copy、审核不可变 Version、确认当前准确 Review Candidate 的人工 Approval，并通过既有 SSE/Polling 恢复控制器显示有界安全 REST Timeline。Source Approval 不会推进 `source_review`，也不会追加 Workflow Timeline Event；归档 Package 仍不提供这些命令。
 
@@ -134,8 +134,8 @@ corepack pnpm test:integration
 
 ## 下一步实施工作
 
-1. 审阅、通过 CI 并合并受限的 [G4 text-first MVP Acceptance Record](docs/implementation/work-packets/g4-text-first-mvp-acceptance.md)。
-2. 真实 Provider、生产部署、Design/Render、复杂包、备份恢复与自动发布继续由单独批准的 post-MVP Work Item 管理。
+1. 真实 Provider、生产部署、Design/Render、复杂包、备份恢复与自动发布继续由单独批准的 post-MVP Goal 和 Work Item 管理。
+2. 未经明确人工批准，不启动 M6 或其他 post-MVP Goal。
 
 本仓库不承诺完成日期。
 

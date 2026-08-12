@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0–M4 and G0–G3 are completed. G4 current-main acceptance, bounded review corrections, and final independent review passed; candidate M5 text-first MVP completion remains non-effective until first eligible PR CI and squash merge.
+**Current stage:** M0–M5 and G0–G4 are completed. The formal private text-first MVP and `GOAL-MVP-TEXT-001` became effective through PR #296, squash `987eb7a051a97f1522069a9673e976e0cf06b901`. Post-MVP M6 is eligible but Not Started; no post-MVP Goal is active.
 **Last updated:** 2026-08-13
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0**, **M1 — Product Skeleton and Domain Foundation**, **M2 — Source and Workflow Foundation**, and effective G1–G3 delivery through approved Research, Human Opinion/Blog, and Xiaohongshu text. Candidate [M5 Acceptance Record 001](docs/implementation/m5-acceptance-record-001.md) records a Passed current-main text-first acceptance with all three portable files. Its first independent review found and boundedly corrected Blog first-person/direct-quote validation, the Research Eval baseline, and stale README truth; final targeted review passed with no blockers. First eligible PR CI and merge effect remain. A real Provider, generic Agent runtime, Render, image/ZIP Export Package, automatic publishing, and deployment remain unimplemented.
+The repository has completed **M0–M5** and effective G0–G4 delivery through approved Research, Human Opinion/Blog, Xiaohongshu text, all three portable files, and the formal private text-first MVP acceptance. [M5 Acceptance Record 001](docs/implementation/m5-acceptance-record-001.md) is effective through PR #296, first-attempt required CI, and squash `987eb7a051a97f1522069a9673e976e0cf06b901`; Issue #295 is Closed/Completed. A real Provider, generic Agent runtime, Render, image/ZIP Export Package, automatic publishing, and deployment remain unimplemented post-MVP capabilities.
 
 ## 2. Product goal and MVP boundary
 
