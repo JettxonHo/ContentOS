@@ -14,9 +14,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0**, **M1 — Product Skeleton and Domain Foundation**, **M2 — Source and Workflow Foundation**, and effective G1–G3 delivery through Research, Human Opinion/Blog, and Xiaohongshu text. Candidate [M5 Acceptance Record 001](docs/implementation/m5-acceptance-record-001.md) records a Passed current-main text-first MVP acceptance. Its bounded review corrections and final independent review passed; first eligible PR CI and merge effect remain.
+The repository has completed **M0–M5** and the formal private text-first MVP. [M5 Acceptance Record 001](docs/implementation/m5-acceptance-record-001.md) is effective through PR #296, first-attempt required CI, and squash `987eb7a051a97f1522069a9673e976e0cf06b901`; Issue #295 is Closed/Completed.
 
-This repository now provides workspace installation, quality checks, builds, five process entry points, isolated local state services, authentication, Source/Workflow/Fetcher foundations, Research, Human Opinion, and independently approved Blog/Xiaohongshu text with eligible `article.md`, `post.md`, and `pages.json` downloads. The candidate M5 record validates this complete private text-first path on current main. PostgreSQL and the API remain authoritative; Raw Provider output is server-side only. No real Provider, generic Agent runtime, Render, image/ZIP Export Package, automatic publishing, production deployment, or development server exists yet.
+This repository now provides workspace installation, quality checks, builds, five process entry points, isolated local state services, authentication, Source/Workflow/Fetcher foundations, Research, Human Opinion, and independently approved Blog/Xiaohongshu text with eligible `article.md`, `post.md`, and `pages.json` downloads. The effective M5 record validates this complete private text-first path on current main. PostgreSQL and the API remain authoritative; Raw Provider output is server-side only. No real Provider, generic Agent runtime, Render, image/ZIP Export Package, automatic publishing, production deployment, or development server exists yet.
 
 ## MVP boundary
 
@@ -132,8 +132,8 @@ The workflow references no repository Secrets, persists no credentials, uploads 
 
 ## Next implementation steps
 
-1. Review, verify CI, and merge the bounded [G4 text-first MVP Acceptance Record](docs/implementation/work-packets/g4-text-first-mvp-acceptance.md).
-2. Keep real Provider calls, production deployment, Design/Render, rich packages, backup/restore, and automatic publishing behind separately approved post-MVP Work Items.
+1. Keep real Provider calls, production deployment, Design/Render, rich packages, backup/restore, and automatic publishing behind separately approved post-MVP Goals and Work Items.
+2. Do not start M6 or another post-MVP Goal without explicit human approval.
 
 No completion date is committed by this repository.
 

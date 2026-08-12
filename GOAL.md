@@ -1,6 +1,6 @@
 # GOAL-MVP-TEXT-001 — Deliver the Text-first Private MVP
 
-**Status:** Active — G0–G3 completed; G4 acceptance and independent review passed, publication pending
+**Status:** Completed — G0–G4 merged; M5 Acceptance Record 001 is effective
 **Human approval:** Confirmed 2026-08-12
 **Authority:** DEC-295, current Product/Architecture/Security/Quality specifications, and `AGENTS.md`
 **Execution model:** One phase and one bounded Issue/PR at a time
@@ -73,7 +73,7 @@ Goal approval authorizes planning and bounded repository implementation after th
 
 ### G1 — Research thin slice
 
-**Current status:** Completed through PR #290, squash `1c70866099d1dcc421f0fc3470889cfd288fd4fc`. G2 and G3 are also effective; G4 is now In Review under Issue #295.
+**Current status:** Completed through PR #290, squash `1c70866099d1dcc421f0fc3470889cfd288fd4fc`. G2–G4 are also effective and this Goal is Completed.
 
 - Consume exact owner-scoped Approved Source Versions.
 - Produce structured Research with Summary, Facts/Claims, Evidence, Open Questions, and Needs Verification.
@@ -83,7 +83,7 @@ Goal approval authorizes planning and bounded repository implementation after th
 
 ### G2 — Human Opinion and Blog
 
-**Current status:** Completed through PR #292, squash `7ddc4f1de1130f0edd345e623ee6722e6cab3259`. G3 is also effective; G4 is now In Review under Issue #295.
+**Current status:** Completed through PR #292, squash `7ddc4f1de1130f0edd345e623ee6722e6cab3259`. G3–G4 are also effective and this Goal is Completed.
 
 - Ask the minimum focused question needed for creator-led content.
 - Preserve Raw Response → AI Interpretation → user-confirmed Opinion.
@@ -93,7 +93,7 @@ Goal approval authorizes planning and bounded repository implementation after th
 
 ### G3 — Xiaohongshu text branch
 
-**Current status:** Completed through PR #294, squash `dfdc84027e0c3d7ece2b155069d828f215309396`. G4 is now In Review under Issue #295.
+**Current status:** Completed through PR #294, squash `dfdc84027e0c3d7ece2b155069d828f215309396`. G4 is also effective and this Goal is Completed.
 
 - Generate independently from the Approved Content Foundation, never by shortening Blog.
 - Support Platform/Cover titles, ordered text pages, Caption, CTA, Hashtags, References, editing, and ordering.
@@ -102,7 +102,7 @@ Goal approval authorizes planning and bounded repository implementation after th
 
 ### G4 — MVP acceptance
 
-**Current status:** Publication Ready under Issue #295. Current-main acceptance passed; the first independent review's Blog validation, Research Eval, and README findings were corrected with affected gates passing; final targeted review passed with no blockers. First eligible PR CI and squash merge remain before the decision and Goal completion become effective.
+**Current status:** Completed through PR #296, squash `987eb7a051a97f1522069a9673e976e0cf06b901`. Current-main acceptance passed; the first independent review's Blog validation, Research Eval, and README findings were corrected with affected gates passing; final targeted review and first eligible quality, Integration, and Browser CI passed. [M5 Acceptance Record 001](docs/implementation/m5-acceptance-record-001.md) is effective and Issue #295 is Closed/Completed.
 
 - Run one current-main end-to-end acceptance across Source, Research, Opinion/Research-based Mode, Blog, Xiaohongshu text, Approval, and export.
 - Cover only credible active-flow failures: refresh/resume, duplicate command/delivery, Provider/task failure, Worker interruption, upstream Version change, cancellation/retry, and late result where applicable.
@@ -134,6 +134,6 @@ Ordinary design choices, formatting, test fixes, and reversible implementation c
 
 ## Goal completion
 
-This Goal is complete only when G0–G4 are merged, the current-main text-first Acceptance Record is Passed, both approved text exports are demonstrated, no active-flow Blocking Defect remains, and Current-truth documentation matches the implementation.
+This Goal completed through PR #296: G0–G4 are merged, the current-main text-first Acceptance Record is Passed, both approved text exports are demonstrated, no active-flow Blocking Defect remains, and Current-truth documentation matches the implementation.
 
 Completion does not claim visual production, production deployment, public availability, automatic publishing, backup/restore, or any deferred post-MVP capability.

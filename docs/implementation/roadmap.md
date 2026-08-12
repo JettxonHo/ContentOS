@@ -212,7 +212,7 @@ Agent tools, external Model Providers, active Renderer execution, Export deliver
 
 ### Next step
 
-G1/M3 Research is implemented as the bounded Issue #289 candidate. Real Provider credentials, paid calls, or external effects remain separately authorized; the current slice uses only the deterministic Fake Provider.
+The formal private text-first MVP is Completed through G0–G4 and effective PR #296. Real Provider credentials, paid calls, production deployment, Design/Render, or other post-MVP effects remain separately authorized; no post-MVP Goal is active.
 
 ### Superseded M2 publication-recovery chain
 
@@ -224,7 +224,7 @@ DEC-295 and `GOAL-MVP-TEXT-001` replaced that recursive publication approach wit
 
 **Current status: Completed.** [G1 — Approved Sources to Approved Research Thin Slice](work-packets/g1-research-thin-slice.md) is effective through PR #290, first-attempt required CI, and squash merge `1c70866099d1dcc421f0fc3470889cfd288fd4fc`; Issue #289 is Closed Completed.
 
-The G1 candidate provides:
+The effective G1 implementation provides:
 
 - a deterministic Fake Provider behind a project-owned `ResearchProvider` interface, without a generic Agent platform;
 - exact Approved Source Version input snapshots, validated structured output, and restricted Raw Output persistence;
@@ -252,9 +252,9 @@ M4 is an internal milestone: it validates Human Opinion, Citation, Provenance, e
 
 ## 12. M5 — Xiaohongshu Text and Text-first MVP Acceptance
 
-M5 adds the independent Xiaohongshu text branch:
+M5 provides the independent Xiaohongshu text branch and formal text-first MVP acceptance:
 
-**Current status: G3 Completed; G4 Publication Ready.** G3 became effective through PR #294, squash `dfdc84027e0c3d7ece2b155069d828f215309396`, with Issue #293 Closed/Completed and first eligible quality, Integration, and Browser CI successful. G4 is tracked by Issue #295 and the [G4 text-first MVP acceptance Work Packet](work-packets/g4-text-first-mvp-acceptance.md). Current-main root passed after review corrections (61/605 plus five builds), Integration passed (29/188), and Concurrent, Browser (18/18), repository, registry audit, and migration no-diff evidence passed. The accepted Research Core Eval baseline records 2/2 cases, zero Critical Failures, and zero Provider cost; Blog rejects Chinese/English Research-based first-person content and fails closed on the finite unbound Direct Quote set. Candidate [M5 Acceptance Record 001](m5-acceptance-record-001.md) reports no Blocking Defect, and final independent review passed with no blockers. First eligible PR CI and squash merge remain before the M5 decision and Goal completion become effective. Design and Render remain post-MVP under DEC-295.
+**Current status: M5 and G4 Completed.** G3 became effective through PR #294, squash `dfdc84027e0c3d7ece2b155069d828f215309396`. G4 and [M5 Acceptance Record 001](m5-acceptance-record-001.md) became effective through PR #296, first-attempt required CI run `31643714698`, and squash `987eb7a051a97f1522069a9673e976e0cf06b901`; Issues #293 and #295 are Closed/Completed. Current-main root passed after review corrections (61/605 plus five builds), Integration passed (29/188), and Concurrent, Browser (18/18), repository, registry audit, and migration no-diff evidence passed. The accepted Research Core Eval baseline records 2/2 cases, zero Critical Failures, and zero Provider cost; Blog rejects Chinese/English Research-based first-person content and fails closed on the finite unbound Direct Quote set. Final independent review and PR quality (2m07s), Integration (3m04s), and Browser (2m57s) passed with no Blocking Defect. `GOAL-MVP-TEXT-001` is Completed. Design and Render remain post-MVP under DEC-295; M6 is eligible but Not Started.
 
 - Packaging Agent and Packaging Plan;
 - Platform Profile;
