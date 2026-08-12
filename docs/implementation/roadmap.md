@@ -529,6 +529,111 @@ pending. A red or missing
 result closes that audit unmerged with no same-head rerun/replacement and sends
 docs recovery to QUAL039; it cannot reverse PR #260 or the Blocked terminal.
 
+### M2-QUAL-039 — Complete Worker Outbox Observation Repair Reconstruction and Publication Audit Recovery
+
+| Work Item                                                                                               | Goal                                                                                                                                                               | Dependencies / Issues                                                                                                                                                                                                                       | Current truth                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M2-QUAL-039 — Complete Worker Outbox Observation Repair Reconstruction and Publication Audit Recovery` | Reconstruct the complete Worker outbox observation repair with one binding and three bounded waits, then publish only after exact evidence and current-head audit. | Current merged main `eb26c5b0bf49fd50916201d7cf6626878446ee84`; PR260 effective at `096bb294`; PR261 effective docs reconciliation; frozen QUAL034 exact-four Worker at `f29b670`; Issue #262 Open/body parity synchronized by Orchestrator | **In Review — Complete Worker Repair Reconstructed; inherited runtime evidence accepted; exact-four review PASS; final current-head checks pending.** Worker, original QUAL003, Packet, and Roadmap are the actual exact four; local runtime invocations remain zero. After the final current-head exact-four checks, first-eligible three-job CI and Orchestrator merge remain pending. |
+
+QUAL039 is a fresh reconstruction, not a rerun of QUAL037/QUAL038. Gate order
+is pure Git identity/ref shape and current Worker/non-document equality, Node24
+and pnpm/install/workspace/injection content gates, one binding-plus-three-waits
+`apply_patch`, frozen QUAL034 Worker equality, and preliminary exact-three static
+scope. Only after every predicate passes may the named frozen QUAL034 aggregates
+be inherited; QUAL039 local Worker/root/Integration/Browser/Concurrent
+invocation counts remain zero for the entire epoch, with no fallback replay.
+All identity, non-document equality, toolchain, injection, post-patch equality,
+and preliminary exact-three static/scope predicates passed once; the named
+frozen QUAL034 aggregates are therefore accepted while all QUAL039 local runtime
+invocation counts remain zero.
+The exact-three scope command is the independent literal
+`git status --short --untracked-files=all` in the fixed worktree, RC0 with only
+`M` Worker, `M` Roadmap, and `??` Packet. The exact-three Worker static commands
+are independent literals: Node24 Prettier `--check` Worker → RC0, Node24
+`corepack pnpm repository:check` → RC0, `git diff --check` → RC0, then the
+status scope command → exact three. Before inheriting frozen aggregates, the
+independent literal `git diff --quiet f29b67023f0c3634d7666e7ed7b3026900f8a01a
+eb26c5b0bf49fd50916201d7cf6626878446ee84 -- . ':(exclude)docs/**'` returns RC0
+for non-document equality. The exact three-document formatter is the
+`fnm exec --using=24.18.0 corepack pnpm exec prettier --write docs/implementation/work-packets/m2-qual-003-worker-dispatcher-observation-stability.md docs/implementation/work-packets/m2-qual-039-complete-worker-outbox-observation-repair-reconstruction-publication-audit-recovery.md docs/implementation/roadmap.md` (RC0)
+→ RC0; final exact-four command is
+`fnm exec --using=24.18.0 corepack pnpm exec prettier --check docs/implementation/work-packets/m2-qual-003-worker-dispatcher-observation-stability.md docs/implementation/work-packets/m2-qual-039-complete-worker-outbox-observation-repair-reconstruction-publication-audit-recovery.md docs/implementation/roadmap.md` (RC0), followed by independent `fnm exec --using=24.18.0 corepack pnpm repository:check` (RC0), `git diff --check` (RC0), exact-four status (`M` Worker, `M` QUAL003, `??` QUAL039 Packet, `M` Roadmap) (RC0), and final quiet Worker equality (RC0). Every command is an independent literal with structured terminal status;
+red, signal, missing status, wrong shape, or window expiry freezes the reached
+shape without rerun, replacement, diagnosis, cleanup, hash, probe, or shape
+forcing.
+
+The effective current truth remains PR260 (`docs: record blocked M2-QUAL-038
+replay`, run `31557773857`, squash/main `096bb294`) and PR261 (`docs: reconcile
+M2-QUAL-038 merge status`, current docs endpoint `eb26c5b`); neither publishes
+Worker/QUAL003 code or changes #259 Blocked/Open boundaries. Success requires
+actual-shape reviews, first eligible quality/Integration/Browser CI, and
+Orchestrator squash merge before closing #262/#259/#257/#256/#255/#253/#208/
+#204/#196/#147. Remaining linked Issues stay Open; M2 remains In Progress and
+no exit review or M3 start is claimed. After merge, one Packet/Roadmap
+facts/status sync precedes a tracked exact-two audit in a fresh merged-head
+worktree. Its independent literal commands, each once from that fixed cwd, are:
+`fnm exec --using=24.18.0 corepack pnpm exec prettier --write docs/implementation/work-packets/m2-qual-039-complete-worker-outbox-observation-repair-reconstruction-publication-audit-recovery.md docs/implementation/roadmap.md` → RC0;
+`fnm exec --using=24.18.0 corepack pnpm exec prettier --check docs/implementation/work-packets/m2-qual-039-complete-worker-outbox-observation-repair-reconstruction-publication-audit-recovery.md docs/implementation/roadmap.md` → RC0;
+`fnm exec --using=24.18.0 corepack pnpm repository:check` → RC0;
+`git diff --check` → RC0; and `git status --short --untracked-files=all` →
+exactly tracked `M` Packet + `M` Roadmap with Worker/QUAL003/code zero. Audit
+reviews, first eligible CI, and Orchestrator merge remain publication
+boundaries; audit red cannot reverse the effective merge and transfers docs
+recovery to QUAL040.
+
+Issue #262 is Open and body parity is synchronized by the Orchestrator to this
+reconstructed Packet/Roadmap head. QUAL039 is In Review with the Worker repair
+reconstructed, inherited runtime evidence accepted, and independent exact-four
+review PASS. No local runtime replay occurred and no GitHub, Issue, or commit
+mutation was performed. The prior Gate1, Gate2, Gate3/4, preliminary exact-three,
+and final exact-four evidence passed once; this review metadata sync requires
+the final current-head exact-four checks below. After those checks, only
+first-eligible three-job CI and Orchestrator merge remain pending.
+
+The Ready review record is PASS with no findings: `/root/m2_qual_014_dor_correctness`
+and `/root/m2_qual_012_browser_setup_diagnosis`, role
+`DEFINITION_OF_READY_REVIEWER`, requested `gpt-5.6-sol` High, actual
+`UNVERIFIED_RUNTIME_MODEL`, reviewed base/HEAD `eb26c5b0bf49fd50916201d7cf6626878446ee84`,
+the corrected planning exact-two Packet/Roadmap, frozen QUAL034 references,
+effective PR260/PR261 facts, and live Issue #262 parity. Both PASSed with no
+findings, no BQ, and no DEC; authority is planning DoR/Ready and explicit
+handoff eligibility only. The handoff record names `/root/m2_qual_030_planning`
+as `IMPLEMENTER` with requested `luna-worker`, configured `gpt-5.6-luna` Max,
+actual `UNVERIFIED_RUNTIME_MODEL`, and base/HEAD `eb26c5b0bf49fd50916201d7cf6626878446ee84`.
+Gate1, Gate2, Gate3/4, preliminary exact-three static/scope, and the prior
+final exact-four documentation/equality evidence each passed once. This review
+metadata sync requires the final current-head exact-four checks below; after
+those pass, only first-eligible three-job CI and Orchestrator merge remain
+pending.
+
+#### QUAL039 independent exact-four review
+
+Reviewers `/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis`, role `INDEPENDENT_REVIEWER`,
+requested `gpt-5.6-sol` High, actual `UNVERIFIED_RUNTIME_MODEL`, reviewed base/
+HEAD `eb26c5b0bf49fd50916201d7cf6626878446ee84`, corrected physical exact-four
+evidence and Completion Report, frozen QUAL034 target, and live Issue #262
+parity. Both PASSed with no findings. Authority is exact-four publication
+eligibility only; no Git, GitHub, Issue, or merge authority is granted. The
+metadata sync requires the final current-head exact-four checks below; after
+those pass, only first-eligible three-job CI and Orchestrator merge remain
+pending.
+
+#### QUAL039 implementation completion report (§18)
+
+- Local exact-four evidence: one binding and three bounded `dispatched` waits;
+  candidate Worker byte-equal to frozen QUAL034; proposed QUAL003 appendix,
+  Packet, and Roadmap added without production changes.
+- Inherited runtime evidence: focused Worker `3 × (1 file / 7 tests)`, root
+  `54 files / 578 tests` plus five builds, Integration `27 files / 185 tests`,
+  Browser `16/16`, and one outer Concurrent RC0. Local Worker/root/
+  Integration/Browser/Concurrent invocation counts are zero.
+- Final status: **In Review — Complete Worker Repair Reconstructed; inherited
+  runtime evidence accepted; publication pending.** Independent exact-four
+  review is PASS; final current-head exact-four checks, exact-head three-job CI,
+  and Orchestrator merge remain unearned; no Issue closure, M2 exit review, or
+  M3 start is claimed.
+
 ## 10. M3 — Research
 
 M3 introduces the first formal Agent Vertical Slice:
