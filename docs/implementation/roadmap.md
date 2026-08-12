@@ -531,9 +531,62 @@ docs recovery to QUAL039; it cannot reverse PR #260 or the Blocked terminal.
 
 ### M2-QUAL-039 — Complete Worker Outbox Observation Repair Reconstruction and Publication Audit Recovery
 
-| Work Item                                                                                               | Goal                                                                                                                                                               | Dependencies / Issues                                                                                                                                                                                                                       | Current truth                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `M2-QUAL-039 — Complete Worker Outbox Observation Repair Reconstruction and Publication Audit Recovery` | Reconstruct the complete Worker outbox observation repair with one binding and three bounded waits, then publish only after exact evidence and current-head audit. | Current merged main `eb26c5b0bf49fd50916201d7cf6626878446ee84`; PR260 effective at `096bb294`; PR261 effective docs reconciliation; frozen QUAL034 exact-four Worker at `f29b670`; Issue #262 Open/body parity synchronized by Orchestrator | **In Review — Complete Worker Repair Reconstructed; inherited runtime evidence accepted; exact-four review PASS; final current-head checks pending.** Worker, original QUAL003, Packet, and Roadmap are the actual exact four; local runtime invocations remain zero. After the final current-head exact-four checks, first-eligible three-job CI and Orchestrator merge remain pending. |
+| Work Item                                                                                               | Goal                                                                                                                                                                                          | Dependencies / Issues                                                                                                                                                                                                                                                             | Current truth                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M2-QUAL-039 — Complete Worker Outbox Observation Repair Reconstruction and Publication Audit Recovery` | Reconstruct the complete Worker outbox observation repair with one binding and three bounded waits, publish it through PR #263, and reconcile the merged head with a tracked exact-two audit. | Effective PR #263 base `eb26c5b0bf49fd50916201d7cf6626878446ee84`, head `ef6c8b936b4ff0751abd4006a3a20ecbbe9fddff`, squash/current main `c96fd9850484a211a7052b620a3c1adb486cec58`; Issues #262/#259/#257/#256/#255/#253/#208/#204/#196/#147 closed; remaining linked Issues Open | **Completed — Worker Repair Published; postmerge audit pending dual reviews, then first eligible three-job CI and Orchestrator merge.** PR #263 first-attempt run `31562708126` passed quality 2m20, Integration 2m34, and Browser 2m39, merged at `2026-08-12T04:19:36Z`. Worker and original QUAL003 are effective; the fresh audit is tracked `M` Packet + `M` Roadmap with Worker/QUAL003/code zero. M2 remains In Progress, M3 Not Started, and no exit review is claimed. |
+
+#### QUAL039 postmerge audit reconciliation
+
+PR #263 (`test: publish complete Worker observation repair`) is the effective
+publication: base `eb26c5b0bf49fd50916201d7cf6626878446ee84`, head
+`ef6c8b936b4ff0751abd4006a3a20ecbbe9fddff`, exact four, first-attempt run
+`31562708126` all green (quality 2m20, Integration 2m34, Browser 2m39), and
+squash/current main `c96fd9850484a211a7052b620a3c1adb486cec58` at
+`2026-08-12T04:19:36Z`. The local merge command was nonzero only because the
+main worktree was occupied; no second merge was attempted. PR #260/#261 and
+their Issue #262 Open/In Review/unpublished/pending-check/CI/merge wording are
+historical predecessors, explicitly superseded by PR #263, and do not override
+this current truth.
+
+The fresh audit worktree is
+`/private/tmp/contentos-m2-qual-039-postmerge-audit-wt`, branch
+`codex/m2-qual-039-postmerge-audit`, base/HEAD
+`c96fd9850484a211a7052b620a3c1adb486cec58`. One Packet/Roadmap facts/status
+sync is followed by the bounded Node24 formatter, Prettier, repository, diff,
+and tracked exact-two/code-zero checks. Expected physical shape is tracked
+`M` Packet + `M` Roadmap only; Worker, QUAL003, and other code paths are zero.
+The initial audit sequence ran once before this bounded truth correction: one
+Node24 Packet/Roadmap formatter write completed RC0 with dependency
+materialization, then Node24 Prettier, Node24 `repository:check`, `git diff
+--check`, and tracked exact-two/code-zero each PASSed once. The latest chronology
+is distinct: the current-head Node24 Prettier check first returned RC1
+formatting-only warnings, so later checks were not run; one explicitly
+authorized Packet/Roadmap-only Node24 Prettier write then recovered the docs,
+after which Node24 Prettier, Node24 `repository:check`, `git diff --check`, and
+tracked exact-two/code-zero/no-unexpected each PASSed once, with no later edit.
+This was a docs-only, non-laundering recovery and did not rerun any runtime or
+code gate. Current reconciliation is dual independent reviews, then the first
+eligible exact-head quality, Integration, and Browser CI, followed by the
+Orchestrator squash merge. A red or missing result closes the audit unmerged
+with no same-head rerun or replacement and transfers docs recovery to QUAL040.
+This audit cannot reverse PR #263, its Issue closures, or the M2/M3 status; no
+exit review is authorized.
+
+Independent postmerge reconciliation reviews by
+`/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis`, role `INDEPENDENT_REVIEWER`,
+requested `gpt-5.6-sol` High, actual `UNVERIFIED_RUNTIME_MODEL`, reviewed
+base/HEAD `c96fd9850484a211a7052b620a3c1adb486cec58`, the corrected tracked
+exact-two Packet/Roadmap audit, PR #263, and current Issue facts. Both returned
+PASS with no findings. Their authority is reconciliation-publication review
+only; only final exact-head static/scope verification, the first eligible
+three-job CI, and Orchestrator squash merge remain.
+
+The following implementation, review, and publication paragraphs are historical
+premerge evidence from before PR #263. Every PR #260/PR #261, Issue #262 Open,
+In Review, unpublished, and pending-check/CI/merge statement below is
+explicitly superseded by effective PR #263 and must not be read as current
+truth.
 
 QUAL039 is a fresh reconstruction, not a rerun of QUAL037/QUAL038. Gate order
 is pure Git identity/ref shape and current Worker/non-document equality, Node24
@@ -562,16 +615,13 @@ red, signal, missing status, wrong shape, or window expiry freezes the reached
 shape without rerun, replacement, diagnosis, cleanup, hash, probe, or shape
 forcing.
 
-The effective current truth remains PR260 (`docs: record blocked M2-QUAL-038
-replay`, run `31557773857`, squash/main `096bb294`) and PR261 (`docs: reconcile
-M2-QUAL-038 merge status`, current docs endpoint `eb26c5b`); neither publishes
-Worker/QUAL003 code or changes #259 Blocked/Open boundaries. Success requires
-actual-shape reviews, first eligible quality/Integration/Browser CI, and
-Orchestrator squash merge before closing #262/#259/#257/#256/#255/#253/#208/
-#204/#196/#147. Remaining linked Issues stay Open; M2 remains In Progress and
-no exit review or M3 start is claimed. After merge, one Packet/Roadmap
-facts/status sync precedes a tracked exact-two audit in a fresh merged-head
-worktree. Its independent literal commands, each once from that fixed cwd, are:
+Historical premerge current-truth checkpoint (superseded by PR #263): PR260
+(`docs: record blocked M2-QUAL-038 replay`, run `31557773857`, squash/main
+`096bb294`) and PR261 (`docs: reconcile M2-QUAL-038 merge status`, current docs
+endpoint `eb26c5b`) did not publish Worker/QUAL003 code. Their success,
+Issue-closure, and pending review/CI/merge statements are historical only. The
+effective PR #263 merge and current postmerge audit truth are recorded above.
+The historical audit command ledger was:
 `fnm exec --using=24.18.0 corepack pnpm exec prettier --write docs/implementation/work-packets/m2-qual-039-complete-worker-outbox-observation-repair-reconstruction-publication-audit-recovery.md docs/implementation/roadmap.md` → RC0;
 `fnm exec --using=24.18.0 corepack pnpm exec prettier --check docs/implementation/work-packets/m2-qual-039-complete-worker-outbox-observation-repair-reconstruction-publication-audit-recovery.md docs/implementation/roadmap.md` → RC0;
 `fnm exec --using=24.18.0 corepack pnpm repository:check` → RC0;
@@ -581,14 +631,12 @@ reviews, first eligible CI, and Orchestrator merge remain publication
 boundaries; audit red cannot reverse the effective merge and transfers docs
 recovery to QUAL040.
 
-Issue #262 is Open and body parity is synchronized by the Orchestrator to this
-reconstructed Packet/Roadmap head. QUAL039 is In Review with the Worker repair
-reconstructed, inherited runtime evidence accepted, and independent exact-four
-review PASS. No local runtime replay occurred and no GitHub, Issue, or commit
-mutation was performed. The prior Gate1, Gate2, Gate3/4, preliminary exact-three,
-and final exact-four evidence passed once; this review metadata sync requires
-the final current-head exact-four checks below. After those checks, only
-first-eligible three-job CI and Orchestrator merge remain pending.
+Historical premerge checkpoint (superseded by PR #263): Issue #262 was Open
+and body parity synchronized to the reconstructed Packet/Roadmap head. QUAL039
+was In Review with the Worker repair reconstructed, inherited runtime evidence
+accepted, and independent exact-four review PASS. No local runtime replay or
+GitHub/Issue/commit mutation occurred in that checkpoint. The effective
+Completed/closure truth and current reconciliation path are recorded above.
 
 The Ready review record is PASS with no findings: `/root/m2_qual_014_dor_correctness`
 and `/root/m2_qual_012_browser_setup_diagnosis`, role
@@ -619,7 +667,7 @@ metadata sync requires the final current-head exact-four checks below; after
 those pass, only first-eligible three-job CI and Orchestrator merge remain
 pending.
 
-#### QUAL039 implementation completion report (§18)
+#### QUAL039 implementation completion report (§18; historical premerge, superseded by PR #263)
 
 - Local exact-four evidence: one binding and three bounded `dispatched` waits;
   candidate Worker byte-equal to frozen QUAL034; proposed QUAL003 appendix,
@@ -628,11 +676,10 @@ pending.
   `54 files / 578 tests` plus five builds, Integration `27 files / 185 tests`,
   Browser `16/16`, and one outer Concurrent RC0. Local Worker/root/
   Integration/Browser/Concurrent invocation counts are zero.
-- Final status: **In Review — Complete Worker Repair Reconstructed; inherited
-  runtime evidence accepted; publication pending.** Independent exact-four
-  review is PASS; final current-head exact-four checks, exact-head three-job CI,
-  and Orchestrator merge remain unearned; no Issue closure, M2 exit review, or
-  M3 start is claimed.
+- Final status (historical premerge): **In Review — Complete Worker Repair
+  Reconstructed; inherited runtime evidence accepted; publication pending.**
+  PR #263 supersedes its unearned-check/CI/merge and no-closure wording;
+  current status is Completed/effective with the audit path above.
 
 ## 10. M3 — Research
 
