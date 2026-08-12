@@ -14,9 +14,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0**, **M1 — Product Skeleton and Domain Foundation**, and **M2 — Source and Workflow Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision for the private Source/Workflow foundation. M3 Research is eligible and Not Started.
+The repository has completed **M0**, **M1 — Product Skeleton and Domain Foundation**, and **M2 — Source and Workflow Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision for the private Source/Workflow foundation. The G1/M3 Research thin slice is implemented by the current reviewed change; G2 remains Not Started.
 
-This repository now provides workspace installation, local and CI quality checks, builds, five process entry points, local state-service containers, authentication, the bounded Content Package and URL-capture API boundaries, the M1 Web thin slice, Worker Outbox delivery and lease reconciliation, and the private API-owned Fetcher Gateway Claim/Heartbeat/Result boundary. `M2-FETCH-001C` registers the existing controlled public transport and Candidate/Snapshot preparation behind one `contentos-fetcher` BullMQ consumer: it validates a fixed current-generation Job, claims through the API, captures once, and submits the exact Result. PostgreSQL and the API remain authoritative for Task and Source state; the Fetcher has no database connection. The active Workspace offers Pasted Text, `.md`/`.txt` upload, durable URL-capture intake, explicit normalized Working Copy review and saving, immutable Version history, exact Review Candidate human Approval, and a bounded safe REST Workflow Timeline refreshed through the existing SSE/Polling recovery path. Source Approval does not transition `source_review` or append a Workflow Timeline Event, and archived Package review commands remain unavailable. It still does not provide Research, an Agent, Render, Export, publishing behavior, deployment, or a development server.
+This repository now provides workspace installation, quality checks, builds, five process entry points, isolated local state services, authentication, Content Package/Source/Workflow/Fetcher foundations, and G1 Research. The active Workspace can generate deterministic evidence-linked Research from exact Approved Source Versions, let the owner correct/review items, checkpoint an immutable Version, approve it exactly, and see Outdated state after a Source dependency changes. PostgreSQL and the API remain authoritative; Raw Provider output is server-side only. No real Provider, generic Agent runtime, Human Opinion, Blog, Xiaohongshu, Render, Export, publishing, production deployment, or development server exists yet.
 
 ## MVP boundary
 
@@ -31,7 +31,7 @@ The repository currently contains:
 - Product, Architecture, Security, and Quality Current-truth specifications;
 - Implementation governance: [Roadmap](docs/implementation/roadmap.md), [Milestone Exit Criteria](docs/implementation/milestone-exit-criteria.md), and [Work Item template](docs/implementation/work-item-template.md).
 
-The current workspace contains five applications and six packages. `M1-SEC-001` added `packages/database` and the authentication foundation. `M1-CP-001` added the second reviewed migration plus framework-independent Content Package and Artifact identity rules, shared HTTP contracts, a Drizzle repository, and protected API composition within existing packages. `M2-SRC-001` adds `packages/object-storage`, the first Source migration, framework-independent Source domain and application rules, shared Source contracts, a Drizzle Source repository, an S3-compatible adapter, and protected Source API composition. Remaining planned packages stay absent until bounded Work Items require them.
+The current workspace contains five applications and six packages. G1 adds no package or application: Research domain/service logic lives in `core`, strict HTTP contracts in `contracts`, additive tables/repository in `database`, protected composition in `api`, and the review panel in `web`. Remaining planned packages stay absent until bounded Work Items require them.
 
 ## Authoritative documentation map
 
@@ -82,7 +82,7 @@ corepack pnpm repository:check
 
 Before a commit, run `corepack pnpm check`. It runs `format:check`, `lint`, `typecheck`, `test`, and `build` without starting Docker services, reaching the network, or reading Secrets. The Docker-dependent `test:integration`, `test:integration:concurrent`, and `test:browser` commands are excluded from `check`. `corepack pnpm repository:check` (and the focused `check:docs`, `check:decisions`, and `check:secrets`) run dependency-free repository-integrity checks over Git-tracked files.
 
-After a successful build, the processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web provides login, active/archived Dashboard views, Content Package creation, and the metadata/archive Workspace. API provides liveness, the three `/v1/auth/*` endpoints, protected `/v1/content-packages` routes, protected `/v1/content-packages/:packageId/sources` routes (pasted-text capture, .md/.txt file-upload capture, list, get, working-copy edit, version creation, version list, approval), the protected URL-capture request route, the private non-OpenAPI Fetcher Gateway Claim/Heartbeat routes and Result route, and `/openapi.json`. Worker runs the bounded Outbox Dispatcher plus lease/delivery reconciliation and requires `CONTENTOS_ENV`, `DATABASE_URL`, and `REDIS_URL`; it publishes only the fixed minimal BullMQ envelope and never consumes Fetcher Jobs. Fetcher requires its gateway Secret/origin, `CONTENTOS_FETCHER_REDIS_URL`, and its Fetcher-scoped Object Storage settings; it consumes only the fixed Fetcher Queue Job, uses the API Gateway, and has no PostgreSQL credential. Web and API startup require the validated values documented in `.env.example`.
+After a successful build, the processes can be started with `corepack pnpm start:web`, `start:api`, `start:worker`, `start:fetcher`, or `start:renderer`. Web provides login, Dashboard, Content Package creation, Source review, and active Research review. API provides liveness, authentication, owner-scoped Content Package/Source/Workflow/Research routes, the private non-OpenAPI Fetcher Gateway, and `/openapi.json`. Research supports get, deterministic generation, Working Copy edit, immutable checkpoint, and exact Approval; it exposes no Raw Provider output. Worker and Fetcher retain their existing scoped delivery identities. Web and API startup require the validated values documented in `.env.example`.
 
 Generate a local owner-password hash interactively, then apply the committed database migration only after supplying the intended PostgreSQL URL through the environment:
 
@@ -116,7 +116,7 @@ This starts an isolated `contentos-smoke-*` Compose project that replaces persis
 
 Run `corepack pnpm test:integration:concurrent` to launch two complete token-owned smoke runs concurrently and verify that their directories, state, Compose projects, ports, credentials, and cleanup remain isolated from each other and from unrelated harness runs.
 
-After installing the pinned Chromium revision with `corepack pnpm exec playwright install chromium`, run `corepack pnpm test:browser` to exercise the M1/M2 owner-browser suite. Read [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md) and [M2 Acceptance Harness](docs/quality/m2-acceptance-harness.md) for its security, cleanup, and scope boundaries.
+After installing the pinned Chromium revision with `corepack pnpm exec playwright install chromium`, run `corepack pnpm test:browser` to exercise the M1/M2/G1 owner-browser suite. Read [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md) and [M2 Acceptance Harness](docs/quality/m2-acceptance-harness.md) for its security, cleanup, and scope boundaries.
 
 These commands remain a bounded M1 foundation plus the active M2 Source, delivery, Fetcher execution, and Source-evidence slices. There is no `dev`, broad product E2E suite, Workflow Engine beyond the current durable request/delivery/lease/recovery/result boundary, Agent, Render, or publishing-content feature yet.
 
@@ -126,14 +126,14 @@ A bounded GitHub Actions workflow at [.github/workflows/ci.yml](.github/workflow
 
 - a Docker-independent job: workspace resolution, `corepack pnpm check`, and `corepack pnpm repository:check` (Markdown local-link, Canonical Decision register, and Secret checks);
 - a Docker-dependent job: `corepack pnpm test:integration` through the existing isolated smoke harness.
-- an M1/M2 browser job: pinned Playwright Chromium runs `corepack pnpm test:browser` against an isolated runtime.
+- an M1/M2/G1 browser job: pinned Playwright Chromium runs `corepack pnpm test:browser` against an isolated runtime.
 
 The workflow references no repository Secrets, persists no credentials, uploads no artifacts, and performs no deployment or release. It is a bounded baseline, not a full release gate. All three jobs must pass before a change can merge. Read [CI Skeleton](docs/quality/ci-skeleton.md) for the full scope.
 
 ## Next implementation steps
 
-1. M2 — Source and Workflow Foundation — is completed by [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md). M3 Research is eligible and Not Started.
-2. Begin M3 only through the bounded G1 Work Item in [GOAL.md](GOAL.md); real Provider calls remain separately authorized.
+1. Review, verify CI, and merge the bounded [G1 Research Work Item](docs/implementation/work-packets/g1-research-thin-slice.md).
+2. Begin G2 Human Opinion/Research-based Mode and Blog only after G1 is effective; real Provider calls remain separately authorized.
 
 No completion date is committed by this repository.
 

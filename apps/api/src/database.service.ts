@@ -5,6 +5,7 @@ import type {
   ContentPackageRepository,
   SessionRepository,
   SourceRepository,
+  ResearchRepository,
   UrlCaptureCommandRepository,
   UrlCaptureResultRepository,
   FetcherGatewayClaimRepository,
@@ -21,6 +22,7 @@ export class DatabaseService implements OnModuleDestroy {
   readonly sessions: SessionRepository;
   readonly contentPackages: ContentPackageRepository;
   readonly sources: SourceRepository;
+  readonly research: ResearchRepository;
   readonly urlCapture: UrlCaptureCommandRepository;
   readonly fetcherGateway: FetcherGatewayClaimRepository;
   readonly urlCaptureResults: UrlCaptureResultRepository;
@@ -32,6 +34,7 @@ export class DatabaseService implements OnModuleDestroy {
     this.sessions = this.runtime.sessions;
     this.contentPackages = this.runtime.contentPackages;
     this.sources = this.runtime.sources;
+    this.research = this.runtime.research;
     this.urlCapture = this.runtime.urlCapture;
     this.fetcherGateway = this.runtime.fetcherGateway;
     this.urlCaptureResults = this.runtime.urlCaptureResults;

@@ -10,6 +10,7 @@ import {
   ContentPackageDomainError,
   SourceApplicationError,
   SourceDomainError,
+  ResearchError,
   UrlCaptureApplicationError,
   UrlCaptureDomainError,
   UploadQuarantineError,
@@ -155,6 +156,32 @@ export class ApiExceptionFilter implements ExceptionFilter {
               ? 'Source role limit exceeded'
               : 'Source state conflict';
       void reply.status(status).send(apiError(code, message, correlationId));
+      return;
+    }
+
+    if (exception instanceof ResearchError) {
+      const notFound =
+        exception.code === 'CONTENT_PACKAGE_NOT_FOUND' ||
+        exception.code === 'RESEARCH_NOT_FOUND' ||
+        exception.code === 'RESEARCH_VERSION_NOT_FOUND';
+      const invalid = exception.code === 'INVALID_RESEARCH';
+      const providerFailure = exception.code === 'RESEARCH_PROVIDER_OUTPUT_INVALID';
+      const status = notFound ? 404 : invalid ? 422 : providerFailure ? 502 : 409;
+      const code = invalid
+        ? 'INVALID_REQUEST'
+        : exception.code === 'PACKAGE_ARCHIVED'
+          ? 'CONTENT_PACKAGE_STATE_CONFLICT'
+          : exception.code;
+      const message = notFound
+        ? exception.code === 'CONTENT_PACKAGE_NOT_FOUND'
+          ? 'Content Package not found'
+          : 'Research not found'
+        : invalid
+          ? 'Invalid request'
+          : providerFailure
+            ? 'Research generation failed validation'
+            : 'Research state conflict';
+      void reply.status(status).send(apiError(code as ApiErrorCode, message, correlationId));
       return;
     }
 

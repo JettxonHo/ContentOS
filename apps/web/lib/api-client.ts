@@ -23,6 +23,11 @@ import type {
   UrlCaptureRequest,
   UrlCaptureRequestResponse,
   ApiErrorCode,
+  ResearchResponse,
+  GenerateResearchRequest,
+  EditResearchWorkingCopyRequest,
+  CheckpointResearchRequest,
+  ApproveResearchRequest,
 } from '@contentos/contracts';
 
 type Fetcher = typeof fetch;
@@ -168,6 +173,38 @@ export class ContentOsApiClient {
 
   listUrlCaptureIntakes(id: string): Promise<UrlCaptureIntakeCollectionResponse> {
     return this.request(`/v1/content-packages/${encodeURIComponent(id)}/url-capture-requests`);
+  }
+
+  getResearch(packageId: string): Promise<ResearchResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/research`);
+  }
+
+  generateResearch(packageId: string, input: GenerateResearchRequest): Promise<ResearchResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/research/generations`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  editResearch(packageId: string, input: EditResearchWorkingCopyRequest): Promise<ResearchResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/research/working-copy`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
+  }
+
+  checkpointResearch(packageId: string, input: CheckpointResearchRequest): Promise<ResearchResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/research/versions`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  approveResearch(packageId: string, input: ApproveResearchRequest): Promise<ResearchResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/research/approval`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
   }
 
   private sourcePath(packageId: string, sourceId: string): string {

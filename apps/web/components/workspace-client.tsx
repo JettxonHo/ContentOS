@@ -18,6 +18,7 @@ import { WorkflowRecoveryController } from '../lib/workflow-recovery';
 import { AppShell, StatusMessage } from './app-shell';
 import { SourceIntakePanel } from './source-intake-panel';
 import { SourceReviewPanel } from './source-review-panel';
+import { ResearchReviewPanel } from './research-review-panel';
 import { WorkflowTimelinePanel } from './workflow-timeline-panel';
 
 export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: string; contentPackageId: string }) {
@@ -34,7 +35,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
-  const [section, setSection] = useState<'sources' | 'details'>('sources');
+  const [section, setSection] = useState<'sources' | 'research' | 'details'>('sources');
   const [sources, setSources] = useState<readonly SourceListItemResource[] | null>(null);
   const [intakes, setIntakes] = useState<readonly UrlCaptureIntakeResource[] | null>(null);
   const [sourceLoading, setSourceLoading] = useState(false);
@@ -253,9 +254,9 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     );
   }
 
-  function chooseSection(next: 'sources' | 'details'): void {
+  function chooseSection(next: 'sources' | 'research' | 'details'): void {
     if ((reviewDirty || reviewBusy) && next !== section) {
-      setSourceError('Save or discard the unsaved Source draft before leaving Sources.');
+      setSourceError('Save or discard the unsaved review draft before changing Workspace sections.');
       return;
     }
     setSection(next);
@@ -364,7 +365,9 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
           <div className="workspace-layout">
             <section
               className="workspace-main"
-              aria-labelledby={section === 'sources' ? 'sources-title' : 'metadata-title'}
+              aria-labelledby={
+                section === 'sources' ? 'sources-title' : section === 'research' ? 'research-title' : 'metadata-title'
+              }
             >
               {section === 'sources' ? (
                 <>
@@ -416,6 +419,15 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
                     />
                   ) : null}
                 </>
+              ) : section === 'research' ? (
+                <ResearchReviewPanel
+                  api={api}
+                  contentPackageId={contentPackage.id}
+                  active={contentPackage.lifecycle === 'active'}
+                  onDirtyChange={setReviewDirty}
+                  onBusyChange={setReviewBusy}
+                  onUnauthenticated={() => router.replace('/login')}
+                />
               ) : (
                 <>
                   <div className="section-heading">
@@ -537,16 +549,31 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
                   <small>{contentPackage.lifecycle === 'archived' ? 'History only' : 'Available'}</small>
                 </div>
               </button>
-              <div className="stage-future">
+              <button
+                className={section === 'research' ? 'stage-current stage-button' : 'stage-future stage-button'}
+                type="button"
+                aria-pressed={section === 'research'}
+                onClick={() => chooseSection('research')}
+                disabled={
+                  contentPackage.lifecycle === 'archived' || ((reviewDirty || reviewBusy) && section !== 'research')
+                }
+              >
                 <span>03</span>
                 <div>
-                  <strong>Research & creation</strong>
+                  <strong>Research</strong>
+                  <small>{contentPackage.lifecycle === 'archived' ? 'Unavailable while archived' : 'Available'}</small>
+                </div>
+              </button>
+              <div className="stage-future">
+                <span>04</span>
+                <div>
+                  <strong>Opinion & creation</strong>
                   <small>Not implemented</small>
                 </div>
               </div>
               <p className="stage-note">
-                This shell does not start a Workflow or Agent. It preserves the honest boundary of the current
-                milestone.
+                Research uses a deterministic Fake Provider. Opinion, writing, exports, and real Provider calls remain
+                unavailable.
               </p>
               {contentPackage.lifecycle === 'active' ? (
                 <button
