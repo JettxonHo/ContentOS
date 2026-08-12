@@ -452,6 +452,42 @@ review-metadata sync was followed by final current-head targeted Prettier,
 each ran once and PASSed, with no later edit. Only first eligible three-job CI
 and Orchestrator merge remain unearned; red/missing transfers to QUAL038.
 
+### M2-QUAL-038 — Complete Third Worker Outbox Wait Reconstruction and Node24 Publication Audit Recovery
+
+| Work Item                                                                                              | Goal                                                                                                                       | Dependencies / Issues                                                                          | Current truth                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M2-QUAL-038 — Complete Third Worker Outbox Wait Reconstruction and Node24 Publication Audit Recovery` | Record a fresh-main exact-two Blocked candidate for the frozen Worker first red without publishing Worker or QUAL003 code. | PR #258 effective on current main `e2e1e9c6`; frozen QUAL034/QUAL038 evidence; Issue #259 Open | **Blocked — Complete Worker Observation Repair Not Verified.** Candidate worktree `/private/tmp/contentos-m2-qual-038-blocked-status-wt`, branch `codex/m2-qual-038-blocked-status-sync`, base/HEAD `e2e1e9c6`, exact two docs only; Worker, QUAL003, and code are zero. Frozen Gate 1 10/10 and Gate 2 5/5 passed, the sole third-wait patch ran, and the candidate-vs-frozen QUAL034 Worker compare returned RC1. Frozen actual exact-three reviews PASS/no findings; all later implementation/static/runtime/publication gates are 0/unearned. Issue #259 remains Open; M2 In Progress, M3 Not Started, no DEC/BQ/exit review; recovery QUAL039. |
+
+The fresh candidate manually reconstructs only the new Packet and Roadmap from
+current main e2e1; it does not copy Worker/QUAL003/code. Construction chronology
+was one Node24 formatter write at RC0, materializing 571 ignored dependencies
+with no tracked or unexpected artifact; the Packet was unchanged and the
+Roadmap formatted. Targeted Packet/Roadmap Prettier, Node24
+`repository:check`, `git diff --check`, and exact-two/code-zero/no-unexpected
+each then PASSed once, with no docs edits after that sequence until this
+evidence correction. The latest current-head targeted Prettier, Node24
+`repository:check`, `git diff --check`, and exact-two/code-zero/no-unexpected
+each then ran once and PASSed, with no later edit. Only fresh dual exact-two
+reviews, the first eligible three-job CI, and Orchestrator merge remain
+unearned. The frozen post-red chronology records one
+Packet/Roadmap evidence-only sync followed by bounded docs/parity corrections
+and no post-red process/static checks. Any candidate red or missing result
+remains Blocked and transfers to QUAL039.
+
+Frozen actual-shape review PASS metadata is authority only for this separate
+fresh exact-two Blocked Packet/Roadmap publication candidate; it grants no
+Worker, QUAL003, code, runtime, diagnosis, Issue, Git, GitHub, M2, or M3
+authority. Fresh exact-two publication reviews by
+`/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis`, role `INDEPENDENT_REVIEWER`,
+requested `gpt-5.6-sol` High, actual `UNVERIFIED_RUNTIME_MODEL`, reviewed
+base/HEAD `e2e1e9c6daad00d129cec5186cb99b650b6ce198`, this corrected exact-two
+candidate against the frozen QUAL038 evidence and Completion Report, and live
+Issue #259 parity. Both PASSed with no findings; authority is exact-two Blocked
+publication only. The final current-head checks below run once after this
+metadata sync; only then do first eligible three-job CI and Orchestrator merge
+remain unearned. Any red or missing result transfers to QUAL039.
+
 ## 10. M3 — Research
 
 M3 introduces the first formal Agent Vertical Slice:
