@@ -102,18 +102,18 @@ Keep review and defensive design proportional to credible product risk:
 
 Default to the shortest evidence path that proves the affected behavior:
 
-- An ordinary reversible change uses one Work Item, one implementation branch, one independent review, and the affected tests. The same agent may plan and implement; it may not independently approve its own change.
+- Under DEC-295's procedural amendment, an ordinary reversible change uses one Work Item, one implementation branch, one independent review, and the affected tests. The same agent may plan and implement; it may not independently approve its own change.
 - A GitHub Issue may be the Work Item. A separate Work Packet, planning-only Pull Request, dual review, or postmerge reconciliation is required only for a milestone exit, an immutable Acceptance Record, an irreversible migration, a production action, or an explicitly high-risk security/architecture change.
 - Do not require literal command ledgers, exact working-tree cardinalities, serialized tool-return values, byte-for-byte documentation reconstruction, or repeated status snapshots for ordinary implementation. Record commands and results once in the Pull Request or completion report.
 - A normal test, formatting, CI, or tool failure may be diagnosed and corrected on the same branch, followed by the smallest relevant rerun. Strict first-failure freeze/no-rerun rules apply only when a Work Item explicitly protects destructive, production, migration, or immutable acceptance evidence.
-- Documentation-only changes run formatting, repository documentation checks, and `git diff --check`. They do not run Docker Integration or Browser suites unless they change commands, test harness behavior, release evidence, or runtime configuration.
+- Documentation-only changes run formatting, repository documentation checks, and `git diff --check`. They do not run Docker Integration or Browser suites unless they change commands, test harness behavior, runtime configuration, Accepted Decisions, agent/release governance, or formal acceptance/release evidence.
 - Security review is trigger-based. Require focused security review for Authentication/Authorization, external input or network access, Secrets, private data, Object Storage access, rendering active content, deletion/restore, production configuration, or a changed security boundary. Otherwise state `No new security boundary` and rely on existing baseline tests.
 - Controls for capabilities that do not exist yet—Model Providers, Agent tools, Renderer execution, Export, backup/restore, production deployment—must not block earlier milestones. Introduce and verify them with the capability that creates the risk.
 - Formatting fixes, evidence wording, and review corrections stay in the same Work Item unless they change scope or invalidate already-merged immutable evidence.
 
 ## 11. Work Item contract
 
-Every Work Item must state: Task ID/title, Goal, In Scope, Out of Scope, relevant DEC/specifications, allowed files or modules, Acceptance Criteria, Verification, and Documentation Updates. Use the [Work Item template](docs/implementation/work-item-template.md); add contract, security, migration, observability, or production supplements only when their trigger applies.
+Every Work Item must state: Task ID/title, Goal, In Scope, Out of Scope, relevant DEC/specifications, applicable Contracts (or explicitly no contract change), allowed files or modules, Acceptance Criteria, Verification, and Documentation Updates. Use the [Work Item template](docs/implementation/work-item-template.md); add detailed security, migration, observability, or production supplements only when their trigger applies.
 
 For a separated planning, implementation, and independent-review handoff, use the [Agent Collaboration Workflow](docs/implementation/agent-collaboration-workflow.md) and its templates. It does not replace this file, the Work Item contract, or the authority hierarchy.
 

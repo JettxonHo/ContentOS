@@ -108,7 +108,7 @@ Examples include Title preference, Caption length, edit distance, Approval time,
 
 The tier design describes governance only and does not create a CI configuration.
 
-Documentation-only Pull Requests use a documentation gate: formatting, links/Decision integrity, bounded Secret scan, and diff hygiene. They do not require Integration or Browser execution unless they modify test commands, harness behavior, runtime configuration, or release/acceptance evidence. Required-check configuration should preserve this affected-path distinction rather than forcing expensive unrelated suites.
+Documentation-only Pull Requests use a documentation gate: formatting, links/Decision integrity, bounded Secret scan, and diff hygiene. They do not require Integration or Browser execution unless they modify test commands, harness behavior, runtime configuration, Accepted Decisions, agent/release governance, or release/acceptance evidence. Required-check configuration must classify those sensitive paths onto full CI rather than relying on prose judgment after a run.
 
 ## 14. Release Evaluation Record
 

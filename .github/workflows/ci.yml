@@ -37,6 +37,15 @@ jobs:
                 *.md|.github/ISSUE_TEMPLATE/*) ;;
                 *) docs_only=false; break ;;
               esac
+              # These Markdown paths can change executable commands, accepted
+              # governance, runtime expectations, or formal release evidence.
+              # They deliberately remain on the full CI path.
+              case "$path" in
+                AGENTS.md|GOAL.md|docs/decisions/*|docs/quality/*|docs/security/*|docs/implementation/agent-collaboration-workflow.md|docs/implementation/work-item-template.md|docs/implementation/milestone-exit-criteria.md|docs/implementation/*acceptance-record*.md|docs/implementation/work-packets/*acceptance-record*.md)
+                  docs_only=false
+                  break
+                  ;;
+              esac
             done < <(git diff --name-only HEAD^1 HEAD)
             if [ "$saw_path" != "true" ]; then
               docs_only=false

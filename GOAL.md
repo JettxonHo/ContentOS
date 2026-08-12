@@ -5,6 +5,12 @@
 **Authority:** DEC-295, current Product/Architecture/Security/Quality specifications, and `AGENTS.md`
 **Execution model:** One phase and one bounded Issue/PR at a time
 
+## Active-goal authority
+
+This file is the sole active execution Goal after its merge and explicit activation. The earlier thread Goal for recursively completing M2 through exact-file publication/recovery protocols is ended and must not be read as current authority. Historical `M2-GOV-008` through `M2-GOV-014` Work Packets preserve evidence only: they are not executable plans, dependencies, templates, or reasons to recreate their ceremony.
+
+When historical Goal text, Work Packets, or thread summaries conflict with this file, use DEC-295, current Current-truth, and this Goal. G0 starts one fresh bounded current-main M2 exit review; ordinary reversible corrections stay in that Work Item.
+
 ## Outcome
 
 Deliver the fastest useful ContentOS MVP without discarding its core differentiation:
@@ -96,7 +102,7 @@ Goal approval authorizes planning and bounded repository implementation after th
 ## Execution rules
 
 - One phase uses one primary Issue, branch, and Pull Request. Split only when one independently reviewable vertical slice cannot fit safely.
-- The same agent may refine and implement the Work Item; one independent reviewer approves the real diff.
+- Under DEC-295's procedural amendment, the same agent may refine and implement an ordinary reversible Work Item; one independent reviewer approves the real diff. Controlled-path triggers still separate planning and implementation.
 - Use affected-layer tests. Documentation-only changes do not run Integration/Browser unless they change commands, harnesses, runtime configuration, or acceptance/release evidence.
 - Diagnose and correct ordinary formatting, deterministic test, review, CI, or tool failures on the same branch. Do not create recursive recovery Work Items for reversible failures.
 - Do not use exact-N file-shape protocols, literal command ledgers, byte-for-byte Markdown reconstruction, or repeated evidence synchronization unless an immutable/destructive boundary genuinely requires it.

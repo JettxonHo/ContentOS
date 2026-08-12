@@ -54,6 +54,8 @@ export const EXPECTED_DEC_COUNT = 295;
 export const DECISION_REGISTER = join('docs', 'decisions', 'decisions.md');
 
 const DEC_INDEX_ROW_RE = /^\| *\[DEC-(\d{3})\]/;
+const DEC_INDEX_COUNT_RE = /^- Indexed decisions: \*\*(\d+)\*\*$/m;
+const DEC_NUMERIC_RANGE_RE = /^- Numeric range: \*\*DEC-(\d{3})[–-]DEC-(\d{3})\*\*$/m;
 const DEC_REF_RE = /DEC-([0-9]+)/g;
 const MARKDOWN_LINK_RE = /\[([^\]]*)\]\(([^)]+)\)/g;
 const URL_SCHEME_RE = /^[a-z][a-z\d+.-]*:/i;
@@ -214,6 +216,21 @@ export function checkDecisionRegister(root: string, files: string[]): DecisionFi
   const indexIds: number[] = [];
   if (existsSync(registerAbs)) {
     const text = readFileSync(registerAbs, 'utf8');
+    const declaredCount = DEC_INDEX_COUNT_RE.exec(text);
+    if (declaredCount === null || Number.parseInt(declaredCount[1] ?? '', 10) !== EXPECTED_DEC_COUNT) {
+      findings.push({
+        file: DECISION_REGISTER,
+        problem: `declared indexed Decision count must be ${EXPECTED_DEC_COUNT}`,
+      });
+    }
+    const declaredRange = DEC_NUMERIC_RANGE_RE.exec(text);
+    if (
+      declaredRange === null ||
+      Number.parseInt(declaredRange[1] ?? '', 10) !== 1 ||
+      Number.parseInt(declaredRange[2] ?? '', 10) !== EXPECTED_DEC_COUNT
+    ) {
+      findings.push({ file: DECISION_REGISTER, problem: 'declared numeric Decision range must be DEC-001-DEC-295' });
+    }
     for (const line of text.split('\n')) {
       const match = DEC_INDEX_ROW_RE.exec(line);
       if (match) {

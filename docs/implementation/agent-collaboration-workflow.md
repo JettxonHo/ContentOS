@@ -35,7 +35,7 @@ Issue or concise Work Item
 → squash merge
 ```
 
-The same agent may refine the task and implement it. It must not independently approve its own change. A separate Planning Agent, Work Packet, planning-only Pull Request, explicit handoff ceremony, second reviewer, or postmerge reconciliation is not required.
+Under the procedural amendment in DEC-295, the same agent may refine the task and implement an ordinary reversible Work Item. It must not independently approve its own change. A separate Planning Agent, Work Packet, planning-only Pull Request, explicit handoff ceremony, second reviewer, or postmerge reconciliation is not required for that fast path.
 
 The Issue or Pull Request records scope, Acceptance Criteria, verification, and relevant security/migration impact once. Do not synchronize identical prose across Roadmap, Issue, Packet, and report.
 
@@ -92,7 +92,7 @@ Use summaries, not command choreography:
 - do not require exact file cardinality when an allowed-path review proves scope;
 - do not require byte-for-byte Markdown reconstruction, tool-return serialization, or per-command status files for reversible documentation.
 
-Documentation-only Pull Requests use targeted formatting, repository checks, and diff hygiene. Integration/Browser CI is affected-path only unless the docs change commands, harness behavior, runtime configuration, or formal acceptance/release evidence.
+Documentation-only Pull Requests use targeted formatting, repository checks, and diff hygiene. Integration/Browser CI is affected-path only unless the docs change commands, harness behavior, runtime configuration, Accepted Decisions, agent/release governance, or formal acceptance/release evidence. The CI path classifier treats those sensitive paths as full-CI changes; prose cannot waive them.
 
 ## 7. Branch and ownership
 

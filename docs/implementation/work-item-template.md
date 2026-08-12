@@ -20,13 +20,14 @@ Goal:
 In Scope:
 Out of Scope:
 Relevant DEC / specifications:
+Contracts:
 Allowed files or modules:
 Acceptance Criteria:
 Verification:
 Documentation updates:
 ```
 
-Add dependencies when the task has them. Add a risk note only when the task changes a credible security, migration, production, cost, or irreversible boundary. Owner, reviewer, model, thread, branch, and exact commit metadata belong in the Issue or Pull Request when useful; they are not product requirements.
+`Contracts` names each applicable Domain, API, Schema, Queue/Event, Configuration, Error, migration, and security boundary, or states that the Work Item changes no contract. Add dependencies when the task has them. Add a risk note only when the task changes a credible security, migration, production, cost, or irreversible boundary. Owner, reviewer, model, thread, branch, and exact commit metadata belong in the Issue or Pull Request when useful; they are not product requirements.
 
 The Goal states one user or system outcome. Scope names the smallest complete change, not every implementation step. Allowed files prevent accidental spread, but an obvious adjacent test or generated artifact may be added with an explicit explanation instead of opening a new Work Item.
 
@@ -145,4 +146,4 @@ Do not create:
 
 ## 10. Decision traceability
 
-This template implements DEC-287–DEC-292: bounded Work Items, reviewable Pull Requests, concise agent guidance, separated truth sources, Definition of Ready/Done, and explicit scope-change governance. DEC-295 defines the current text-first MVP completion boundary while preserving dual output, human Approval, traceability, and affected failure gates.
+This template implements DEC-287–DEC-292: bounded Work Items, explicit applicable Contracts, reviewable Pull Requests, concise agent guidance, separated truth sources, Definition of Ready/Done, and explicit scope-change governance. DEC-295 defines the current text-first MVP completion boundary and authorizes the proportional collaboration/affected-path rules for `GOAL-MVP-TEXT-001` while preserving dual output, human Approval, traceability, independent review, and affected failure gates.

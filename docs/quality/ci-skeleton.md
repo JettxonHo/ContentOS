@@ -12,7 +12,7 @@ Related documents: [Local Quality Toolchain](local-quality-toolchain.md), [Integ
 
 ## 1. Purpose
 
-`M0-CI-001` adds one bounded GitHub Actions workflow at [.github/workflows/ci.yml](../../.github/workflows/ci.yml). Pull Requests first classify their changed paths: Markdown/Issue-template-only changes run the documentation gate, while code, configuration, test-harness, runtime, and workflow changes run the full Docker-independent, Integration, and Browser gates. Pushes to `main` and manual dispatches always run the full gates. The workflow introduces no product behavior and selects no release platform, deployment provider, or future CI architecture.
+`M0-CI-001` adds one bounded GitHub Actions workflow at [.github/workflows/ci.yml](../../.github/workflows/ci.yml). Pull Requests first classify their changed paths: non-sensitive Markdown/Issue-template-only changes run the documentation gate, while code, configuration, test-harness, runtime, workflow, Accepted Decision, agent/release-governance, security, quality, and formal acceptance/release-evidence changes run the full Docker-independent, Integration, and Browser gates. Pushes to `main` and manual dispatches always run the full gates. The workflow introduces no product behavior and selects no release platform, deployment provider, or future CI architecture.
 
 GitHub Actions is authorized here as the bounded CI implementation detail for this GitHub-hosted repository only.
 
@@ -42,8 +42,9 @@ The workflow defines one path-classification job and three quality jobs. Any exe
 
 1. Check out two commits without persisted credentials.
 2. For Pull Requests only, compare the merge candidate with its first parent.
-3. Set `docs-only=true` only when at least one path changed and every changed path is Markdown or under `.github/ISSUE_TEMPLATE/`.
-4. Use `docs-only=false` conservatively for pushes, manual dispatches, a missing comparison parent, an empty change set, or any other path.
+3. Set `docs-only=true` only when at least one path changed, every changed path is Markdown or under `.github/ISSUE_TEMPLATE/`, and no changed path is in the sensitive allowlist below.
+4. The sensitive full-CI allowlist is `AGENTS.md`, `GOAL.md`, `docs/decisions/**`, `docs/quality/**`, `docs/security/**`, the collaboration workflow, Work Item template, milestone exit criteria, and Acceptance Record/acceptance-record Work Packets.
+5. Use `docs-only=false` conservatively for pushes, manual dispatches, a missing comparison parent, an empty change set, any sensitive documentation path, or any non-document path.
 
 ### Docker-independent job (`docker-independent`)
 
