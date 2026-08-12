@@ -100,7 +100,7 @@ test('M1 owner loop: login, create, edit, refresh, conflict, archive, and logout
   await expect(page).toHaveURL(/\/packages\/[0-9a-f-]+$/);
   await expect(page.getByRole('heading', { name: 'M1 browser package' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Sources' })).toBeVisible();
-  await expect(page.getByText('Not implemented')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Opinion & creation Available/ })).toBeVisible();
 
   const id = page.url().split('/').at(-1);
   if (!id) throw new Error('workspace route is missing its opaque identity');

@@ -28,6 +28,14 @@ import type {
   EditResearchWorkingCopyRequest,
   CheckpointResearchRequest,
   ApproveResearchRequest,
+  OpinionResponse,
+  BlogResponse,
+  InterpretOpinionRequest,
+  ConfirmOpinionRequest,
+  GenerateBlogRequest,
+  EditBlogRequest,
+  CheckpointBlogRequest,
+  ApproveBlogRequest,
 } from '@contentos/contracts';
 
 type Fetcher = typeof fetch;
@@ -205,6 +213,68 @@ export class ContentOsApiClient {
       method: 'POST',
       body: JSON.stringify(input),
     });
+  }
+
+  getOpinion(packageId: string): Promise<OpinionResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/opinion`);
+  }
+
+  interpretOpinion(packageId: string, input: InterpretOpinionRequest): Promise<OpinionResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/opinion/interpretation`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  confirmOpinion(packageId: string, input: ConfirmOpinionRequest): Promise<OpinionResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/opinion/confirmation`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  getBlog(packageId: string): Promise<BlogResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/blog`);
+  }
+
+  generateBlog(packageId: string, input: GenerateBlogRequest): Promise<BlogResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/blog/generations`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  editBlog(packageId: string, input: EditBlogRequest): Promise<BlogResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/blog/working-copy`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
+  }
+
+  checkpointBlog(packageId: string, input: CheckpointBlogRequest): Promise<BlogResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/blog/versions`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  approveBlog(packageId: string, input: ApproveBlogRequest): Promise<BlogResponse> {
+    return this.request(`/v1/content-packages/${encodeURIComponent(packageId)}/blog/approval`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async exportBlog(packageId: string): Promise<string> {
+    const response = await this.fetcher(
+      `${this.origin}/v1/content-packages/${encodeURIComponent(packageId)}/blog/export`,
+      { credentials: 'include', headers: { accept: 'text/markdown' } },
+    );
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: { code?: ApiErrorCode } } | null;
+      throw new WebApiError(response.status, payload?.error?.code ?? 'INTERNAL_ERROR');
+    }
+    return response.text();
   }
 
   private sourcePath(packageId: string, sourceId: string): string {

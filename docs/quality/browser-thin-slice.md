@@ -107,7 +107,7 @@ The UI uses explicit labels, semantic headings, keyboard-focus indicators, live 
 
 ## 6. Explicit exclusions
 
-This baseline does not test or implement a real Provider, autonomous tools, generic Agent Runtime, Human Opinion, Blog, Xiaohongshu, Render, Export, publishing, multi-user behavior, deployment, or production browsers. The G1 scenario uses only the deterministic Fake Provider and validated text rendering.
+This baseline does not test or implement a real Provider, autonomous tools, generic Agent Runtime, Xiaohongshu, Render, rich Export, publishing, multi-user behavior, deployment, or production browsers. G1 Research and G2 Blog use deterministic Fake Providers; the G2 browser scenario additionally exercises fixed-question Human Opinion confirmation, exact Blog Approval, refresh persistence, and portable `article.md` download.
 
 ## 7. Decision traceability
 

@@ -67,6 +67,15 @@ describe('api smoke', () => {
         '/v1/content-packages/{packageId}/research/working-copy',
         '/v1/content-packages/{packageId}/research/versions',
         '/v1/content-packages/{packageId}/research/approval',
+        '/v1/content-packages/{packageId}/opinion',
+        '/v1/content-packages/{packageId}/opinion/interpretation',
+        '/v1/content-packages/{packageId}/opinion/confirmation',
+        '/v1/content-packages/{packageId}/blog',
+        '/v1/content-packages/{packageId}/blog/generations',
+        '/v1/content-packages/{packageId}/blog/working-copy',
+        '/v1/content-packages/{packageId}/blog/versions',
+        '/v1/content-packages/{packageId}/blog/approval',
+        '/v1/content-packages/{packageId}/blog/export',
       ]),
     );
     expect(document.components?.securitySchemes).toHaveProperty('contentos_session');

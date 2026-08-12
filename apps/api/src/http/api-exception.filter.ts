@@ -11,6 +11,7 @@ import {
   SourceApplicationError,
   SourceDomainError,
   ResearchError,
+  BlogError,
   UrlCaptureApplicationError,
   UrlCaptureDomainError,
   UploadQuarantineError,
@@ -181,6 +182,30 @@ export class ApiExceptionFilter implements ExceptionFilter {
           : providerFailure
             ? 'Research generation failed validation'
             : 'Research state conflict';
+      void reply.status(status).send(apiError(code as ApiErrorCode, message, correlationId));
+      return;
+    }
+
+    if (exception instanceof BlogError) {
+      const notFound =
+        exception.code === 'CONTENT_PACKAGE_NOT_FOUND' ||
+        exception.code === 'OPINION_NOT_FOUND' ||
+        exception.code === 'BLOG_NOT_FOUND';
+      const invalid = exception.code === 'INVALID_BLOG';
+      const providerFailure = exception.code === 'BLOG_PROVIDER_OUTPUT_INVALID';
+      const status = notFound ? 404 : invalid ? 422 : providerFailure ? 502 : 409;
+      const code = invalid
+        ? 'INVALID_REQUEST'
+        : exception.code === 'PACKAGE_ARCHIVED'
+          ? 'CONTENT_PACKAGE_STATE_CONFLICT'
+          : exception.code;
+      const message = notFound
+        ? 'Resource not found'
+        : invalid
+          ? 'Invalid request'
+          : providerFailure
+            ? 'Blog generation failed validation'
+            : 'Opinion or Blog state conflict';
       void reply.status(status).send(apiError(code as ApiErrorCode, message, correlationId));
       return;
     }

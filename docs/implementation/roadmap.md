@@ -222,7 +222,7 @@ DEC-295 and `GOAL-MVP-TEXT-001` replaced that recursive publication approach wit
 
 ## 10. M3 — Research
 
-**Current status: In Review.** [G1 — Approved Sources to Approved Research Thin Slice](work-packets/g1-research-thin-slice.md) implements the bounded candidate under Issue #289; it is not effective until independent review, required CI, and squash merge pass.
+**Current status: Completed.** [G1 — Approved Sources to Approved Research Thin Slice](work-packets/g1-research-thin-slice.md) is effective through PR #290, first-attempt required CI, and squash merge `1c70866099d1dcc421f0fc3470889cfd288fd4fc`; Issue #289 is Closed Completed.
 
 The G1 candidate provides:
 
@@ -232,11 +232,15 @@ The G1 candidate provides:
 - protected REST/OpenAPI routes and an active Workspace Research panel; and
 - deterministic unit, real-database Integration, and Browser evidence.
 
-One real Provider Adapter remains separately gated by credentials and cost authorization. G2 does not start before this G1 candidate is reviewed and merged.
+One real Provider Adapter remains separately gated by credentials and cost authorization.
 
 Writer, Packaging, and Visual Agents do not precede Approved Research.
 
 ## 11. M4 — Human Opinion and Blog
+
+`GOAL-MVP-TEXT-001/G2` implements the bounded text-first thin slice on effective G1 Research: one fixed Human Opinion question with deterministic interpretation and explicit confirmation/correction, Creator-led or Research-based Blog generation through a deterministic Fake Provider, public references plus internal provenance, Working Copy/Version/exact Approval, dependency Outdated state, and eligible `article.md` download. Real Provider execution, generic Agent infrastructure, Xiaohongshu, rendering, rich assets, and publishing remain outside G2.
+
+**Current status: In Review.** The corrected local candidate under Issue #291 has completed root quality (58 files / 595 tests plus five builds), isolated Integration (29 files / 188 tests), and pinned-Chromium Browser (18/18) gates. Four bounded first-review blockers are corrected with direct regressions for immutable references, checkpoint-bound Approval, concurrent request idempotency, and export identity; targeted independent re-review passed with no blocking findings. First eligible PR CI and squash merge remain required before G2 becomes effective.
 
 M4 implements:
 
