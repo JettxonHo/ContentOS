@@ -254,6 +254,8 @@ M4 is an internal milestone: it validates Human Opinion, Citation, Provenance, e
 
 M5 adds the independent Xiaohongshu text branch:
 
+**Current status: Publication Ready.** `GOAL-MVP-TEXT-001/G3` is tracked by Issue #293 and the [G3 Xiaohongshu content Work Packet](work-packets/g3-xiaohongshu-content-thin-slice.md). It starts from effective G2 squash `7ddc4f1de1130f0edd345e623ee6722e6cab3259`; local root (60 files / 602 tests plus five builds), Integration (29 files / 188 tests), and Browser (18/18) gates pass, and independent review reports no merge blockers. The candidate adds explicit Creator-led/Research-based selection, independently reviewable structured page fields and provenance, exact-foundation generation/Approval validation, corrected Research/long-input handling, and eligible exact Approved-Version `post.md` / `pages.json` export. First eligible PR CI and squash merge remain pending; G4 is the text-first MVP acceptance, while Design and Render remain post-MVP under DEC-295.
+
 - Packaging Agent and Packaging Plan;
 - Platform Profile;
 - 6–10 pages with the default 8-page path;

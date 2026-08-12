@@ -14,9 +14,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0**, **M1 — Product Skeleton and Domain Foundation**, and **M2 — Source and Workflow Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision for the private Source/Workflow foundation. G1/M3 Research is effective; the G2 Human Opinion/Blog thin slice is implemented by the current reviewed change.
+The repository has completed **M0**, **M1 — Product Skeleton and Domain Foundation**, and **M2 — Source and Workflow Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision for the private Source/Workflow foundation. G1/M3 Research and G2 Human Opinion/Blog are effective; the G3 Xiaohongshu content thin slice is implemented by the current candidate.
 
-This repository now provides workspace installation, quality checks, builds, five process entry points, isolated local state services, authentication, Content Package/Source/Workflow/Fetcher foundations, G1 Research, and the G2 Human Opinion/Blog thin slice. The active Workspace can confirm one explicit Human Opinion or choose Research-based Mode, generate a deterministic provenance-bound Blog Candidate, edit and checkpoint it, approve an exact Version, see Outdated state, and download eligible `article.md`. PostgreSQL and the API remain authoritative; Raw Provider output is server-side only. No real Provider, generic Agent runtime, Xiaohongshu, Render, rich Export, publishing, production deployment, or development server exists yet.
+This repository now provides workspace installation, quality checks, builds, five process entry points, isolated local state services, authentication, Content Package/Source/Workflow/Fetcher foundations, G1 Research, effective G2 Human Opinion/Blog, and the G3 Xiaohongshu content candidate. The active Workspace can independently generate and review provenance-bound Blog and Xiaohongshu text from the same Content Foundation; Xiaohongshu supports a deterministic eight-page Packaging Plan, structured page edit/reorder, immutable checkpoint, exact Approval, Outdated state, and eligible `post.md` / `pages.json` download. PostgreSQL and the API remain authoritative; Raw Provider output is server-side only. No real Provider, generic Agent runtime, Render, image/ZIP Export Package, publishing, production deployment, or development server exists yet.
 
 ## MVP boundary
 
@@ -132,8 +132,9 @@ The workflow references no repository Secrets, persists no credentials, uploads 
 
 ## Next implementation steps
 
-1. Review, verify CI, and merge the bounded [G1 Research Work Item](docs/implementation/work-packets/g1-research-thin-slice.md).
-2. Review, verify CI, and merge the bounded G2 Human Opinion/Research-based Mode and Blog thin slice; real Provider calls remain separately authorized.
+1. G1 Research is effective through PR #290.
+2. G2 Human Opinion/Research-based Mode and Blog is effective through PR #292.
+3. Review, verify CI, and merge the bounded [G3 Xiaohongshu content Work Item](docs/implementation/work-packets/g3-xiaohongshu-content-thin-slice.md); real Provider calls remain separately authorized.
 
 No completion date is committed by this repository.
 

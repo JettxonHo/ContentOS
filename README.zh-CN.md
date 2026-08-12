@@ -14,9 +14,9 @@ Source → Research → Human Opinion 或 Research-based Mode
 
 ## 当前状态
 
-仓库已完成 **M0**、**M1 — 产品骨架与领域基础** 和 **M2 — 来源与工作流基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。[M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) 记录了基于当前 main 的私有 Source/Workflow 基础通过决定。当前受审变更已实现 G1/M3 Research 薄切片；G2 尚未开始。
+仓库已完成 **M0**、**M1 — 产品骨架与领域基础** 和 **M2 — 来源与工作流基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。[M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) 记录了基于当前 main 的私有 Source/Workflow 基础通过决定。G1/M3 Research 与 G2 Human Opinion/Blog 已经生效；当前受审候选实现 G3 Xiaohongshu 文本薄切片。
 
-当前仓库提供 Source/Workflow/Fetcher 基础与 G1 Research：活动 Workspace 可以从精确 Approved Source Versions 生成确定性的带证据 Research，允许用户校正/审核条目、checkpoint 不可变 Version、精确 Approval，并在 Source 依赖变化后显示 Outdated。PostgreSQL 与 API 保持权威，Raw Provider output 仅保存在服务端。真实 Provider、通用 Agent Runtime、Human Opinion、Blog、Xiaohongshu、Render、Export、发布和生产部署仍未实现。
+当前仓库提供 Source/Workflow/Fetcher 基础、G1 Research、已生效的 G2 Human Opinion/Blog，以及当前 G3 Xiaohongshu 文本候选。活动 Workspace 可从同一 Content Foundation 独立生成并审阅带 provenance 的 Blog 与 Xiaohongshu 文本；G3 支持确定性的八页 Packaging Plan、显式 Creator-led/Research-based 模式、结构化编辑与排序、不变 Version checkpoint、精确 Approval、Outdated 状态，以及合格 Approved Version 的 `post.md` / `pages.json` 下载。PostgreSQL 与 API 保持权威，Raw Provider output 仅保存在服务端。真实 Provider、通用 Agent Runtime、Render、图片/ZIP Export Package、发布和生产部署仍未实现。
 
 `M2-WEB-001B` 现在已接入活动 Workspace：它允许显式保存标准化 Working Copy、审核不可变 Version、确认当前准确 Review Candidate 的人工 Approval，并通过既有 SSE/Polling 恢复控制器显示有界安全 REST Timeline。Source Approval 不会推进 `source_review`，也不会追加 Workflow Timeline Event；归档 Package 仍不提供这些命令。
 

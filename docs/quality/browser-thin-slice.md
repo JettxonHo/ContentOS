@@ -4,7 +4,7 @@
 **Scope:** The bounded M1 owner-browser scenario, pinned runtime, isolation, security assertions, cleanup, and explicit exclusions
 **Last Updated:** 2026-08-13
 
-This document records the browser scenario introduced by `M1-WEB-001`, its M2 Source/Workflow companions, and the G1 Research thin slice. It verifies the private UI → API → Domain → PostgreSQL → UI loop plus native credentialed EventSource and Polling recovery; it remains a bounded milestone suite rather than broad product E2E coverage.
+This document records the browser scenario introduced by `M1-WEB-001`, its M2 Source/Workflow companions, G1 Research, G2 Human Opinion/Blog, and the G3 Xiaohongshu content candidate. It verifies the private UI → API → Domain → PostgreSQL → UI loop plus native credentialed EventSource and Polling recovery; the G3 path proves an eight-page candidate, structured edit/reorder, checkpoint, exact Approval, and refresh persistence. It remains a bounded milestone suite rather than broad product E2E coverage.
 
 Related documents: [Integration Smoke Harness](integration-smoke-harness.md), [CI Skeleton](ci-skeleton.md), [Test Strategy](test-strategy.md), [Content Package Foundation](../architecture/content-package-foundation.md), [Authentication Foundation](../security/authentication-foundation.md), and the [Roadmap](../implementation/roadmap.md).
 
@@ -107,7 +107,7 @@ The UI uses explicit labels, semantic headings, keyboard-focus indicators, live 
 
 ## 6. Explicit exclusions
 
-This baseline does not test or implement a real Provider, autonomous tools, generic Agent Runtime, Xiaohongshu, Render, rich Export, publishing, multi-user behavior, deployment, or production browsers. G1 Research and G2 Blog use deterministic Fake Providers; the G2 browser scenario additionally exercises fixed-question Human Opinion confirmation, exact Blog Approval, refresh persistence, and portable `article.md` download.
+This baseline does not test or implement a real Provider, autonomous tools, generic Agent Runtime, Render, image/ZIP Export Package, publishing, multi-user behavior, deployment, or production browsers. G1 Research, G2 Blog, and G3 Xiaohongshu text use deterministic Fake Providers. The shared G2/G3 browser journey exercises fixed-question Human Opinion confirmation, explicit Xiaohongshu Mode selection, exact Blog and Xiaohongshu Approval, refresh persistence, reviewable page/provenance fields, and portable `article.md`, `post.md`, and `pages.json` downloads.
 
 ## 7. Decision traceability
 

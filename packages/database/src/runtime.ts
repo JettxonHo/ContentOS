@@ -5,6 +5,7 @@ import type {
   SourceRepository,
   ResearchRepository,
   BlogRepository,
+  XiaohongshuRepository,
   UrlCaptureCommandRepository,
   UrlCaptureResultRepository,
   UrlCaptureIntakeQueryPort,
@@ -23,6 +24,7 @@ import { DrizzleSessionRepository } from './session-repository.js';
 import { DrizzleSourceRepository } from './source-repository.js';
 import { DrizzleResearchRepository } from './research-repository.js';
 import { DrizzleBlogRepository } from './blog-repository.js';
+import { DrizzleXiaohongshuRepository } from './xiaohongshu-repository.js';
 import { DrizzleUrlCaptureResultRepository } from './url-capture-result-repository.js';
 import { DrizzleWorkflowCommandRepository } from './workflow-command-repository.js';
 import { DrizzleWorkflowDispatchRepository } from './workflow-dispatch-repository.js';
@@ -50,6 +52,7 @@ export interface DatabaseRuntime {
   readonly sources: SourceRepository;
   readonly research: ResearchRepository;
   readonly blog: BlogRepository;
+  readonly xiaohongshu: XiaohongshuRepository;
   readonly approvedSourceInputs: ApprovedSourceInputPort;
   readonly workflowQuery: WorkflowQueryPort;
   readonly urlCaptureIntake: UrlCaptureIntakeQueryPort;
@@ -73,6 +76,7 @@ export function createDatabaseRuntime(databaseUrl: string): DatabaseRuntime {
     sources: new DrizzleSourceRepository(connection),
     research: new DrizzleResearchRepository(connection),
     blog: new DrizzleBlogRepository(connection),
+    xiaohongshu: new DrizzleXiaohongshuRepository(connection),
     approvedSourceInputs: new DrizzleApprovedSourceInputProjection(connection),
     workflowQuery: new DrizzleWorkflowQueryProjection(connection),
     urlCaptureIntake: new DrizzleUrlCaptureIntakeProjection(connection),

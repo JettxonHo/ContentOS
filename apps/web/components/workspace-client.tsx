@@ -20,6 +20,7 @@ import { SourceIntakePanel } from './source-intake-panel';
 import { SourceReviewPanel } from './source-review-panel';
 import { ResearchReviewPanel } from './research-review-panel';
 import { OpinionBlogPanel } from './opinion-blog-panel';
+import { XiaohongshuPanel } from './xiaohongshu-panel';
 import { WorkflowTimelinePanel } from './workflow-timeline-panel';
 
 export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: string; contentPackageId: string }) {
@@ -36,7 +37,9 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
-  const [section, setSection] = useState<'sources' | 'research' | 'opinion-blog' | 'details'>('sources');
+  const [section, setSection] = useState<'sources' | 'research' | 'opinion-blog' | 'xiaohongshu' | 'details'>(
+    'sources',
+  );
   const [sources, setSources] = useState<readonly SourceListItemResource[] | null>(null);
   const [intakes, setIntakes] = useState<readonly UrlCaptureIntakeResource[] | null>(null);
   const [sourceLoading, setSourceLoading] = useState(false);
@@ -255,7 +258,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     );
   }
 
-  function chooseSection(next: 'sources' | 'research' | 'opinion-blog' | 'details'): void {
+  function chooseSection(next: 'sources' | 'research' | 'opinion-blog' | 'xiaohongshu' | 'details'): void {
     if ((reviewDirty || reviewBusy) && next !== section) {
       setSourceError('Save or discard the unsaved review draft before changing Workspace sections.');
       return;
@@ -373,7 +376,9 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
                     ? 'research-title'
                     : section === 'opinion-blog'
                       ? 'opinion-blog-title'
-                      : 'metadata-title'
+                      : section === 'xiaohongshu'
+                        ? 'xiaohongshu-title'
+                        : 'metadata-title'
               }
             >
               {section === 'sources' ? (
@@ -437,6 +442,16 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
                 />
               ) : section === 'opinion-blog' ? (
                 <OpinionBlogPanel
+                  api={api}
+                  contentPackageId={contentPackage.id}
+                  configuredMode={contentPackage.contentMode}
+                  active={contentPackage.lifecycle === 'active'}
+                  onDirtyChange={setReviewDirty}
+                  onBusyChange={setReviewBusy}
+                  onUnauthenticated={() => router.replace('/login')}
+                />
+              ) : section === 'xiaohongshu' ? (
+                <XiaohongshuPanel
                   api={api}
                   contentPackageId={contentPackage.id}
                   configuredMode={contentPackage.contentMode}
@@ -593,6 +608,21 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
                 <span>04</span>
                 <div>
                   <strong>Opinion & creation</strong>
+                  <small>{contentPackage.lifecycle === 'archived' ? 'Unavailable while archived' : 'Available'}</small>
+                </div>
+              </button>
+              <button
+                className={section === 'xiaohongshu' ? 'stage-current stage-button' : 'stage-future stage-button'}
+                type="button"
+                aria-pressed={section === 'xiaohongshu'}
+                onClick={() => chooseSection('xiaohongshu')}
+                disabled={
+                  contentPackage.lifecycle === 'archived' || ((reviewDirty || reviewBusy) && section !== 'xiaohongshu')
+                }
+              >
+                <span>05</span>
+                <div>
+                  <strong>Xiaohongshu</strong>
                   <small>{contentPackage.lifecycle === 'archived' ? 'Unavailable while archived' : 'Available'}</small>
                 </div>
               </button>

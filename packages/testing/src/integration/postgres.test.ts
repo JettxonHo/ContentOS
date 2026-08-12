@@ -138,6 +138,10 @@ describe('postgres smoke', () => {
       'workflow_template_edges',
       'workflow_template_nodes',
       'workflow_templates',
+      'xiaohongshu_approvals',
+      'xiaohongshu_runs',
+      'xiaohongshu_states',
+      'xiaohongshu_versions',
     ]);
   });
 
