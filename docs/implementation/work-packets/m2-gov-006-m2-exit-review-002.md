@@ -1,121 +1,136 @@
 # M2-GOV-006 — M2 Exit Review and Acceptance Record 002
 
-**Status:** Blocked — awaiting M2-QUAL-003
+**Status:** In Review — Explicit Orchestrator planning-publication handoff recorded
 
-**Issue:** [#144](https://github.com/JettxonHo/ContentOS/issues/144)
+**Issue:** [#144](https://github.com/JettxonHo/ContentOS/issues/144) is Open;
+the Orchestrator synchronizes body parity to this final planning head.
 
 ## Identification
 
-- Task ID: `M2-GOV-006`
-- Title: M2 Exit Review and Acceptance Record 002
-- Milestone: M2 — Source and Workflow Foundation
-- Status: Blocked
-- Type: Milestone Exit Review / Immutable Acceptance Record
-- Owner: Orchestrator Reviewer
-- Reviewer: Independent Review Agents
-- Executor Profile: `DOCUMENTATION_EXECUTOR`
-- Logical Role: `WORK_ITEM_PLANNER`
-- Requested Model: `gpt-5.6-sol`
-- Reasoning: High
-- Actual Runtime: `UNVERIFIED_RUNTIME_MODEL`
-- Thread: `/root`
-- Planning Base SHA: `b4c48696e776f2d8e96cb364b6cbf72bf70e6fd9`
-- Relevant DEC: DEC-244–DEC-266, DEC-267–DEC-293
-- Relevant Documents: Milestone Exit Criteria, M2 Acceptance Harness, Release
-  Gates, Test Strategy, Roadmap, and M2 Acceptance Record 001
-- Dependencies: `M2-MAINT-002` and its completion status synchronization are
-  merged; Issue #139 is closed; Issue #144 is open
-- Risk Classification: Formal milestone acceptance and progression gate
+- **Task ID:** `M2-GOV-006`
+- **Title:** M2 Exit Review and Acceptance Record 002
+- **Milestone:** M2 — Source and Workflow Foundation
+- **Type:** Milestone Exit Review / immutable Acceptance Record
+- **Owner:** Orchestrator Reviewer
+- **Definition of Ready reviewers:** `/root/m2_gov_006_dor_correctness` and
+  `/root/m2_gov_006_dor_governance`
+- **Executor Profile:** `DOCUMENTATION_EXECUTOR`
+- **Logical planning role:** `WORK_ITEM_PLANNER`
+- **Requested model:** `gpt-5.6-sol`
+- **Reasoning:** High
+- **Actual runtime:** `UNVERIFIED_RUNTIME_MODEL`
+- **Planning thread:** `/root/m2_gov_006_current_planning`
+- **Planning worktree:** `/private/tmp/contentos-m2-gov-006-current-plan-wt`
+- **Planning branch:** `codex/m2-gov-006-exit-review-current-plan`
+- **Planning base/HEAD:** `60fca9cf4e75b8efaafd072f22a510a5662699ec`
+- **Planning shape:** tracked `M` this Packet + tracked `M` Roadmap only
+- **Planning-publication handoff:** explicitly recorded by Orchestrator `/root`
+  after dual DoR PASS and Ready-sync mechanical PASS
+- **Relevant DEC:** DEC-244–DEC-266, DEC-267–DEC-293
+- **Risk classification:** formal milestone acceptance and progression gate
 
 ## Goal
 
-Independently re-run the complete M2 exit evidence on one exact latest `main`
-commit after the `nanoid` remediation, then publish immutable M2 Acceptance
-Record 002 with a strict `Passed` or `Blocked` decision. A Passed decision may
-complete M2; it does not start or plan M3.
+After this planning change is independently reviewed and merged, create a
+fresh worktree from the then-latest `origin/main`, freeze that one exact commit,
+execute the complete M2 exit evidence locally on that commit, and publish a new
+immutable M2 Acceptance Record 002 with exactly one decision: `Passed` or
+`Blocked`.
 
-## Context
+A Passed decision may complete M2. It must leave M3 Not Started. A Blocked
+decision must leave M2 In Progress and M3 Not Started. This Work Item never
+creates a Conditional Pass.
 
-[M2 Acceptance Record 001](../m2-acceptance-record-001.md) is immutable
-historical evidence. It fixed reviewed commit
-`c64fe74ab27513b07a2eb95e86c8f55b90245923` and correctly recorded `Blocked`
-because both official-registry audits contained the High
-`nanoid@3.3.16` advisory. `M2-MAINT-002` remediated that exact blocker through
-PR #142, squash merge `5b9640707217aba3d7f59c14f2343e6fcc7f102b`,
-and the completion truth was synchronized through PR #143, squash merge
-`b4c48696e776f2d8e96cb364b6cbf72bf70e6fd9`. Issue #139 is closed.
+## Current truth and historical disposition
 
-M2 remains In Progress until a new numbered Exit Review proves every applicable
-criterion again on one post-remediation commit. Record 001 must not be edited,
-reclassified, or reused as the new decision.
+[M2 Acceptance Record 001](../m2-acceptance-record-001.md) remains immutable
+historical Blocked evidence on
+`c64fe74ab27513b07a2eb95e86c8f55b90245923`. Its recorded `nanoid` advisory
+was remediated by M2-MAINT-002 through PR #142; that does not retroactively
+change Record 001.
 
-The first Record 002 publication attempt was closed without merge after its
-final-head Integration job exposed the M2-QUAL-003 observation race. M2-QUAL-004
-is completed through PR #151 and provides safe concurrent failure-file
-attribution. M2-QUAL-003 was replayed on that baseline and its first required
-concurrent run stopped at `fetcher-gateway-api.test.ts`, without a unique case
-or root cause. M2-QUAL-005 completed through PR #155 with safe bounded case
-attribution; its three local concurrent attempts recorded only `not reproduced`.
-M2-QUAL-003 must now complete final revalidation on that merged baseline before
-this Exit Review can restart from a new exact `main` commit.
+Earlier M2-GOV-006 execution/publication attempts and the long QUAL003–QUAL043
+diagnostic chain are historical evidence. They do not authorize inheriting a
+test, audit, migration, cleanup, or CI result into this review. The current
+effective chain is:
 
-A maintenance verification run previously exposed and then cleaned one
-task-owned orphan API process. Four subsequent isolated harness lifecycles—one
-ordinary integration run, two concurrent integration children, and one browser
-run—left zero new API processes and did not reproduce a harness defect. This
-Work Item therefore does not invent a defect or change the harness. It requires
-a before/after process and runtime-resource delta around the complete review.
-Any current-review-owned residue is a Blocking Defect.
+- PR #263 published the complete Worker observation repair; its first eligible
+  CI run `31562708126` passed all three required jobs. PR #264 reconciled that
+  publication through run `31564293179` and squash
+  `33a4b49ed2f8a8176d9e66764a4ee61c79b46e61`.
+- PR #268 published the Concurrent final-success record; run `31571915677`
+  passed all three required jobs, and PR #270 reconciled that result through
+  run `31572829710`.
+- M2-GOV-007 completed through PR #272, first eligible run `31573486677`, and
+  squash merge `60fca9cf4e75b8efaafd072f22a510a5662699ec`.
+- Issues #267, #269, and #271 are Closed/Completed. Issues #175 and #184 are
+  Closed/Not Planned with their objectives explicitly not completed. Their
+  historical Blocked evidence is preserved; later effective success removed
+  the diagnostic need without retroactive completion.
+- Issue #144 remains Open as the sole M2 exit-review authority. M2 remains In
+  Progress and M3 remains Not Started.
+- Current planning base `60fca9cf4e75b8efaafd072f22a510a5662699ec`
+  also has exact-SHA push run `31573745743`, with Docker-independent quality,
+  Integration smoke, and M1/M2 browser smoke all successful. This is planning
+  context only; the execution review must verify the later frozen reviewed
+  commit's own existing three-job push CI.
+
+This Packet replaces every earlier M2-GOV-006 readiness/execution plan. It does
+not erase or reclassify any historical attempt. No Acceptance Record 002 has
+been merged.
 
 ## Authority and decision rules
 
+Authority follows:
+
+```text
+Later Accepted DEC
+→ Current-truth Specification
+→ AGENTS.md
+→ Roadmap
+→ Issue #144
+→ this Work Packet
+→ Agent judgment
+```
+
 The [Milestone Exit Criteria](../milestone-exit-criteria.md),
-[M2 Acceptance Harness](../../quality/m2-acceptance-harness.md), and Accepted
-DEC govern this review. There is no Conditional Pass.
+[M2 Acceptance Harness](../../quality/m2-acceptance-harness.md),
+[Test Strategy](../../quality/test-strategy.md), and
+[Release Gates](../../quality/release-gates.md) govern the decision.
 
-`Passed` requires all applicable Common and M2 Exit Criteria, every required
-local command, both official-registry audits with zero Critical or High
-advisories, exact-reviewed-SHA GitHub CI, synchronized documentation, complete
-owned cleanup, and no Blocking Defect.
+`Passed` requires every applicable Common and M2 Exit Criterion, every local
+gate in this Packet, both official-registry audits with zero Critical or High
+advisories, zero owned residue, the reviewed SHA's existing three-job push CI,
+publication integrity, two independent reviews, and no Blocking Defect.
 
-Any of the following requires `Blocked`:
-
-- a required command fails or cannot be safely executed;
-- required M2 evidence is absent, stale, or inconsistent;
-- a Critical or High security advisory remains;
-- owner crossover, data loss, Version overwrite, Approval bypass, Duplicate
-  Promotion, Secret leakage, or a required security-boundary failure occurs;
-- a required migration, documentation, cleanup, or exact-SHA CI result is
-  missing;
-- a process, container, temporary directory, task-owned package store, or
-  generated artifact created by this review remains after its owner command;
-- the record would need to weaken or rename a Blocking criterion to pass.
-
-Warnings and Known Limitations cannot rename a Blocking Defect. A Blocked
-record is retained immutably; remediation uses a separate Work Item and a later
-numbered Acceptance Record.
+Any red, missing, unsafe, stale, inherited, or contradictory required result
+forces `Blocked`. The first such result freezes the reviewed-build execution:
+no same-head rerun, replacement command, repair, new execution head, or
+criterion weakening is permitted. The Orchestrator may perform only exact
+task-owned hygiene cleanup, read-only evidence capture, and the strict Blocked
+six-file publication. Every not-reached gate is recorded as `Not Run — stopped
+at first red`; it is never reported as Passed.
 
 ## Preconditions
 
 - M0 and M1 have Passed immutable Acceptance Records.
-- M2 Source, Workflow, Fetcher, Workspace, and acceptance-harness Work Items are
-  Completed on `main`.
-- `M2-QUAL-002`, `M2-MAINT-001`, and `M2-DOC-001` are Completed.
-- `M2-GOV-005` is Completed — Exit Review Blocked and Record 001 is immutable.
-- `M2-MAINT-002` is Completed through PR #142; Issue #139 is closed; its
-  completion truth is synchronized through PR #143.
-- Issue #144 is the open tracking Issue for this new numbered Exit Review.
-- No Blocking Design Question remains.
-
-The execution branch must be created from the latest `origin/main` after this
-Ready Work Packet is merged. That exact execution base, not this planning base,
-is the `Reviewed Commit` in Acceptance Record 002.
+- M2 Source, Workflow, Fetcher, Workspace, and acceptance-harness delivery is
+  merged on `main`.
+- Record 001 is immutable and remains unchanged.
+- M2-GOV-007 is completed; #175/#184 are Not Planned without completion; #271
+  is Completed; #144 is Open.
+- The planning publication must merge before execution begins.
+- Execution must start in a new worktree and branch from the then-latest exact
+  `origin/main`; the planning worktree is never reused as the execution tree.
+- No Blocking Design Question may remain after independent Definition of Ready
+  review.
 
 ## Relevant decisions and documents
 
-- DEC-244–DEC-266 — test, evidence, recovery, and release gates.
+- DEC-244–DEC-266 — deterministic tests, evidence, recovery, CI, and release
+  gates.
 - DEC-267–DEC-286 — MVP scope, milestone order, and completion boundary.
-- DEC-287, DEC-288, DEC-291–DEC-293 — bounded Work Items, focused review,
+- DEC-287, DEC-288, DEC-291–DEC-293 — bounded Work Items, focused PRs,
   Definition of Ready/Done, and formal completion governance.
 - [Canonical Decision Register](../../decisions/decisions.md)
 - [MVP Scope](../../product/mvp-scope.md)
@@ -130,358 +145,583 @@ is the `Reviewed Commit` in Acceptance Record 002.
 - [Source Fetcher Security](../../security/source-fetcher.md)
 - [Workflow Overview](../../architecture/workflow-overview.md)
 - [Source Foundation](../../architecture/source-foundation.md)
+- [Agent Collaboration Workflow](../agent-collaboration-workflow.md)
+- [Work Item Template](../work-item-template.md)
 
 Later Accepted DEC govern any actual conflict.
 
 ## In scope
 
-1. Freeze one exact latest `origin/main` commit as the reviewed M2 build.
-2. Capture an entry baseline for tracked/untracked files and currently running
-   ContentOS application processes, owned smoke/browser Compose projects, and
-   task-owned temporary resources without changing pre-existing state.
-3. Run the complete deterministic, integration, concurrent, browser, migration,
-   documentation, security-audit, and repository evidence set.
-4. Verify the exact reviewed SHA has all required GitHub CI jobs green.
-5. Reconcile M2 Current-truth, Roadmap, merged Work Items, Issues, PRs, CI, and
-   test evidence against the exit matrix.
-6. Publish `docs/implementation/m2-acceptance-record-002.md` with an immutable
-   `Passed` or `Blocked` decision and reproducible evidence.
-7. Synchronize this Work Packet, `AGENTS.md`, both README files, and the Roadmap
-   to the final decision without starting M3.
+1. Merge this independently reviewed planning exact-two change before exit
+   execution.
+2. Freeze one exact fresh latest `origin/main` commit as the reviewed build.
+3. Execute every required M2 local gate in this Work Item; do not inherit any
+   prior local result.
+4. Verify the reviewed SHA's own pre-existing push CI has the exact three
+   required successful jobs without triggering a rerun.
+5. Publish immutable Record 002 and synchronize the five other publication
+   documents to either Passed or Blocked.
+6. After the six-file publication merges, publish one fresh tracked exact-two
+   Packet/Roadmap reconciliation without modifying Record 002.
 
 ## Out of scope
 
-- editing or replacing `docs/implementation/m2-acceptance-record-001.md`;
-- modifying product, test, dependency, lockfile, config, Schema, migration,
-  Compose, CI, API, or runtime behavior;
-- fixing a discovered defect inside the Exit Review publication diff;
-- changing an Accepted DEC, security boundary, release gate, or acceptance
-  criterion;
-- introducing a new hash, defensive mechanism, package, service, or technology;
-- terminating or cleaning a process, container, volume, directory, or package
-  store that existed in the entry baseline;
-- planning or implementing Research, Agent, Render, Export, deployment, or M3.
+- editing, replacing, or reclassifying Record 001;
+- product, test, fixture, runner, dependency, lockfile, config, Schema,
+  migration, Compose, CI, API, or runtime changes;
+- repairing a discovered failure inside the exit review;
+- inheriting historical local evidence or using a different SHA's CI;
+- changing an Accepted DEC, security boundary, release gate, or criterion;
+- creating a hash mechanism, suppression, exception, retry, or alternate
+  registry;
+- cleaning or terminating any process, container, volume, directory, store,
+  or other state that existed in the entry safe-count baseline;
+- planning or implementing Research, Agent, Render, Export, deployment, M3, or
+  any later milestone.
 
-If a Blocking Defect is found, stop product changes, record `Blocked`, and open
-a separate bounded remediation Work Item.
+## The 2 / 6 / 2 lifecycle
 
-## Publication file boundary
+The physical lifecycle is fixed and phase-specific:
 
-- `docs/implementation/m2-acceptance-record-002.md`
-- this Work Packet
-- `AGENTS.md`
-- `README.md`
-- `README.zh-CN.md`
-- `docs/implementation/roadmap.md`
+| Phase                    | Exact tracked shape                                                                | Meaning                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Planning                 | this Packet + Roadmap                                                              | Current executable plan only; no exit evidence and no Ready self-declaration. |
+| Exit publication         | Record 002 + this Packet + Roadmap + `AGENTS.md` + `README.md` + `README.zh-CN.md` | Strict Passed or Blocked publication. Record 001 remains zero-diff.           |
+| Postmerge reconciliation | tracked this Packet + tracked Roadmap                                              | Record publication PR/merge/Issue facts only; Record 002 is immutable.        |
 
-No other tracked file may change. Evidence commands may create only their
-existing isolated runtime resources and must complete owned cleanup. Before
-tracked-file-based documentation checks, the Orchestrator may stage exactly
-these six publication files. Staging does not authorize publication or merge.
-
-### Allowed modules
-
-- Documentation and milestone-governance records only.
-
-### Allowed files
-
-- the six publication files listed above and no others.
-
-### Prohibited modules
-
-- all `apps/**`, `packages/**`, migrations, Schema, configuration, Compose, CI,
-  dependency manifests, lockfile, Accepted DEC, Sessions, and M3 artifacts;
-- M2 Acceptance Record 001.
-
-### Generated files policy
-
-- the only committable new file is M2 Acceptance Record 002;
-- test/build/database/audit output is evidence only and is never committed;
-- isolated harness resources must be owned by their command and removed by its
-  existing cleanup path;
-- a temporary audit store must be uniquely created outside the repository,
-  validated as task-owned, deleted after the final audit, and asserted absent;
-- no repository-local package store, generated migration, log, screenshot,
-  trace, or local evidence file may enter the publication diff.
+No phase may borrow another phase's file allowance. Code/runtime paths remain
+zero-diff in all three phases.
 
 ## Acceptance Record contract
 
-The record header must contain:
+Record 002 must contain:
 
-- Status;
-- Milestone;
-- Reviewed Commit;
-- Work Item and Issue;
-- execution date and timestamp with timezone;
-- logical reviewer role, requested model, reasoning, thread, and actual runtime
-  status;
-- final Decision.
+1. Milestone ID, status, exact Reviewed Commit, Work Item/Issue, date and
+   timezone timestamp, logical reviewer role, requested model, reasoning,
+   thread, actual runtime status, and strict Decision.
+2. Prerequisite, remediation, historical-attempt, and current effective-chain
+   traceability.
+3. Required deliverables and Common Exit Criteria matrices.
+4. The complete M2 evidence matrix.
+5. An explicit `Demo Result`, using the Browser/M2 acceptance journey and its
+   deterministic backend evidence as the M2 demonstration result.
+6. Every command's literal argv identity, fixed cwd, structured exit status,
+   count/result summary, and explicit not-run reason after first red.
+7. Two complete `db:generate` no-diff ledgers.
+8. Full and production official-registry audit results.
+9. Exact reviewed-SHA existing three-job push CI evidence.
+10. Entry/final safe-count and command-owned cleanup evidence.
+11. Security, repository, documentation, and Secret results.
+12. Known Limitations, Blocking Defects, final Decision, and next action.
 
-The body must contain:
-
-1. Review identity and immutable scope;
-2. prerequisite and remediation traceability;
-3. required deliverables;
-4. Common Exit Criteria matrix;
-5. M2 Exit Criteria evidence matrix;
-6. commands, test counts, and results;
-7. migration and two no-diff generation passes;
-8. security and dependency-audit results;
-9. recovery, Workflow, SSE, Queue, and approved-input evidence;
-10. browser/demo evidence;
-11. exact-reviewed-SHA CI evidence;
-12. cleanup delta and repository-integrity evidence;
-13. Known Limitations;
-14. Blocking Defects;
-15. final Decision and required next action.
-
-All links, commands, counts, SHAs, PR facts, CI facts, and test names must be
-checked against the reviewed commit. A model statement without reproducible
-evidence is not acceptance evidence.
+Do not publish credentials, private input, object keys, headers, SQL, stack
+traces, environment values, absolute local paths, PIDs, raw process commands,
+temporary URLs, or raw child output.
 
 ## M2 evidence matrix
 
-The record must explicitly evaluate:
+Record 002 evaluates each criterion independently:
 
-| Criterion                              | Required interpretation                                                                                                                                           |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SSRF denial                            | Controlled public transport rejects restricted targets with no Source evidence or ordinary bypass.                                                                |
-| Upload Quarantine                      | Only valid Pasted Text, `.md`, and `.txt` formal paths create Source graphs; denials have zero Object Store side effect.                                          |
-| Raw Snapshot / Safe Display separation | Raw bytes are never rendered; deterministic non-executable plain text is the review representation. Do not claim a separate Safe Display entity or HTML renderer. |
-| Approved Source Version                | Human Approval binds an exact immutable current Version.                                                                                                          |
-| URL failure fallback                   | Failed URL capture remains visible and Paste/Upload fallback creates an independent formal Source.                                                                |
-| Duplicate Queue protection             | Duplicate, stale, or terminal delivery creates no duplicate Result, Source, Version, Approval, or promotion.                                                      |
-| Outbox recovery                        | PostgreSQL Outbox recovers dispatch without making Redis truth.                                                                                                   |
-| Redis-loss reconciliation              | Missing Jobs are repaired from PostgreSQL authority.                                                                                                              |
-| Lease recovery                         | Expired work advances one fenced generation without accepting a stale heartbeat or result.                                                                        |
-| SSE fallback                           | SSE is notification-only; disconnect leads to bounded REST polling and authoritative refresh.                                                                     |
-| Workflow Timeline                      | Owner-scoped ordered safe Events are read through PostgreSQL-backed REST projection.                                                                              |
-| Research Approved-only input           | The internal projection returns only each Source's exact current Approved Version and does not implement Research.                                                |
+| Criterion                    | Required interpretation                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| SSRF denial                  | Restricted targets fail closed with no Source evidence or ordinary bypass.                                          |
+| Upload Quarantine            | Only Pasted Text, `.md`, and `.txt` formal inputs create Source graphs; denial has zero Object Storage side effect. |
+| Raw Snapshot / Safe Display  | Raw bytes are never rendered; review uses deterministic non-executable plain text.                                  |
+| Approved Source Version      | Human Approval binds the exact immutable current Version.                                                           |
+| URL failure fallback         | URL failure remains visible; Paste/Upload fallback creates an independent formal Source.                            |
+| Duplicate Queue protection   | Duplicate, stale, or terminal delivery creates no duplicate Result, Source, Version, Approval, or promotion.        |
+| Outbox recovery              | PostgreSQL Outbox recovery does not make Redis authoritative.                                                       |
+| Redis-loss reconciliation    | Missing Jobs are repaired from PostgreSQL truth.                                                                    |
+| Lease recovery               | Expired work advances one fenced generation and rejects stale heartbeat/result.                                     |
+| SSE fallback                 | SSE is notification-only; disconnect recovers through bounded REST polling.                                         |
+| Workflow Timeline            | Owner-scoped ordered safe Events come from PostgreSQL-backed REST projection.                                       |
+| Approved-only Research input | Internal projection returns only exact current Approved Versions and does not implement Research.                   |
 
-## Required evidence sequence
+## Governed execution contract
 
-### 1. Freeze and inspect
+Every command is one independent literal process invocation with the fixed
+execution worktree as cwd and a returned structured terminal `exit_code`.
+There are no combined shells, pipelines, loops, wrappers, marker files,
+inferred statuses, or status-variable interpolation. If a tool yields a live
+session, only empty-input polling of that same session is allowed, at intervals
+of at most 60 seconds, until the one original invocation returns a terminal
+status. No replacement invocation is allowed.
 
-- Fetch `origin` and require the planning PR to be merged.
-- Create the execution branch from exact latest `origin/main`.
-- Record branch, SHA, Node `v24.18.0`, pnpm `11.17.0`, and clean Git status.
-- Verify Record 001 has no diff throughout this Work Item.
-- Record only counts/identities needed to compare pre-existing ContentOS
-  application processes, smoke/browser projects, task-owned temporary
-  directories, and repository-local `.pnpm-store` state. Do not publish local
-  paths, environment values, or process commands.
+The Orchestrator resolves the fresh branch, absolute cwd, Reviewed Commit,
+reviewed-CI run ID, and one `mktemp` audit-store path before their dependent
+commands. It writes the returned values into an immutable command ledger.
+Angle-bracket tokens below are construction-time ledger fields only; no command
+containing an angle bracket may execute. Before execution, every dependent
+command is rendered once with the resolved value as a literal argv token. Shell
+variables, command substitution, pipes, loops, heredocs, compound commands,
+temporary status files, and wrappers are prohibited.
 
-### 2. Deterministic and repository gates
+Unless a command explicitly names the repository entry checkout as its cwd,
+every execution-gate command uses the resolved absolute `<EXECUTION_CWD>` as
+its fixed cwd. Every listed expected status is the structured process
+`exit_code`; expected output is an additional predicate and never substitutes
+for terminal status. The first unexpected status/output freezes the sequence.
 
-Run:
+### Gate 0 — planning merge and fresh execution identity
+
+Only after the planning PR merges, use repository entry cwd
+`/Users/ketchup/Projects/ContentOS` for these independent commands:
 
 ```text
-corepack pnpm install --frozen-lockfile
-corepack pnpm workspace:check
-corepack pnpm check
-corepack pnpm check:docs
-corepack pnpm repository:check
-corepack pnpm check:secrets
+git fetch --prune origin
+git rev-parse origin/main
+git show-ref --verify --quiet refs/heads/codex/m2-gov-006-exit-review-002-current
+git worktree add -b codex/m2-gov-006-exit-review-002-current /private/tmp/contentos-m2-gov-006-exit-review-current-wt <REVIEWED_SHA>
+```
+
+Expected statuses are respectively `0`, `0`, `1`, and `0`. The second command
+must emit exactly one lowercase 40-hex SHA; ledger that literal as
+`<REVIEWED_SHA>`. Status `1` from `show-ref` is the one planned nonzero success
+predicate and proves the fixed branch is absent before creation; any other
+status is red. Before the fourth command, substitute the ledgered SHA as its
+literal final argv token. The worktree path and branch are fixed above; if
+either already exists or worktree creation fails, stop red rather than delete,
+reuse, or rename anything.
+
+Then set `<EXECUTION_CWD>` in the ledger to the exact literal
+`/private/tmp/contentos-m2-gov-006-exit-review-current-wt` and run from that cwd:
+
+```text
+git branch --show-current
+git rev-parse HEAD
+git rev-parse origin/main
+git status --short --untracked-files=all
 git diff --check
+git diff --exit-code <REVIEWED_SHA> -- docs/implementation/m2-acceptance-record-001.md
 ```
 
-If a restricted sandbox produces the known process-inspection `EPERM`, preserve
-that environment result and rerun the same command with normal process
-visibility. A product or test failure must not be reclassified as a sandbox
-failure.
+All six statuses must be `0`. Outputs must be, in order: exact branch
+`codex/m2-gov-006-exit-review-002-current`; exact ledgered SHA; exact ledgered SHA;
+empty; empty; empty. Substitute the SHA literally in the last command. These
+are pure-Git identity/cleanliness/Record001-zero gates; no non-Git command runs
+before all pass.
 
-### 3. Runtime gates
+The planning base `60fca9c…` is never automatically the Reviewed Commit.
 
-Run:
+### Gate 1 — pinned runtime, injection, install, and workspace
+
+From fixed `<EXECUTION_CWD>`, render and run these independent literal argv
+commands once:
 
 ```text
-corepack pnpm test:integration
-corepack pnpm test:integration:concurrent
-corepack pnpm test:browser
+fnm exec --using=24.18.0 node --version
+fnm exec --using=24.18.0 corepack pnpm --version
+fnm exec --using=24.18.0 node -e 'const names=["CONTENTOS_CONCURRENT_INJECT_FIRST_PARTIAL_SETUP_FAILURE","CONTENTOS_CONCURRENT_INJECT_FIRST_TEARDOWN_FAILURE","CONTENTOS_CONCURRENT_INJECT_FIRST_TERMINATION_AFTER_READY","CONTENTOS_SMOKE_INJECT_FAILURE","CONTENTOS_SMOKE_INJECT_API_IDENTITY_CAPTURE_FAILURE","CONTENTOS_SMOKE_INJECT_COMPOSE_DOWN_FAILURE","CONTENTOS_SMOKE_INJECT_PROCESS_STOP_FAILURE","CONTENTOS_SMOKE_INJECT_S3_CLEANUP_FAILURE","CONTENTOS_SMOKE_INJECT_SETUP_FAILURE_AFTER_COMPOSE","CONTENTOS_SMOKE_INJECT_TEARDOWN_FAILURE","CONTENTOS_BROWSER_INJECT_FAILURE"];const set=names.filter((name)=>Object.hasOwn(process.env,name));process.stdout.write(set.length?`injection-env-set=${set.join(",")}\n`:"injection-env=unset\n");process.exitCode=set.length?1:0'
+fnm exec --using=24.18.0 corepack pnpm install --frozen-lockfile
+fnm exec --using=24.18.0 corepack pnpm workspace:check
 ```
 
-After each command, compare its owned process, Compose, temporary-directory, and
-repository-store delta with the entry baseline. A current-review-owned residue
-blocks Passed even if it is later safely cleaned for local hygiene. Historical
-entry resources are neither evidence of this review nor authorized cleanup
-targets.
+All statuses must be `0`. Expected version outputs are Node `v24.18.0` and pnpm
+`11.17.0`; the injection command must emit exactly `injection-env=unset`; and
+workspace resolution must report exactly five applications and six packages.
+The fixed injection check inspects exactly these names:
 
-### 4. Migration no-diff gates
+- `CONTENTOS_CONCURRENT_INJECT_FIRST_PARTIAL_SETUP_FAILURE`
+- `CONTENTOS_CONCURRENT_INJECT_FIRST_TEARDOWN_FAILURE`
+- `CONTENTOS_CONCURRENT_INJECT_FIRST_TERMINATION_AFTER_READY`
+- `CONTENTOS_SMOKE_INJECT_FAILURE`
+- `CONTENTOS_SMOKE_INJECT_API_IDENTITY_CAPTURE_FAILURE`
+- `CONTENTOS_SMOKE_INJECT_COMPOSE_DOWN_FAILURE`
+- `CONTENTOS_SMOKE_INJECT_PROCESS_STOP_FAILURE`
+- `CONTENTOS_SMOKE_INJECT_S3_CLEANUP_FAILURE`
+- `CONTENTOS_SMOKE_INJECT_SETUP_FAILURE_AFTER_COMPOSE`
+- `CONTENTOS_SMOKE_INJECT_TEARDOWN_FAILURE`
+- `CONTENTOS_BROWSER_INJECT_FAILURE`
 
-Run `corepack pnpm db:generate` twice. Immediately after each pass, execute a
-non-empty-status failure assertion and focused content-diff checks equivalent
-to:
+Any present name is red. The check prints names only, never values.
+
+### Gate 2 — safe entry baseline
+
+Run one predeclared Node 24 observer once after install and before root/runtime
+gates. It may inspect only:
+
+- the aggregate count of compiled ContentOS API/Worker/Fetcher/Renderer
+  entry-point processes;
+- the aggregate count of `contentos-smoke-*` Compose projects;
+- the aggregate count of `contentos-smoke-*` OS temporary roots; and
+- whether a repository-local `.pnpm-store` exists.
+
+Its fixed literal form is:
 
 ```text
-test -z "$(git status --porcelain=v1 --untracked-files=all)"
+fnm exec --using=24.18.0 node -e 'const {execFileSync}=require("node:child_process");const {existsSync,readdirSync}=require("node:fs");const {tmpdir}=require("node:os");const {join}=require("node:path");const ps=execFileSync("ps",["-axo","command="],{encoding:"utf8"});const compiled=ps.split("\n").filter((line)=>/\/apps\/(api|worker|fetcher|renderer)\/dist\/main\.js(?:\s|$)/.test(line)).length;const compose=JSON.parse(execFileSync("docker",["compose","ls","--format","json","--all"],{encoding:"utf8"})).filter((row)=>typeof row.Name==="string"&&row.Name.startsWith("contentos-smoke-")).length;const temp=readdirSync(tmpdir()).filter((name)=>name.startsWith("contentos-smoke-")).length;const store=existsSync(join(process.cwd(),".pnpm-store"))?1:0;process.stdout.write(`safe-count compiled=${compiled} compose=${compose} temp=${temp} repo-store=${store}\n`)'
+```
+
+Its status must be `0`, and it emits exactly the four integer/boolean fields
+shown without identity, PID, command, environment value, path, token, URL, or
+raw runtime output. `compiled` deliberately does not claim to observe the
+Next/Web start process. Web ownership remains covered by the Integration and
+Browser Harness claim/control records: each runtime gate must explicitly prove
+its claim-owned Web process stopped and its Web control/residue check passed.
+Missing, incomplete, or failed claim-owned Web cleanup evidence is red even if
+all four aggregate safe counts match.
+
+This is an entry safe-count baseline only and authorizes no cleanup. After each
+runtime command and at final closeout, run the same literal observer once and
+require status `0` plus no positive aggregate delta, while the command's own
+claim-bound API/Web/Compose/temp cleanup evidence must also report zero owned
+residue. A count decrease does not become review evidence and does not
+authorize attribution to this review.
+
+### Gate 3 — root deterministic gate
+
+Run exactly once:
+
+```text
+fnm exec --using=24.18.0 corepack pnpm check
+```
+
+Record format/lint/typecheck/unit/build counts actually returned. A red or
+missing terminal status freezes execution; do not rerun under another
+permission mode, even if the historical chain once used such a distinction.
+
+### Gate 4 — local runtime gates
+
+Run these exact commands once each, in order, only while all prior gates are
+green:
+
+```text
+fnm exec --using=24.18.0 corepack pnpm test:integration
+fnm exec --using=24.18.0 corepack pnpm test:integration:concurrent
+fnm exec --using=24.18.0 corepack pnpm test:browser
+```
+
+Each command must return its own explicit terminal success and existing
+claim-bound cleanup success. Immediately after each, run the safe-count
+observer once. No result from any prior Work Item, local attempt, CI job, or
+other SHA satisfies these gates.
+
+### Gate 5 — two complete migration no-diff passes
+
+Run `fnm exec --using=24.18.0 corepack pnpm db:generate` exactly twice. After
+each pass, independently run all of the following before starting the next
+pass or another gate:
+
+```text
+git status --short --untracked-files=all
+git diff --exit-code
 git diff --exit-code -- packages/database/src/schema.ts drizzle.config.ts migrations
-git diff --exit-code "$reviewed_sha" -- docs/implementation/m2-acceptance-record-001.md
+git diff --exit-code <REVIEWED_SHA> -- docs/implementation/m2-acceptance-record-001.md
 ```
 
-Each assertion must return zero after each generation pass. `git diff --check`
-alone is not a Schema or generated-file no-diff gate. Run the committed
-migration/integration evidence as part of the required integration suite; do
-not create or edit a migration.
+Each complete set must be green and the status output must be empty. This
+detects tracked and untracked generated output; `git diff --check` is not a
+substitute. The required Integration gate supplies committed migration/runtime
+evidence; this Work Item creates no migration.
 
-### 5. Dependency security gates
+### Gate 6 — two official-registry dependency audits
 
-Create one unique task-owned external audit store with `mktemp -d`, validate
-that it is outside the repository and absent from the entry inventory, and use
-that exact path for both commands:
+From fixed `<EXECUTION_CWD>`, run this independent literal command exactly once:
 
 ```text
-corepack pnpm --store-dir "$audit_store" --registry=https://registry.npmjs.org audit --audit-level high
-corepack pnpm --store-dir "$audit_store" --prod --registry=https://registry.npmjs.org audit --audit-level high
+mktemp -d /private/tmp/contentos-m2-gov-006-audit.XXXXXXXX
 ```
 
-After the second command, delete only that validated task-owned store and
-assert the exact path is absent. Do not create an audit ignore, suppression,
-exception, or repository-local store.
+Require status `0` and exactly one absolute path. Ledger the exact output as
+`<AUDIT_STORE>`. The successful `mktemp` call establishes that the path was
+newly created in this review. Before any audit, substitute that exact literal
+path and the fixed execution cwd into this validation command:
 
-Both audits must contain zero Critical or High advisories for Passed. Record
-the exact commands, exit codes, and non-sensitive summary.
+```text
+fnm exec --using=24.18.0 node -e 'const {lstatSync,realpathSync}=require("node:fs");const {relative,sep}=require("node:path");const p=realpathSync("<AUDIT_STORE>");const repo=realpathSync("<EXECUTION_CWD>");const s=lstatSync(p);const outside=relative(repo,p)===".."||relative(repo,p).startsWith(`..${sep}`);if(!p.startsWith("/private/tmp/contentos-m2-gov-006-audit.")||!outside||!s.isDirectory()||s.uid!==process.getuid())process.exit(1);process.stdout.write("audit-store=validated\n")'
+```
 
-### 6. Exact-SHA GitHub evidence
+Require status `0` and exact output `audit-store=validated`. A validation red
+stops audit entry but still permits the exact-path ownership revalidation and
+hygiene commands below only when ownership can be proven. After validation,
+render these two audit invocations with the same ledgered path as a literal
+`--store-dir` argv token and run them independently, in order:
 
-- Verify all three required workflow jobs are green for the exact reviewed
-  `main` SHA and record those facts in Record 002.
-- Reconcile relevant merged PR, Issue, and Work Packet facts.
-- Do not treat a different SHA or earlier green run as evidence.
+```text
+fnm exec --using=24.18.0 corepack pnpm --store-dir <AUDIT_STORE> --registry=https://registry.npmjs.org audit --audit-level high
+fnm exec --using=24.18.0 corepack pnpm --store-dir <AUDIT_STORE> --prod --registry=https://registry.npmjs.org audit --audit-level high
+```
 
-The later publication PR CI is an external merge gate. Its result is verified
-on the final publication head and recorded in the PR/review completion evidence;
-it is not written back into Record 002, because doing so would create a new head
-and make the embedded CI result self-referential.
+Each expected status is `0`, and each output must report zero Critical and zero
+High advisories. If the first audit is red, the second is `Not Run — stopped at
+first red`. After the second audit—or immediately after the first red—render
+and run these independent exact-path hygiene commands:
 
-### 7. Publication integrity
+```text
+fnm exec --using=24.18.0 node -e 'const {lstatSync,realpathSync,rmSync}=require("node:fs");const p=realpathSync("<AUDIT_STORE>");const s=lstatSync(p);if(!p.startsWith("/private/tmp/contentos-m2-gov-006-audit.")||!s.isDirectory()||s.uid!==process.getuid())process.exit(1);rmSync(p,{recursive:true})'
+fnm exec --using=24.18.0 node -e 'const {existsSync}=require("node:fs");if(existsSync("<AUDIT_STORE>"))process.exit(1);process.stdout.write("audit-store=absent\n")'
+```
 
-- Create Record 002 and update only the six publication files.
-- Stage exactly those six files so Git-tracked documentation checks include the
-  new record.
-- Check cached name/status, cached diff whitespace, explicit Prettier on all six
-  files, `format:check`, `check:docs`, `repository:check`, `check:secrets`, local
-  link/path/Secret scans, exact scope, untracked files, and final runtime
-  residue.
-- Independently review evidence accuracy and publication scope before commit.
+Require status `0` from both and exact final output `audit-store=absent`. They
+may delete only the validated task-created path. No global cleanup, alternate
+store, retry, second audit after first red, registry substitution, ignore, or
+suppression is allowed.
+
+### Gate 7 — repository, documentation, and Secret evidence
+
+While the execution worktree is still pre-publication clean, run each once:
+
+```text
+fnm exec --using=24.18.0 corepack pnpm check:docs
+fnm exec --using=24.18.0 corepack pnpm repository:check
+fnm exec --using=24.18.0 corepack pnpm check:secrets
+git diff --check
+git status --short --untracked-files=all
+git diff --exit-code <REVIEWED_SHA> -- docs/implementation/m2-acceptance-record-001.md
+```
+
+Require all RC0, empty status, and Record 001 zero-diff.
+
+### Gate 8 — exact Reviewed Commit existing push CI
+
+From fixed `<EXECUTION_CWD>`, first render this read-only query with the
+ledgered Reviewed Commit as the literal `head_sha` form value:
+
+```text
+gh api --method GET repos/JettxonHo/ContentOS/actions/workflows/ci.yml/runs -f head_sha=<REVIEWED_SHA> -f event=push -f per_page=100 --jq '.workflow_runs|sort_by(.created_at,.id)|.[0]|[.id,.head_sha,.event,.run_attempt,.status,.conclusion]|@tsv'
+```
+
+Require status `0` and one six-field line. The SHA/event/attempt/status/
+conclusion fields must exactly equal `<REVIEWED_SHA>`, `push`, `1`,
+`completed`, and `success`. Ledger the first field as `<REVIEWED_CI_RUN_ID>`;
+a missing/empty line is red. Then substitute both ledgered values literally
+and run these two independent predicates:
+
+```text
+gh api repos/JettxonHo/ContentOS/actions/runs/<REVIEWED_CI_RUN_ID> --jq 'if (.id==<REVIEWED_CI_RUN_ID> and .head_sha=="<REVIEWED_SHA>" and .event=="push" and .run_attempt==1 and .status=="completed" and .conclusion=="success") then "reviewed-ci=verified" else error("reviewed-ci-invalid") end'
+gh api --method GET repos/JettxonHo/ContentOS/actions/runs/<REVIEWED_CI_RUN_ID>/jobs -f per_page=100 --jq 'if ((.jobs|length)==3 and ([.jobs[].name]|sort)==(["Docker-independent quality","Integration smoke (Docker)","M1/M2 browser smoke (Chromium)"]|sort) and all(.jobs[];.status=="completed" and .conclusion=="success")) then "reviewed-ci-jobs=verified" else error("reviewed-ci-jobs-invalid") end'
+```
+
+Both statuses must be `0`, with exact outputs `reviewed-ci=verified` and
+`reviewed-ci-jobs=verified`. This proves the earliest returned push run for the
+exact SHA is attempt 1 and has exactly these successful jobs:
+
+- Docker-independent quality;
+- Integration smoke (Docker);
+- M1/M2 browser smoke (Chromium).
+
+A missing run/job, different SHA, attempt other than 1, extra/missing job,
+cancelled/skipped job, or non-success conclusion is red. Do not dispatch,
+rerun, replace, or borrow another SHA's run.
+
+### Gate 9 — strict six-file publication
+
+Only after Gate 8 is terminal—or immediately after the first earlier red—write
+the strict decision publication using exactly:
+
+- `docs/implementation/m2-acceptance-record-002.md`;
+- this Packet;
+- `docs/implementation/roadmap.md`;
+- `AGENTS.md`;
+- `README.md`;
+- `README.zh-CN.md`.
+
+Record 001 and all code/config/runtime paths remain zero-diff. From fixed
+`<EXECUTION_CWD>`, run the following independent commands in this order; render
+the ledgered Reviewed Commit literally wherever shown:
+
+```text
+fnm exec --using=24.18.0 corepack pnpm exec prettier --write docs/implementation/m2-acceptance-record-002.md docs/implementation/work-packets/m2-gov-006-m2-exit-review-002.md docs/implementation/roadmap.md AGENTS.md README.md README.zh-CN.md
+fnm exec --using=24.18.0 corepack pnpm exec prettier --check docs/implementation/m2-acceptance-record-002.md docs/implementation/work-packets/m2-gov-006-m2-exit-review-002.md docs/implementation/roadmap.md AGENTS.md README.md README.zh-CN.md
+fnm exec --using=24.18.0 corepack pnpm format:check
+git add -- docs/implementation/m2-acceptance-record-002.md docs/implementation/work-packets/m2-gov-006-m2-exit-review-002.md docs/implementation/roadmap.md AGENTS.md README.md README.zh-CN.md
+git diff --cached --name-status
+git diff --cached --check
+fnm exec --using=24.18.0 corepack pnpm check:docs
+fnm exec --using=24.18.0 corepack pnpm repository:check
+fnm exec --using=24.18.0 corepack pnpm check:secrets
+git diff --check
+git status --short --untracked-files=all
+git diff --name-only <REVIEWED_SHA>
+git ls-files --others --exclude-standard
+git diff --exit-code <REVIEWED_SHA> -- docs/implementation/m2-acceptance-record-001.md
+git diff --exit-code <REVIEWED_SHA> -- . ':(exclude)docs/implementation/m2-acceptance-record-002.md' ':(exclude)docs/implementation/work-packets/m2-gov-006-m2-exit-review-002.md' ':(exclude)docs/implementation/roadmap.md' ':(exclude)AGENTS.md' ':(exclude)README.md' ':(exclude)README.zh-CN.md'
+fnm exec --using=24.18.0 node -e 'const {execFileSync}=require("node:child_process");const {existsSync,readdirSync}=require("node:fs");const {tmpdir}=require("node:os");const {join}=require("node:path");const ps=execFileSync("ps",["-axo","command="],{encoding:"utf8"});const compiled=ps.split("\n").filter((line)=>/\/apps\/(api|worker|fetcher|renderer)\/dist\/main\.js(?:\s|$)/.test(line)).length;const compose=JSON.parse(execFileSync("docker",["compose","ls","--format","json","--all"],{encoding:"utf8"})).filter((row)=>typeof row.Name==="string"&&row.Name.startsWith("contentos-smoke-")).length;const temp=readdirSync(tmpdir()).filter((name)=>name.startsWith("contentos-smoke-")).length;const store=existsSync(join(process.cwd(),".pnpm-store"))?1:0;process.stdout.write(`safe-count compiled=${compiled} compose=${compose} temp=${temp} repo-store=${store}\n`)'
+```
+
+Every status must be `0`. Cached and working-tree name/status output must
+contain exactly the six allowed paths (Record 002 is `A`; the other five are
+`M`) and no other entry. `git diff --name-only` must emit exactly those six
+paths; `git ls-files --others --exclude-standard`, both `diff --exit-code`
+commands, cached/general diff checks, and Record001-zero output must be empty.
+The final safe-count output must have no positive entry delta, and the runtime
+ledger must independently contain complete claim-owned Web cleanup/residue
+success. Missing Web cleanup evidence is red.
+
+Two independent reviewers must inspect the real diff and evidence:
+
+1. evidence accuracy and decision correctness;
+2. exact publication scope, security, migration, documentation, and immutable
+   record boundary.
+
+The author does not approve its own record.
+
+## Decision and publication lifecycle
+
+### Passed
+
+- Every local gate ran in this Work Item and is green.
+- Both audits are zero Critical/High.
+- Existing exact-SHA attempt-1 push CI has all three required successful jobs.
+- Entry/final safe counts have no positive delta and every runtime command
+  reports zero owned residue.
+- Record 002 reports no Blocking Defect and `Passed`.
+- The six-file publication may set M2 to Completed; M3 remains Not Started.
+
+### Blocked
+
+- The first red/missing result and every unearned later gate are recorded
+  exactly.
+- No repair, rerun, replacement head, inherited result, waiver, or Conditional
+  Pass occurs.
+- Record 002 reports `Blocked`; M2 remains In Progress and M3 Not Started.
+- After independent validation, any remediation uses a separate bounded Work
+  Item/Issue and a later numbered Acceptance Record.
+
+For either decision, independent review PASS authorizes the Orchestrator to
+commit, push, and open the six-file PR. The PR's own first eligible
+quality/Integration/Browser jobs must all pass before squash merge. This
+publication-head CI is merge evidence, not Reviewed Commit evidence, and is
+not written back into Record 002.
+
+A red or missing planning-publication or six-file-publication local check,
+review, or first eligible CI freezes that candidate and closes its PR unmerged.
+There is no same-head rerun, replacement, or automatic correction. A separately
+numbered bounded recovery Work Item must own any continuation.
+
+The six-file merge makes immutable Record 002 and its strict M2 decision
+effective: Passed makes M2 Completed; Blocked leaves M2 In Progress. In either
+case M3 remains Not Started and Issue #144 remains Open until postmerge
+reconciliation completes.
+
+After the six-file merge, a fresh latest-main branch updates only this tracked
+Packet and the tracked Roadmap with publication PR, run, squash SHA, still-Open
+Issue, and effective decision facts. Its two independent reviews, final
+docs/static/exact-two checks, first eligible quality/Integration/Browser CI,
+and squash merge must all pass. Only after that exact-two merge may the
+Orchestrator close Issue #144 as Completed, meaning the exit-review Work Item
+published and reconciled its strict decision; a Blocked M2 remains In Progress.
+
+A red or missing postmerge exact-two check, review, CI job, or merge result does
+not reverse or edit effective Record 002 and does not reverse its effective M2
+status. It keeps #144 Open and transfers reconciliation only to a separately
+numbered docs-recovery Work Item with no same-head rerun or replacement. Once
+Record 002 is merged, no recovery may edit it.
 
 ## Acceptance criteria
 
-1. Record 002 fixes one exact post-remediation `origin/main` commit and Record
-   001 remains unchanged.
-2. Every applicable Common and M2 Exit Criterion has reproducible evidence and
-   a strict result.
-3. For a Passed decision, root, integration, concurrent, browser, migration,
-   repository, Secret, audit, cleanup, and exact-reviewed-SHA CI gates all pass
-   without skips, suppressions, or weakened assertions.
-4. For a Blocked decision, the failing or missing reviewed-build evidence is
-   preserved accurately, no new publication-diff failure is introduced, M2
-   remains In Progress, and an independently scoped remediation Issue is
-   created after the decision is validated.
-5. For either decision, no current-review-owned process, container, temporary
-   directory, package store, generated migration, or other artifact remains;
-   failure to meet cleanup is itself recorded as a blocker before owned hygiene
-   cleanup is attempted.
-6. Publication scope is exactly six files and all local links and documentation
-   checks pass with Record 002 staged.
-7. Independent reviewers validate evidence accuracy, decision correctness, and
-   exact publication scope.
-8. `Passed` is used only with zero unresolved Blocking Defect. Only Passed may
-   set M2 to Completed; M3 remains Not Started pending separate planning.
-9. `Blocked` retains M2 In Progress, records the exact blocker, and creates a
-   separate remediation Issue without Conditional Pass.
+1. Planning publishes exact two files and is merged before execution.
+2. Execution uses a fresh latest-main worktree and freezes one exact Reviewed
+   Commit; Record 001 stays zero-diff.
+3. All required local evidence is executed in this Work Item with literal argv,
+   fixed cwd, structured terminal status, and first-red stopping.
+4. Passed requires every deterministic, runtime, migration, audit, repository,
+   Secret, cleanup, and exact-SHA CI gate green.
+5. Blocked preserves the first failure without repair or rerun and publishes a
+   strict immutable Blocked Record 002.
+6. Publication is exact six files; postmerge reconciliation is tracked exact
+   two files; code/config/runtime changes are zero.
+7. Two independent reviewers validate each governed publication boundary.
+8. Only Passed may complete M2. M3 remains Not Started in every outcome.
+9. Six-file merge makes the decision effective while #144 remains Open; only a
+   merged tracked exact-two reconciliation allows #144 to close Completed.
 
 ## Security review
 
-This Work Item changes no authentication, authorization, network, Object
-Storage, logging, Secret, Source-safety, or process privilege boundary. Evidence
-must not publish credentials, URLs containing private input, object keys,
-headers, SQL, stack traces, environment values, local absolute paths, or raw
-process commands. The review checks existing accepted boundaries; it does not
-add speculative controls or a new hash mechanism.
+Review-only. This Work Item changes no Authentication, Authorization, network,
+Object Storage, logging, Secret, Source-safety, or privilege boundary. It
+checks existing accepted controls. Evidence is sanitized and aggregate. No new
+hash, credential, provider transmission, suppression, or speculative hardening
+is authorized.
 
 ## Migration and compatibility review
 
-No Schema, migration, API, Queue, Artifact, configuration, or dependency change
-is authorized. Both `db:generate` passes must be no-diff. Any generated or
-compatibility delta blocks Passed and moves remediation to a separate Work
-Item.
+No database, Schema, API, Queue, Artifact, Prompt, configuration, dependency,
+or compatibility change is authorized. Each of the two generation passes must
+have a complete empty-status/content-diff/Record001-zero proof. Any delta is a
+Blocking Defect and belongs to a separate remediation Work Item.
 
 ## Observability
 
-No production Log, Metric, Trace, or Audit Event changes. The Acceptance Record
-contains command-level result summaries and stable GitHub evidence only. It
-does not reproduce sensitive logs.
+No production Log, Metric, Trace, Audit Event, or correlation contract changes.
+Record 002 stores only bounded command summaries, counts, stable Git/GitHub
+evidence, safe cleanup counts, and the decision.
 
 ## Documentation updates
 
-- new immutable `docs/implementation/m2-acceptance-record-002.md`;
-- this Work Packet;
-- `AGENTS.md`;
-- `README.md`;
-- `README.zh-CN.md`;
-- `docs/implementation/roadmap.md`.
+- Planning: this Packet and Roadmap only.
+- Exit publication: new Record 002, this Packet, Roadmap, `AGENTS.md`,
+  `README.md`, and `README.zh-CN.md`.
+- Postmerge reconciliation: this tracked Packet and tracked Roadmap only.
+- Record 001 and Accepted DEC: no change.
 
-No Accepted DEC or Record 001 update is permitted.
+## Planning verification chronology
+
+On planning base/HEAD
+`60fca9cf4e75b8efaafd072f22a510a5662699ec`, the Node 24 targeted
+Packet/Roadmap Prettier write returned RC0 and materialized 571 ignored
+dependency packages in the fresh worktree. It created no tracked or untracked
+publication path. The subsequent independent targeted Prettier check,
+Node 24 `repository:check`, `git diff --check`, and exact-two status each
+returned RC0. Status was exactly tracked `M` this Packet plus tracked `M`
+Roadmap. No exit runtime, test, audit, migration, cleanup, GitHub mutation, or
+Acceptance Record command ran in planning.
+
+The four-finding DoR correction then changed only this Packet and Roadmap. Its
+Node 24 targeted formatter write returned RC0 with both files unchanged;
+targeted Prettier check, Node 24 `repository:check`, `git diff --check`, exact-
+two status/name-only, and Record001-zero checks each independently returned
+RC0. Status remained exactly tracked `M` this Packet plus tracked `M` Roadmap.
+
+After this final wording sync, the same targeted check, repository, diff,
+exact-two, and Record001-zero commands ran independently with RC0 and no later
+edit. The Orchestrator synchronized Issue #144 body parity to that final
+planning head.
+
+Before merging planning PR #273, a read-only Gate 0 precondition check found
+the older local branch `codex/m2-gov-006-exit-review-002` already existed.
+Nothing was deleted, reused, or renamed. This planning head instead fixes the
+previously absent branch `codex/m2-gov-006-exit-review-002-current` and absent
+worktree path `/private/tmp/contentos-m2-gov-006-exit-review-current-wt`.
+Because that correction creates a new PR head, run `31576674949` remains green
+historical evidence for the earlier head but cannot authorize merge of this
+corrected head; new exact-head reviews, static checks, and first eligible CI
+are required.
 
 ## Definition of Ready
 
-**PASS.** Independent Definition of Ready review completed by:
+**Ready; explicit Orchestrator planning-publication handoff recorded.** The plan
+fixes the 2/6/2 lifecycle, current authority and Issue facts, full local evidence
+sequence, first-red behavior, Passed/Blocked rules, and file boundaries. Issue
+#144 parity is synchronized. Independent reviewers
+`/root/m2_gov_006_dor_correctness` and
+`/root/m2_gov_006_dor_governance`, both acting as
+`DEFINITION_OF_READY_REVIEWER` with requested `gpt-5.6-sol` High and actual
+`UNVERIFIED_RUNTIME_MODEL`, reviewed planning base/HEAD `60fca9cf...`, the
+corrected physical exact-two, Record001-zero, and live Issue parity. Both
+returned PASS with no findings, no Blocking Design Question, and no DEC. Their
+authority is planning DoR/Ready eligibility only. Orchestrator `/root` now
+grants only the exact-two planning commit/PR/first-eligible-CI/merge handoff;
+exit implementation, Issue transition, M2 completion, and M3 remain ungranted
+until the later fresh-main execution handoff.
 
-- `/root/m2_gov_006_evidence_dor` — `DEFINITION_OF_READY_REVIEWER`, requested
-  `gpt-5.6-sol` / High, actual runtime `UNVERIFIED_RUNTIME_MODEL`;
-- `/root/m2_gov_006_scope_dor` — `DEFINITION_OF_READY_REVIEWER`, requested
-  `gpt-5.6-sol` / High, actual runtime `UNVERIFIED_RUNTIME_MODEL`.
+## Definition of Done
 
-The review confirmed exact scope, complete evidence sequence, strict
-Passed/Blocked decision mechanics, executable migration and audit gates,
-publication-PR authority, satisfied prerequisites, and a process-delta gate
-that does not authorize changes to pre-existing local state. No Blocking Design
-Question remains. Execution may begin only after this Ready Work Packet is
-merged and a fresh branch is created from the latest `origin/main`.
-
-## Definition of Done and publication rules
-
-### Passed decision
-
-- all reviewed-build commands, audits, cleanup checks, and exact-reviewed-SHA CI
-  are green;
-- Record 002 accurately records zero Blocking Defects and `Passed`;
-- two independent publication reviews pass;
-- the publication PR's three required CI jobs are green;
-- only then may the Orchestrator squash merge, close Issue #144, and synchronize
-  M2 as Completed. M3 remains Not Started.
-
-### Blocked decision
-
-- the failed or missing reviewed-build evidence is preserved accurately;
-- Record 002 names the Blocking Defect and M2 remains In Progress;
-- after independent validation of the decision, the Orchestrator opens the
-  separate bounded remediation Issue and records its identifier;
-- independent record-accuracy and publication-scope reviews pass;
-- publication-integrity checks pass;
-- the final publication PR head must still have all required CI jobs green for
-  autonomous ready/merge. The unresolved reviewed-build blocker may remain only
-  when it does not fail publication-PR CI;
-- if the same recorded blocker causes required publication-PR CI to fail, or
-  any unrelated CI, record-integrity, review, or scope failure remains, do not
-  mark ready or merge; return `HUMAN_DECISION_REQUIRED`;
-- publishing Blocked is not Conditional Pass, does not complete M2, and does not
-  authorize M3.
-
-For either decision, independent review PASS authorizes the Orchestrator to
-commit, push, and create a draft PR. Marking ready and squash merging require
-the applicable path above. The Implementer or record author never approves its
-own publication.
+The Work Item is done only after the strict six-file decision publication is
+merged, Issue #144 is reconciled, Record 002 is immutable, the fresh postmerge
+tracked exact-two reconciliation is independently reviewed and merged, and
+the final repository truth reflects Passed/M2 Completed or Blocked/M2 In
+Progress while M3 remains Not Started.
 
 ## Rollback
 
-Before merge, abandon only the publication branch. After merge, do not edit or
-delete Record 002; any correction or new decision uses a later numbered record.
-No runtime or database rollback exists because this Work Item changes no
-runtime state or Schema.
+Before merge, abandon only the relevant planning/publication/reconciliation
+branch. After Record 002 merges, never edit or delete it; a correction or new
+decision uses a later numbered Acceptance Record. There is no runtime/database
+rollback because this Work Item authorizes no runtime or Schema change.
 
 ## Possible new DEC
 
-None expected. A discovered scope, architecture, security-boundary, or release-
-gate conflict stops the review and returns to Decision Review; ordinary failed
-evidence does not create a DEC.
+None expected. An actual scope, architecture, security-boundary, workflow, or
+release-gate conflict stops the review and returns to Decision Review. An
+ordinary red gate does not create a DEC.
