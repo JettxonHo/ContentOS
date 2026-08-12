@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  coordinateAndEmitConcurrentSmoke,
   coordinateConcurrentSmoke,
   cleanupAndVerifyClaims,
   classifyParentCleanupFailure,
@@ -445,6 +446,107 @@ describe('concurrent smoke claimed ownership', () => {
       ).rejects.toThrow(
         /category=test-run-failed test=worker-dispatcher\.test\.ts captured-bytes=\d+ remaining-child=clean owned-cleanup=verified/,
       );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('concurrent final success record', () => {
+  it('emits one fixed success record only after both children and final cleanup succeed', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'contentos-concurrent-claim-test-'));
+    const firstResult = deferredResult();
+    const secondResult = deferredResult();
+    const writes: string[] = [];
+    const order: string[] = [];
+    try {
+      const claims = [
+        makeClaim(root, 'child-one', 'a'.repeat(32), 'b'.repeat(32)),
+        makeClaim(root, 'child-two', 'a'.repeat(32), 'c'.repeat(32)),
+      ] as const;
+      const coordination = coordinateAndEmitConcurrentSmoke(
+        {
+          claims,
+          children: [managedChild(claims[0], firstResult.promise), managedChild(claims[1], secondResult.promise)],
+          discoveryTimeoutMs: 500,
+          completionTimeoutMs: 500,
+          terminationGraceMs: 20,
+          killGraceMs: 20,
+          pollMs: 2,
+          onStatesReady: () => order.push('states-ready'),
+          verifyOwnedCleanup: async (_claims, states) => {
+            order.push('owned-cleanup');
+            expect(states).toHaveLength(2);
+            expect(states.every((state) => !existsSync(state.runDir))).toBe(true);
+            expect(writes).toEqual([]);
+          },
+        },
+        (record) => {
+          order.push('write');
+          writes.push(record);
+        },
+      );
+
+      const first = writeState(claims[0]);
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      rmSync(first.runDir, { recursive: true, force: true });
+      firstResult.resolve({ code: 0, signal: null, output: '' });
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      const second = writeState(claims[1]);
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      rmSync(second.runDir, { recursive: true, force: true });
+      secondResult.resolve({ code: 0, signal: null, output: '' });
+
+      await expect(coordination).resolves.toEqual([first, second]);
+      expect(writes).toEqual([
+        'Harness concurrent final coordinator=verified children=2 isolation=verified cleanup=verified\n',
+      ]);
+      expect(order).toEqual(['states-ready', 'owned-cleanup', 'write']);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves coordinator rejection and emits no success record', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'contentos-concurrent-claim-test-'));
+    const firstResult = deferredResult();
+    const secondResult = deferredResult();
+    const writes: string[] = [];
+    try {
+      const claims = [
+        makeClaim(root, 'child-one', 'a'.repeat(32), 'b'.repeat(32)),
+        makeClaim(root, 'child-two', 'a'.repeat(32), 'c'.repeat(32)),
+      ] as const;
+      const coordination = coordinateAndEmitConcurrentSmoke(
+        {
+          claims,
+          children: [managedChild(claims[0], firstResult.promise), managedChild(claims[1], secondResult.promise)],
+          discoveryTimeoutMs: 500,
+          completionTimeoutMs: 500,
+          terminationGraceMs: 20,
+          killGraceMs: 20,
+          pollMs: 2,
+          verifyOwnedCleanup: async () => {
+            throw new Error('final-cleanup-rejection');
+          },
+        },
+        (record) => writes.push(record),
+      );
+
+      const first = writeState(claims[0]);
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      rmSync(first.runDir, { recursive: true, force: true });
+      firstResult.resolve({ code: 0, signal: null, output: '' });
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      const second = writeState(claims[1]);
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      rmSync(second.runDir, { recursive: true, force: true });
+      secondResult.resolve({ code: 0, signal: null, output: '' });
+
+      await expect(coordination).rejects.toThrow(
+        'Concurrent smoke owned cleanup failed owned-cleanup=failed-unclassified',
+      );
+      expect(writes).toEqual([]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
