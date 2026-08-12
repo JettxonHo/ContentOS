@@ -1,6 +1,6 @@
 # GOAL-MVP-TEXT-001 — Deliver the Text-first Private MVP
 
-**Status:** Approved — Activation gates pending
+**Status:** Active — G0 completed; G1 not started
 **Human approval:** Confirmed 2026-08-12
 **Authority:** DEC-295, current Product/Architecture/Security/Quality specifications, and `AGENTS.md`
 **Execution model:** One phase and one bounded Issue/PR at a time
@@ -62,6 +62,8 @@ Goal approval authorizes planning and bounded repository implementation after th
 ## Phases
 
 ### G0 — M2 baseline acceptance
+
+**Current status:** Completed. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision. M2 is Completed and M3/G1 is eligible but Not Started.
 
 - Start from latest merged `main`.
 - Reuse the merged M2 implementation and existing acceptance harness; do not reconstruct historical failed publication protocols.

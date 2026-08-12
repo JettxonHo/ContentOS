@@ -2,7 +2,7 @@
 
 **Status:** Current Truth
 **Scope:** Implementation order, milestone boundaries, demonstrable increments, and scope governance
-**Last Updated:** 2026-08-12
+**Last Updated:** 2026-08-13
 
 This roadmap turns the accepted product and architecture direction into an ordered implementation path. It does not create a calendar plan, engineering tickets, code, CI configuration, or an alternative architecture.
 
@@ -129,7 +129,7 @@ The list is a plan, not permission to merge its tasks or select an unapproved st
 - usable `README.md` and `AGENTS.md`;
 - no business implementation.
 
-M0-C records integration evidence and evaluates M0 exit conditions. It did not add a Content Package, Source, Workflow, or Agent feature merely to make the demo appear more complete; M1 has since completed and M2 is in progress.
+M0-C records integration evidence and evaluates M0 exit conditions. It did not add a Content Package, Source, Workflow, or Agent feature merely to make the demo appear more complete; M1 and M2 have since completed.
 
 ## 8. M1 — Product Skeleton and Domain Foundation
 
@@ -175,7 +175,7 @@ Login
 
 ## 9. M2 — Source and Workflow Foundation
 
-**Current status: In Progress. M3 is Not Started.**
+**Current status: Completed. M3 is eligible and Not Started.**
 
 ### Goal
 
@@ -195,11 +195,7 @@ The active Workspace does not transition `source_review` or append an Approval T
 
 ### Current acceptance boundary
 
-[M2 Acceptance Record 001](m2-acceptance-record-001.md) is the immutable historical Blocked exit record. Its original dependency advisory was remediated, and later merged quality work repaired the Worker observation and Concurrent final-success evidence paths.
-
-At this roadmap snapshot, a new effective M2 exit decision has not been published. The latest merged base before this rebaseline is `359e0f3babf341ea3b1b93c54fa975ab924ffd38`, which contains documentation-recovery planning through `M2-GOV-013`; M2 Acceptance Record 002 is not present/effective. The GOV012 implementation stopped at its Issue-state predicate, and the GOV013 implementation stopped before repository writes after an unlisted preview command. Their immutable reports and Git history remain evidence, but neither advances M2 or starts M3.
-
-Issue #144 remains the M2 exit-review authority. M2 may advance only after one bounded current-main exit review satisfies the [Milestone Exit Criteria](milestone-exit-criteria.md), publishes its Acceptance Record, passes the required affected checks and independent review, and merges. Ordinary documentation, formatting, or tool-contract corrections stay within that Work Item; they do not require a recursively numbered recovery chain.
+[M2 Acceptance Record 001](m2-acceptance-record-001.md) remains the immutable historical Blocked record. [M2 Acceptance Record 002](m2-acceptance-record-002.md) records the fresh current-main Passed decision after root quality, Integration, Concurrent Integration, Browser, repository integrity, and official-registry High audit evidence passed. M2 is Completed; M3 may now begin through one bounded Ready Work Item under [GOAL.md](../../GOAL.md).
 
 ### Security and quality boundary for M2
 
@@ -216,16 +212,13 @@ Agent tools, external Model Providers, active Renderer execution, Export deliver
 
 ### Next step
 
-1. Reuse the existing M2 acceptance harness and current merged implementation; do not rebuild already accepted feature evidence.
-2. Run one fresh, bounded exit review from current `main`, recording only the commands, outcomes, blockers, and decision needed by the milestone criteria.
-3. If a product/runtime gate fails, fix the underlying defect in one ordinary bounded Work Item and rerun the affected evidence. If only reversible documentation or tooling fails, correct it on the same branch.
-4. After M2 acceptance, execute [GOAL.md](../../GOAL.md) from M3 through the M5 text-first MVP. Keep the Roadmap to current status and dependency order; use Acceptance Records, Work Packets, CI, and Git history for chronology.
+Start G1/M3 Research only through a concise Ready Issue/Work Item under [GOAL.md](../../GOAL.md). Real Provider credentials, paid calls, or external effects remain separately authorized; Fake Provider evidence comes first.
 
 ### Superseded M2 publication-recovery chain
 
 `M2-GOV-008` through `M2-GOV-014` preserve historical attempts to publish the frozen GOV006 Blocked record through exact-file and literal-command protocols. GOV012 and GOV013 planning merged, but their implementations stopped at their documented first red; GOV014 planning never merged. None produced an effective Acceptance Record 002.
 
-DEC-295 and `GOAL-MVP-TEXT-001` replace that recursive publication approach with one fresh current-main G0 exit review. The old Work Packets remain immutable historical evidence and are not executable dependencies. Issue #144 remains Open as the M2 exit authority; Issues #274, #276, #278, #280, #282, #284, and #287 remain Open only until the rebaseline merge authorizes the Orchestrator to close them as `not planned`, with comments that their objectives were not completed. No historical first red is reclassified as success.
+DEC-295 and `GOAL-MVP-TEXT-001` replace that recursive publication approach with one fresh current-main G0 exit review. The old Work Packets remain immutable historical evidence and are not executable dependencies. Issue #144 remains Open as the M2 exit authority. After the rebaseline merge, Issues #274, #276, #278, #280, #282, #284, and #287 were closed as `not planned`, with comments that their objectives were not completed. No historical first red is reclassified as success.
 
 ## 10. M3 — Research
 
