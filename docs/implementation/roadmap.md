@@ -454,12 +454,13 @@ and Orchestrator merge remain unearned; red/missing transfers to QUAL038.
 
 ### M2-QUAL-038 — Complete Third Worker Outbox Wait Reconstruction and Node24 Publication Audit Recovery
 
-| Work Item                                                                                              | Goal                                                                                                                       | Dependencies / Issues                                                                          | Current truth                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `M2-QUAL-038 — Complete Third Worker Outbox Wait Reconstruction and Node24 Publication Audit Recovery` | Record a fresh-main exact-two Blocked candidate for the frozen Worker first red without publishing Worker or QUAL003 code. | PR #258 effective on current main `e2e1e9c6`; frozen QUAL034/QUAL038 evidence; Issue #259 Open | **Blocked — Complete Worker Observation Repair Not Verified.** Candidate worktree `/private/tmp/contentos-m2-qual-038-blocked-status-wt`, branch `codex/m2-qual-038-blocked-status-sync`, base/HEAD `e2e1e9c6`, exact two docs only; Worker, QUAL003, and code are zero. Frozen Gate 1 10/10 and Gate 2 5/5 passed, the sole third-wait patch ran, and the candidate-vs-frozen QUAL034 Worker compare returned RC1. Frozen actual exact-three reviews PASS/no findings; all later implementation/static/runtime/publication gates are 0/unearned. Issue #259 remains Open; M2 In Progress, M3 Not Started, no DEC/BQ/exit review; recovery QUAL039. |
+| Work Item                                                                                              | Goal                                                                                                                                 | Dependencies / Issues                                                                          | Current truth                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M2-QUAL-038 — Complete Third Worker Outbox Wait Reconstruction and Node24 Publication Audit Recovery` | Record the frozen Worker first red and reconcile the effective exact-two docs publication without publishing Worker or QUAL003 code. | PR #260 effective on current main `096bb294`; frozen QUAL034/QUAL038 evidence; Issue #259 Open | **Blocked — Complete Worker Observation Repair Not Verified.** PR #260 (`docs: record blocked M2-QUAL-038 replay`) used base `e2e1e9c6`, head `32a6813e`, and exact-two docs; run `31557773857` passed quality 1m31, Integration 3m02, and Browser 2m39. Squash/current main is `096bb29404154127f493f5dbe6ebea95625cc78f`, merged at `2026-08-12T02:46:55Z`; local merge was nonzero only because local main was occupied, with no second merge. Fresh postmerge audit worktree `/private/tmp/contentos-m2-qual-038-postmerge-audit-wt`, branch `codex/m2-qual-038-postmerge-audit`, base/HEAD `096bb294`, performs one Packet/Roadmap facts/status sync then Node24 docs/static/tracked-exact-two checks. Audit is reconciliation-only; Worker/QUAL003/code remain zero, Issue #259 remains Open, terminal Blocked and QUAL039 recovery remain unchanged. |
 
-The fresh candidate manually reconstructs only the new Packet and Roadmap from
-current main e2e1; it does not copy Worker/QUAL003/code. Construction chronology
+Historical premerge candidate evidence (superseded by effective PR #260): it
+manually reconstructed only the new Packet and Roadmap from current main e2e1;
+it did not copy Worker/QUAL003/code. Construction chronology
 was one Node24 formatter write at RC0, materializing 571 ignored dependencies
 with no tracked or unexpected artifact; the Packet was unchanged and the
 Roadmap formatted. Targeted Packet/Roadmap Prettier, Node24
@@ -467,14 +468,17 @@ Roadmap formatted. Targeted Packet/Roadmap Prettier, Node24
 each then PASSed once, with no docs edits after that sequence until this
 evidence correction. The latest current-head targeted Prettier, Node24
 `repository:check`, `git diff --check`, and exact-two/code-zero/no-unexpected
-each then ran once and PASSed, with no later edit. Only fresh dual exact-two
-reviews, the first eligible three-job CI, and Orchestrator merge remain
-unearned. The frozen post-red chronology records one
+each then ran once and PASSed, with no later edit. The premerge exact-two shape,
+`M` Roadmap + `??` Packet status, review, CI, and merge claims are historical
+and superseded by effective PR #260; no premerge publication gate remains
+pending. The frozen post-red chronology records one
 Packet/Roadmap evidence-only sync followed by bounded docs/parity corrections
-and no post-red process/static checks. Any candidate red or missing result
-remains Blocked and transfers to QUAL039.
+and no post-red process/static checks. Any historical candidate red or missing
+result was covered by effective PR260; a current audit red or missing result
+transfers docs/runtime recovery to QUAL039 without reversing PR260, the Blocked
+terminal, or Issue #259.
 
-Frozen actual-shape review PASS metadata is authority only for this separate
+Frozen actual-shape review PASS metadata was authority only for the separate
 fresh exact-two Blocked Packet/Roadmap publication candidate; it grants no
 Worker, QUAL003, code, runtime, diagnosis, Issue, Git, GitHub, M2, or M3
 authority. Fresh exact-two publication reviews by
@@ -484,9 +488,46 @@ requested `gpt-5.6-sol` High, actual `UNVERIFIED_RUNTIME_MODEL`, reviewed
 base/HEAD `e2e1e9c6daad00d129cec5186cb99b650b6ce198`, this corrected exact-two
 candidate against the frozen QUAL038 evidence and Completion Report, and live
 Issue #259 parity. Both PASSed with no findings; authority is exact-two Blocked
-publication only. The final current-head checks below run once after this
-metadata sync; only then do first eligible three-job CI and Orchestrator merge
-remain unearned. Any red or missing result transfers to QUAL039.
+publication only. This historical candidate review metadata is superseded by
+effective PR #260; current audit pending is independent reconciliation review,
+then first eligible exact-head quality/Integration/Browser CI and Orchestrator
+squash merge. Any red or missing audit result
+transfers to QUAL039 without reversing PR260, the Blocked terminal, or Issue
+#259 Open state.
+
+#### QUAL038 postmerge reconciliation completion (§18)
+
+- Base/HEAD: `096bb29404154127f493f5dbe6ebea95625cc78f`; worktree
+  `/private/tmp/contentos-m2-qual-038-postmerge-audit-wt`; branch
+  `codex/m2-qual-038-postmerge-audit`.
+- One Packet/Roadmap facts/status sync recorded PR260, all-pass first-attempt
+  CI, squash/current-main identity, and Issue/M2/M3 boundaries; no Issue/GitHub
+  mutation occurred.
+- One Node24 formatter write RC0 materialized 571 ignored dependencies and left
+  docs unchanged; Node24 Prettier, Node24 `repository:check`, `git diff
+--check`, and tracked exact-two/code-zero each PASSed once. No edits followed.
+- Current shape is tracked `M` Packet + `M` Roadmap with Worker/QUAL003/code
+  zero. Effective PR260 and Blocked/#259 Open remain unchanged; current pending
+  is reconciliation reviews then first eligible exact-head quality/Integration/
+  Browser CI and Orchestrator squash merge, with red/missing recovery QUAL039.
+
+Independent reconciliation reviews by `/root/m2_qual_014_dor_correctness` and
+`/root/m2_qual_012_browser_setup_diagnosis`, role `INDEPENDENT_REVIEWER`,
+requested `gpt-5.6-sol` High, actual `UNVERIFIED_RUNTIME_MODEL`, reviewed
+base/HEAD `096bb29404154127f493f5dbe6ebea95625cc78f`, tracked exact-two Packet +
+Roadmap, effective PR #260 facts, and live Issue #259/M2/M3 boundaries. Both
+returned PASS with no findings; authority is reconciliation-publication only.
+No Worker, QUAL003, code, runtime, diagnosis, Issue, Git, GitHub, M2 exit, or
+M3 authority is granted.
+
+The tracked Packet + Roadmap reconciliation **will be published** as the
+bounded postmerge audit record. Current Node24 Prettier, Node24
+`repository:check`, `git diff --check`, and tracked exact-two/code-zero checks
+are PASS. After dual independent reconciliation reviews, the first eligible
+exact-head quality/Integration/Browser CI and Orchestrator squash merge remain
+pending. A red or missing
+result closes that audit unmerged with no same-head rerun/replacement and sends
+docs recovery to QUAL039; it cannot reverse PR #260 or the Blocked terminal.
 
 ## 10. M3 — Research
 
