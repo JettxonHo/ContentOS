@@ -14,9 +14,7 @@ Source → Research → Human Opinion 或 Research-based Mode
 
 ## 当前状态
 
-`M2-QUAL-001 — M2 Acceptance Harness and Evidence Matrix` 已通过 PR #126 **完成**，squash merge 为 `4ee1911c69d9ad55bbb34a3729be3cd3d9625f23`（`test: add M2 acceptance harness (#126)`）。M2 仍在进行中。
-
-仓库已完成 **M0** 和 **M1 — 产品骨架与领域基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。M2 — 来源与工作流基础 — 正在进行；`M2-SRC-001` 至 `M2-SRC-004`、`M2-WF-001` 至 `M2-WF-004B`、`M2-FETCH-001A` 至 `M2-FETCH-001C` 以及 `M2-WEB-001A` 至 `M2-WEB-001B` 已完成。`M2-FETCH-001` 已通过 PR #100 完成，squash merge 为 `4fe20a48a02b83ec68886bae68b86f5e65ba3895`（`feat: add queue-to-gateway Fetcher orchestration (#100)`）。`M2-WF-004A` 已通过 PR #108 完成，squash merge 为 `acdb971ffd8a1c8898666182ac017817f095e1b7`（`feat: add workflow projection and timeline queries (#108)`）。`M2-WF-004B`已通过 PR #112 完成，squash merge 为`d9460747c530797dc11c341374183ad57e7fa85e`（`feat: add workflow SSE recovery (#112)`）：提供仅通知的私有 SSE 路由和可复用的浏览器恢复控制器。`M2-WEB-001A`已通过 PR #118 完成，squash merge 为`58d2e8ca1f80d0ea03ef991aa22f40c3b058c25c`（`feat: add Source intake workspace (#118)`）。`M2-QUAL-001`已通过 PR #126 完成，squash merge 为`4ee1911c69d9ad55bbb34a3729be3cd3d9625f23`（`test: add M2 acceptance harness (#126)`）；`M2-MAINT-002` 已通过 PR #142 完成，squash merge 为 `5b9640707217aba3d7f59c14f2343e6fcc7f102b`，Issue #139 已关闭。`M2-GOV-005` 仍为已完成但出口审查被阻塞，详见 [M2 Acceptance Record 001](docs/implementation/m2-acceptance-record-001.md)；其记录的依赖审计阻塞已修复，因此 M2 仍需新的编号化出口审查，M3 仍未启动。
+仓库已完成 **M0**、**M1 — 产品骨架与领域基础** 和 **M2 — 来源与工作流基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。[M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) 记录了基于当前 main 的私有 Source/Workflow 基础通过决定。M3 Research 已具备启动资格，但尚未开始。
 
 当前仓库提供 Workspace 安装、本地与 CI 质量检查、构建、五个进程入口、本地状态服务容器、认证、受限的 Content Package 与 URL-capture API 边界、M1 Web 薄切片、Worker Outbox 投递与 lease reconciliation，以及 API-owned 的私有 Fetcher Gateway Claim/Heartbeat/Result 边界。`M2-FETCH-001C` 已将既有受控 transport 和 Candidate/Snapshot preparation 注册到一个 `contentos-fetcher` BullMQ consumer：它校验固定的当前 generation Job、经 API Claim、执行一次抓取并提交精确 Result。PostgreSQL 与 API 仍是 Task/Source 状态权威；Fetcher 不连接数据库。活动 Workspace 现在提供粘贴文本、`.md`/`.txt` 上传、可持久恢复的 URL capture intake、Source Working Copy 审核和显式保存、不可变 Version 历史、准确 Review Candidate 的人工 Approval，以及通过既有 SSE/Polling 恢复路径刷新的安全 Timeline。Source Approval 不会推进 `source_review`，也不会追加 Workflow Timeline Event；归档 Package 不提供审核命令。仓库仍不提供 Research、Agent、Render、Export、发布、部署或开发服务器。
 
@@ -44,7 +42,7 @@ Source → Research → Human Opinion 或 Research-based Mode
 - 架构：[domain overview](docs/architecture/domain-overview.md)、[Content Package foundation](docs/architecture/content-package-foundation.md)、[Source foundation](docs/architecture/source-foundation.md)、[technical architecture](docs/architecture/technical-architecture.md)、[repository structure](docs/architecture/repository-structure.md)、[workflow overview](docs/architecture/workflow-overview.md)
 - 安全：[security baseline](docs/security/security-baseline.md)、[authentication foundation](docs/security/authentication-foundation.md)
 - 质量：[test strategy](docs/quality/test-strategy.md)、[release gates](docs/quality/release-gates.md)、[local quality toolchain](docs/quality/local-quality-toolchain.md)、[integration smoke harness](docs/quality/integration-smoke-harness.md)、[M1 browser thin slice](docs/quality/browser-thin-slice.md)、[M2 acceptance harness](docs/quality/m2-acceptance-harness.md)、[CI skeleton](docs/quality/ci-skeleton.md)
-- 实施：[roadmap](docs/implementation/roadmap.md)、[exit criteria](docs/implementation/milestone-exit-criteria.md)、[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md)、[Work Item template](docs/implementation/work-item-template.md)，以及 [agent collaboration workflow](docs/implementation/agent-collaboration-workflow.md)
+- 实施：[roadmap](docs/implementation/roadmap.md)、[exit criteria](docs/implementation/milestone-exit-criteria.md)、[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md)、[M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md)、[Work Item template](docs/implementation/work-item-template.md)，以及 [agent collaboration workflow](docs/implementation/agent-collaboration-workflow.md)
 - [Decision Register](docs/decisions/decisions.md)
 - [Contribution guide](CONTRIBUTING.md)
 
@@ -136,8 +134,8 @@ corepack pnpm test:integration
 
 ## 下一步实施工作
 
-1. M2 — 来源与工作流基础 — 正在进行。`M2-FETCH-001`、`M2-SRC-004`、`M2-WF-004A`、`M2-WF-004B`、`M2-WEB-001A` 至 `M2-WEB-001B`、`M2-QUAL-001` 以及 `M2-MAINT-002` 已完成。`M2-GOV-005` 仍为已完成但出口审查被阻塞；记录的依赖审计阻塞已通过 PR #142 修复，需创建新的编号化 M2 出口审查。详见 [M2 Acceptance Record 001](docs/implementation/m2-acceptance-record-001.md)。M3 仍未启动。
-2. 不要从当前阶段推断 M2 范围，也不要开始 Agent、Research 或发布路径。
+1. M2 — 来源与工作流基础 — 已由 [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) 完成。M3 Research 已具备启动资格，但尚未开始。
+2. 仅通过 [GOAL.md](GOAL.md) 中受限的 G1 Work Item 启动 M3；真实 Provider 调用仍需单独授权。
 
 本仓库不承诺完成日期。
 

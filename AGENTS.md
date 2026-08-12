@@ -1,14 +1,14 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0 and M1 are completed. The M2 Source/Workflow implementation is present, but M2 remains In Progress until one accepted current-main exit record is merged. M3 is Not Started.
-**Last updated:** 2026-08-12
+**Current stage:** M0, M1, and M2 are completed. M2 Acceptance Record 002 records the fresh current-main Passed decision; M3 is eligible and Not Started.
+**Last updated:** 2026-08-13
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed private Login → Dashboard → Content Package Workspace loop. M2 now includes Source intake/review/Approval, URL Fetcher, Queue/lease recovery, owner-scoped Workflow reads, private SSE notification, and the acceptance harness. Its acceptance history remains in the M2 Records and Git history; do not reproduce that chronology here. Research, Agent, Render, and Export behavior remain unimplemented.
+The repository has completed **M0**, **M1 — Product Skeleton and Domain Foundation**, and **M2 — Source and Workflow Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed private Login → Dashboard → Content Package Workspace loop. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision for Source intake/review/Approval, URL Fetcher, Queue/lease recovery, owner-scoped Workflow reads, private SSE notification, and the acceptance harness. M3 is eligible and Not Started. Research, Agent, Render, and Export behavior remain unimplemented.
 
 ## 2. Product goal and MVP boundary
 

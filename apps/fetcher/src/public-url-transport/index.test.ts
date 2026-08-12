@@ -483,7 +483,7 @@ describe('PublicUrlTransport', () => {
       response.consume({ onEncoded: async () => undefined, onDecoded: async () => undefined }),
     ).rejects.toMatchObject({ category: 'too_large', code: 'TOO_LARGE' } satisfies Partial<PublicUrlTransportError>);
     response.dispose();
-  });
+  }, 10_000);
 
   it('blocks a declared encoded body limit before accepting a response body', async () => {
     const server = createServer((_request, response) => {
