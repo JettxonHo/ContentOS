@@ -1,278 +1,149 @@
 # ContentOS Work Item Template
 
 **Status:** Current Truth
-**Scope:** Required information, readiness, completion evidence, and review boundary for one implementation task
-**Last Updated:** 2026-07-27
+**Scope:** Minimum task contract, proportional readiness, verification, and completion
+**Last Updated:** 2026-08-12
 
-This template governs an independently reviewable ContentOS implementation task. It does not create a tracking system, Owner/Reviewer workflow, Pull Request provider integration, or task Schema.
+A Work Item is the smallest independently reviewable objective. It may live directly in a GitHub Issue. Create a separate Work Packet only when the task needs a cross-agent handoff, a milestone/acceptance record, an irreversible operation, or a high-risk security/architecture change.
 
-Related documents: [Roadmap](roadmap.md), [Milestone Exit Criteria](milestone-exit-criteria.md), [Canonical Decision Register](../decisions/decisions.md), [Test Strategy](../quality/test-strategy.md), and [Security Baseline](../security/security-baseline.md).
+Related documents: [Roadmap](roadmap.md), [Milestone Exit Criteria](milestone-exit-criteria.md), [Canonical Decision Register](../decisions/decisions.md), and [Agent Collaboration Workflow](agent-collaboration-workflow.md).
 
 ---
 
-## 1. Work Item Purpose
+## 1. Minimum Work Item
 
-A Work Item is the smallest independently reviewable implementation objective. It is not a conversationally vague request, an entire Milestone, or a single file. It must be capable of independent testing, Review, and rollback.
-
-## 2. Work Item Size Principle
-
-```text
-One Work Item
-→ One bounded objective
-→ One independently reviewable change
-```
-
-A Thin Slice may cross UI, API, Domain, Persistence, and Tests when that is necessary to deliver one capability. It must not absorb unrelated refactoring or adjacent future features.
-
-## 3. Required Metadata
-
-Every Work Item starts with this metadata:
+Every Work Item contains only these required fields:
 
 ```markdown
-- Task ID:
-- Title:
-- Milestone:
-- Status: Planned | Ready | In Progress | Blocked | In Review | Completed
-- Owner:
-- Reviewer:
-- Relevant DEC:
-- Relevant Documents:
-- Dependencies:
-- Risk Classification:
+Task ID / title:
+Goal:
+In Scope:
+Out of Scope:
+Relevant DEC / specifications:
+Contracts:
+Allowed files or modules:
+Acceptance Criteria:
+Verification:
+Documentation updates:
 ```
 
-The mechanism for assigning Owner and Reviewer remains open. Empty or unknown values are explicit planning gaps, not permission to omit the field.
+`Contracts` names each applicable Domain, API, Schema, Queue/Event, Configuration, Error, migration, and security boundary, or states that the Work Item changes no contract. Add dependencies when the task has them. Add a risk note only when the task changes a credible security, migration, production, cost, or irreversible boundary. Owner, reviewer, model, thread, branch, and exact commit metadata belong in the Issue or Pull Request when useful; they are not product requirements.
 
-## 4. Goal
+The Goal states one user or system outcome. Scope names the smallest complete change, not every implementation step. Allowed files prevent accidental spread, but an obvious adjacent test or generated artifact may be added with an explicit explanation instead of opening a new Work Item.
 
-State one clear resulting user or system capability in a short paragraph. Do not use phrases such as “complete backend,” “finish ContentOS,” or “make it work.” The Goal describes the result, not an unbounded technical activity.
+## 2. Conditional supplements
 
-## 5. Context
+Include a supplement only when its trigger is present:
 
-State the current problem, why it is needed now, relevant existing implementation, and the Accepted Decisions that must not be reopened. Include only historical Session material needed to resolve the task; a Work Item never defaults to reading all 24 Sessions.
+| Trigger                                                                                                                                         | Required supplement                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Public contract, schema, queue payload, or configuration changes                                                                                | Contract/version/compatibility and migration notes                                  |
+| Authentication, Authorization, external input/network, Secret, private storage, active rendering, deletion/restore, or production configuration | Focused security impact and tests                                                   |
+| Database change                                                                                                                                 | Migration, compatibility, rollback, and relevant real-database test                 |
+| User-visible workflow                                                                                                                           | Demo or targeted Browser evidence                                                   |
+| Queue/process/recovery change                                                                                                                   | Relevant Integration/recovery scenario                                              |
+| Model/Agent capability exists and changes                                                                                                       | Fake Provider/Eval/Prompt/Capability evidence appropriate to that milestone         |
+| Production or irreversible external action                                                                                                      | Explicit human authorization, preflight, rollback, and stop conditions              |
+| Milestone exit or immutable Acceptance Record                                                                                                   | Reviewed commit, affected exit evidence, decision, limitations, reviewer, timestamp |
 
-## 6. In Scope
+For an unaffected category, write one short statement such as `No migration` or `No new security boundary`. Do not copy a whole checklist.
 
-List explicit allowed behavior and modifications. Each item should say what is implemented, changed, or verified. In Scope may not be blank and may not implicitly include all related modules.
+## 3. Security triage
 
-## 7. Out of Scope
+Use the smallest applicable tier:
 
-List adjacent features, future extensions, architecture changes, and historical or authoritative documents that are not changed. Out of Scope may not be blank. A future-looking abstraction, unrelated cleanup, or new product capability is out of scope unless explicitly authorized.
+- **S0 — No new boundary:** documentation, formatting, internal refactor, or deterministic logic that neither consumes new untrusted data nor changes access. Existing tests are sufficient; no separate security review.
+- **S1 — Existing boundary changed:** owner checks, URL/input validation, Secret use, storage access, logging, Queue authority, or rendering behavior changes. Name the credible attack path and add focused regression evidence.
+- **S2 — New/high-risk boundary:** new Authentication/Authorization model, production Secret flow, destructive deletion/restore, public sharing, active content execution, provider/tool capability, irreversible migration, or production operation. Require explicit security review and human decision where the authority hierarchy requires it.
 
-## 8. Relevant Decisions and Specifications
+Security review does not reward more controls. It asks whether the accepted boundary is preserved with the least additional mechanism. Do not add hashes, probes, diagnostic channels, fixtures, or fallback rules without a concrete risk or accepted contract.
 
-List concrete DEC IDs and applicable Current-truth paths. State that a later Accepted DEC governs an actual conflict. Reference Sessions only when necessary for unresolved reasoning; do not require Codex to read the whole Session archive by default.
+## 4. Verification selection
 
-## 9. Allowed and Prohibited Files or Modules
+Select tests by affected layer:
 
-Specify:
+- documentation: targeted formatting, repository checks, `git diff --check`;
+- deterministic code: targeted unit/validator tests and root static checks;
+- database/API: affected repository/migration/API integration tests;
+- Queue/process/recovery: affected Integration or recovery scenario;
+- visible workflow: affected Browser scenario;
+- formal release/exit: only the milestone's still-relevant exit evidence.
 
-```markdown
-### Allowed Modules
--
+Do not require every layer for every task. A green unaffected suite may be referenced from CI; it need not be replayed locally. A test failure may be diagnosed, fixed, and rerun on the same branch. Freeze/no-rerun rules are reserved for explicitly immutable, destructive, production, migration, or acceptance-evidence runs.
 
-### Allowed Files
--
+## 5. Definition of Ready
 
-### Prohibited Modules
--
+A Work Item is Ready when:
 
-### Generated Files Policy
--
-```
+- the outcome and bounded scope are clear;
+- dependencies and applicable contracts are known;
+- Acceptance Criteria are testable;
+- affected verification layers are named;
+- any real security/migration/production impact is identified; and
+- no unresolved decision changes product scope, architecture, workflow, security policy, agent responsibility, or release gates.
 
-Generated files must name their generator, ownership, regeneration check, and whether they may be committed. A Work Item must not silently spread across module boundaries.
+Readiness does **not** require a planning-only Pull Request, a clean-room worktree protocol, literal command argv, exact file-count predicates, serialized tool results, dual reviewers, or exhaustive `not applicable` prose.
 
-## 10. Contracts
+## 6. Definition of Done
 
-For every applicable boundary, name the existing Contract or the bounded Contract work:
+A Work Item is Done when:
 
-- Domain Contract;
-- API Contract;
-- JSON Schema;
-- Queue Payload;
-- Event;
-- Migration;
-- Configuration;
-- Error Contract; and
-- Security Boundary.
+- the implementation and Acceptance Criteria are complete;
+- affected checks pass;
+- relevant failure handling and compatibility are covered;
+- no unrelated edits or Secrets are present;
+- changed current-truth documentation is synchronized; and
+- one independent reviewer approves the real diff.
 
-Absence of a required Contract is a readiness issue, not an invitation to infer it from prose. Contract work must preserve the distinction among Domain models, API DTOs, database rows, and minimal Queue envelopes.
+A milestone exit additionally requires its Acceptance Record. Ordinary Work Items do not need postmerge reconciliation documents.
 
-## 11. Acceptance Criteria
+## 7. Correction and failure policy
 
-Write behavior- and result-based criteria that can be verified. Cover the success path and necessary failure paths. Given / When / Then is recommended but not required. “Code quality is good” or “feature works” cannot be the only acceptance criterion.
+Keep corrections in the same Work Item and branch when scope is unchanged. Formatting, evidence wording, a review finding, a deterministic test failure, or a tool invocation error does not require a new numbered recovery item.
 
-## 12. Required Tests
+Create a successor Work Item only when:
 
-Select relevant layers rather than automatically requiring every one:
+- scope or authority changes;
+- a merged immutable record needs a new decision;
+- a destructive/production attempt is frozen by design; or
+- the current branch cannot safely preserve evidence.
 
-- Static;
-- Unit;
-- Validator;
-- Repository;
-- Migration;
-- Integration;
-- Workflow Scenario;
-- Security;
-- Eval;
-- Render; and
-- Manual Demo.
+Record failures honestly, but prefer one concise diagnosis and correction over recursive governance about the failure-reporting mechanism.
 
-The selected layers and expected evidence must be named. A missing required test is a Blocking Defect unless the applicable governance explicitly permits a different outcome.
+## 8. Completion report
 
-## 13. Security Review
-
-Answer these questions where applicable:
-
-- Does the task handle user content or external input?
-- Does it introduce a Credential, network access, or Provider transmission?
-- Does it change Authentication, Authorization, Object Storage, logging, Export, or deletion range?
-- Does it affect Source safety, prompt-injection containment, Renderer isolation, or Secret boundaries?
-
-The review records impact and required controls; it does not select an unapproved security technology.
-
-## 14. Migration and Compatibility Review
-
-Answer whether the task changes a database, Schema, API, Queue Payload, Artifact Version, Agent Spec, Prompt, or configuration. State whether Backfill, compatibility sequencing, and Rollback are needed. Any migration must use the accepted reviewed SQL-migration and expand-and-contract boundaries where applicable.
-
-## 15. Observability
-
-When applicable, specify the required Log, Metric, Trace, Audit Event, Failure Category, and Correlation ID. Logs and telemetry must not capture private content bodies, Full Prompts, Raw Model Output, temporary URLs, or Secrets.
-
-## 16. Documentation Updates
-
-List the documentation that changes, if any:
-
-- Current-truth;
-- API;
-- Schema;
-- `README.md`;
-- `AGENTS.md`;
-- Runbook;
-- Decision Register; and
-- Milestone Status.
-
-Ordinary implementation detail does not automatically require a new DEC. A change to accepted Scope, architecture, security, workflow, agent responsibility, or release gate does.
-
-## 17. Definition of Ready
-
-A Work Item is Ready only when:
-
-- Goal is clear;
-- Scope is bounded;
-- Out of Scope is clear;
-- Accepted DEC is available;
-- dependencies are satisfied;
-- Contract is known;
-- Acceptance is testable;
-- Fixtures are available;
-- Security impact is identified;
-- Migration impact is identified;
-- documentation target is known; and
-- No Blocking Design Question remains.
-
-## 18. Definition of Done
-
-A completed Work Item has implementation complete, Typecheck, required tests, Migration work where applicable, Authorization, failure handling, Observability, documentation, and every Acceptance Criterion verified. It has no unrelated changes, no skipped test without a recorded reason, no Secret, and a reviewable diff.
-
-An Agent Task additionally includes a Fake Provider Fixture, Eval Case, Baseline comparison, Cost data, Failure data, and validation results—but only when the relevant Milestone has introduced Agent Eval. M0 engineering skeleton work does not prematurely implement full Agent Eval.
-
-## 19. Implementation Instructions for Codex
-
-Codex must:
-
-1. Read `AGENTS.md`.
-2. Read the listed Current-truth documents.
-3. Inspect the existing repository before changing files.
-4. Produce a plan before multi-file implementation work.
-5. Not expand Scope.
-6. Not change an Accepted DEC.
-7. Not create a Commit unless explicitly requested.
-8. Run the required verification.
-9. Report incomplete or failed checks honestly.
-10. Flag a possible Scope or Architecture Change.
-
-## 20. Completion Report Template
-
-Use this structure when reporting a completed Work Item:
+The Pull Request description or final handoff contains:
 
 ```markdown
-## Summary
-
-## Design choices
+## Outcome
 
 ## Files changed
 
-## Migration
+## Verification
 
-## Commands run
+## Security / migration impact
 
-## Test results
-
-## Acceptance Criteria
-| Criterion | Evidence | Result |
-|---|---|---|
-
-## Security impact
-
-## Known limitations
-
-## Incomplete items
-
-## Documentation updates
-
-## Possible new DEC
+## Limitations or incomplete items
 
 ## Git status
 ```
 
-## 21. Work Item Types
+Add design choices only when they are not obvious from the diff. Link to durable evidence; do not paste raw logs, full transcripts, or duplicate the Work Item.
 
-The high-level task types are Documentation, Governance, Engineering Baseline, Domain Feature, Infrastructure, Agent, Rendering, Security, Quality, Migration, Recovery Drill, and Release. Type helps select appropriate Contracts and evidence; it does not change the Definition of Ready or Done.
+## 9. Anti-patterns
 
-## 22. Example Work Item
+Do not create:
 
-```markdown
-Task ID: M1-CP-001
-Title: Content Package Creation Thin Slice
-Milestone: M1
-Status: Planned
-Relevant DEC: DEC-272, DEC-275, DEC-279, DEC-287, DEC-291
-Relevant Documents: docs/product/mvp-scope.md; docs/architecture/domain-overview.md; docs/architecture/artifact-versioning.md
-Dependencies: M0 accepted
-Risk Classification: Domain, persistence, authorization
+- a planning PR required before every implementation PR;
+- a Work Packet longer than the implementation it governs;
+- a new recovery item for formatting, wording, or ordinary CI/tool correction;
+- literal command-by-command evidence ledgers for reversible work;
+- exact-N file-shape protocols when an allowlist and diff review suffice;
+- duplicate status in Roadmap, Issue, Packet, completion report, and reconciliation report;
+- speculative security controls for capabilities not yet implemented;
+- full Integration/Browser runs for unrelated docs-only changes; or
+- a new DEC for a reversible implementation detail.
 
-Goal: Let the owner create a Content Package and reopen its persisted Workspace shell.
+## 10. Decision traceability
 
-In Scope: one bounded create/read persistence path, owner checks, expected version foundation, tests, and documentation required by the change.
-Out of Scope: Source capture, Workflow, Agent Runtime, Research, publishing content, Renderer, and unrelated refactoring.
-
-Acceptance Criteria: an authorized owner creates, refreshes, reopens, edits permitted metadata, and archives one Package; an unauthorized principal cannot access it.
-Tests: static, domain/validator, repository/migration, API integration, authorization, and manual demo as applicable.
-```
-
-This illustrates template use only. It does not create a new DEC, select a technology, or authorize implementation.
-
-## 23. Anti-patterns
-
-Do not create tasks such as:
-
-- “Implement ContentOS”;
-- “Build all backend”;
-- “Choose any stack”;
-- “Refactor everything”;
-- “Fix tests by skipping them”;
-- “Add a future-proof abstraction”;
-- “One PR for unrelated objectives”;
-- “Silent scope expansion”;
-- “Natural-language approval”; or
-- “Hidden production configuration changes.”
-
-## 24. Pull Request Boundary
-
-One Pull Request focuses on one Work Item or an indivisible shared objective. It may cross technical layers, but it does not include unrelated cleanup and must be reviewable and reversible. The exact long-term Work Item-to-PR mapping may be refined later; the default follows DEC-288.
-
-## 25. Decision Traceability
-
-This template directly applies DEC-275 (Thin Vertical Slice), DEC-277 (demonstrable exit), DEC-287–DEC-292 (bounded Work Items, Pull Request boundary, agent guidance, truth hierarchy, Definition of Ready / Done, and scope governance), and [Session-024](../sessions/session-024.md). The [Canonical Decision Register](../decisions/decisions.md) remains authoritative.
+This template implements DEC-287–DEC-292: bounded Work Items, explicit applicable Contracts, reviewable Pull Requests, concise agent guidance, separated truth sources, Definition of Ready/Done, and explicit scope-change governance. DEC-295 defines the current text-first MVP completion boundary and authorizes the proportional collaboration/affected-path rules for `GOAL-MVP-TEXT-001` while preserving dual output, human Approval, traceability, independent review, and affected failure gates.

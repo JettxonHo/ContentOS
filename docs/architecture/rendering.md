@@ -2,11 +2,11 @@
 
 **Status:** Current Truth
 
-**Scope:** Xiaohongshu visual planning, Asset governance, deterministic rendering, validation, and Export boundaries
+**Scope:** Post-MVP Xiaohongshu visual planning, Asset governance, deterministic rendering, validation, and rich Export boundaries
 
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-12
 
-This document defines how ContentOS transforms an Approved Xiaohongshu Version into reviewable Design, deterministic pixel output, and a portable Export Package. It defines responsibilities and invariants, not a Design JSON Schema, concrete components, visual style, fonts, canvas dimensions, Provider, or package versions.
+This document defines the post-MVP capability that transforms an Approved Xiaohongshu Version into reviewable Design, deterministic pixel output, and a portable rich Export Package. DEC-295 makes this entire capability non-blocking for the text-first MVP. The document defines responsibilities and invariants, not a Design JSON Schema, concrete components, visual style, fonts, canvas dimensions, Provider, or package versions.
 
 Related current-truth documents:
 
@@ -55,13 +55,13 @@ Export Service
 → assembles a portable delivery package
 ```
 
-| Capability | Owns | Does not own |
-|---|---|---|
-| Packaging Agent | Xiaohongshu narrative, titles, page semantics, text, Caption, CTA, Hashtags, and provenance | layout, generated pixels, Asset generation, final Export |
-| Visual Agent | Component selection, Content Binding, visual hierarchy, emphasis, Theme use, Asset Requests, and Design Specification | canonical Xiaohongshu edits, final pixels, Asset Approval, Export |
-| Image Generation Service | Provider execution, binary Candidate storage, metadata, retry, and Asset Candidate creation | page layout, canonical content, Design selection, final page images with critical text |
-| Render Engine | controlled Component execution, layout measurement, validation, and immutable PNG output | LLM calls, content rewriting, visual strategy, Asset generation, Export packaging |
-| Export Service | delivery file assembly, manifest, hashes, and package identity | pixel rendering, content Approval, publication |
+| Capability               | Owns                                                                                                                  | Does not own                                                                           |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Packaging Agent          | Xiaohongshu narrative, titles, page semantics, text, Caption, CTA, Hashtags, and provenance                           | layout, generated pixels, Asset generation, final Export                               |
+| Visual Agent             | Component selection, Content Binding, visual hierarchy, emphasis, Theme use, Asset Requests, and Design Specification | canonical Xiaohongshu edits, final pixels, Asset Approval, Export                      |
+| Image Generation Service | Provider execution, binary Candidate storage, metadata, retry, and Asset Candidate creation                           | page layout, canonical content, Design selection, final page images with critical text |
+| Render Engine            | controlled Component execution, layout measurement, validation, and immutable PNG output                              | LLM calls, content rewriting, visual strategy, Asset generation, Export packaging      |
+| Export Service           | delivery file assembly, manifest, hashes, and package identity                                                        | pixel rendering, content Approval, publication                                         |
 
 These responsibilities may exist in one Repository and coordinated release. Separation does not imply microservices.
 
@@ -330,17 +330,17 @@ A Final Xiaohongshu carousel is one atomic result.
 
 Render errors are classified as:
 
-| Category | Meaning | Recovery |
-|---|---|---|
-| Input Error | Missing, unapproved, outdated, invalid, or inconsistent input | Correct or replace the input |
-| Deterministic Render Error | Component capacity, missing Font, invalid binding, overflow, clipping, layout, or content-fit failure | Return to Design, Packaging, Asset, or configuration owner |
-| Transient Infrastructure Error | Temporary process, storage, Browser startup, or infrastructure failure | Bounded automatic retry where policy allows |
+| Category                       | Meaning                                                                                               | Recovery                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Input Error                    | Missing, unapproved, outdated, invalid, or inconsistent input                                         | Correct or replace the input                               |
+| Deterministic Render Error     | Component capacity, missing Font, invalid binding, overflow, clipping, layout, or content-fit failure | Return to Design, Packaging, Asset, or configuration owner |
+| Transient Infrastructure Error | Temporary process, storage, Browser startup, or infrastructure failure                                | Bounded automatic retry where policy allows                |
 
 Only suitable Transient Infrastructure Errors retry automatically. Content density, invalid Design, and missing required Font cannot be solved through unlimited retry. Retry preserves attempt history and never overwrites an earlier Render Output.
 
 ## 19. Export Package
 
-The MVP Xiaohongshu Export Package contains:
+The post-MVP Xiaohongshu rich Export Package contains:
 
 ```text
 images/
@@ -366,7 +366,7 @@ The Export Package:
 Exported ≠ Published
 ```
 
-Blog Export is defined in [MVP Scope](../product/mvp-scope.md). ContentOS does not provide a public Blog Renderer in the MVP, so this rendering document does not expand that pipeline.
+Text-first Blog and Xiaohongshu exports are defined in [MVP Scope](../product/mvp-scope.md). ContentOS does not provide a public Blog Renderer; this post-MVP rendering document does not expand that pipeline.
 
 ## 20. Rendering Security
 
@@ -416,15 +416,15 @@ These choices require bounded implementation and validation work. They must not 
 
 ## 23. Decision Traceability
 
-| Rendering area | Accepted Decisions | Primary historical sources |
-|---|---|---|
-| Design Specification, component rendering, and separated visual production | DEC-026–DEC-027 | [Session-006](../sessions/session-006.md) |
-| Xiaohongshu content and Visual boundary | DEC-086–DEC-097 | [Session-014](../sessions/session-014.md) |
-| Visual Agent, Component Registry, Theme, Asset, and fit responsibilities | DEC-098–DEC-110 | [Session-015](../sessions/session-015.md) |
-| Deterministic Renderer, Preview, Final, Output, Font, atomicity, and Export | DEC-111–DEC-124 | [Session-016](../sessions/session-016.md) |
-| Candidate, Frozen Input, Promotion, and bounded execution | DEC-129–DEC-139, DEC-177–DEC-198 | [Session-017](../sessions/session-017.md), [Session-020](../sessions/session-020.md) |
-| Isolated Renderer, Object Storage, Playwright, Chromium, and environment | DEC-221, DEC-230–DEC-235 | [Session-022](../sessions/session-022.md) |
-| deterministic validation and Render Regression | DEC-245, DEC-259–DEC-263 | [Session-023](../sessions/session-023.md) |
-| Human Gates, M6 order, and MVP release boundary | DEC-269–DEC-285, DEC-293 | [Session-024](../sessions/session-024.md) |
+| Rendering area                                                              | Accepted Decisions               | Primary historical sources                                                           |
+| --------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------ |
+| Design Specification, component rendering, and separated visual production  | DEC-026–DEC-027                  | [Session-006](../sessions/session-006.md)                                            |
+| Xiaohongshu content and Visual boundary                                     | DEC-086–DEC-097                  | [Session-014](../sessions/session-014.md)                                            |
+| Visual Agent, Component Registry, Theme, Asset, and fit responsibilities    | DEC-098–DEC-110                  | [Session-015](../sessions/session-015.md)                                            |
+| Deterministic Renderer, Preview, Final, Output, Font, atomicity, and Export | DEC-111–DEC-124                  | [Session-016](../sessions/session-016.md)                                            |
+| Candidate, Frozen Input, Promotion, and bounded execution                   | DEC-129–DEC-139, DEC-177–DEC-198 | [Session-017](../sessions/session-017.md), [Session-020](../sessions/session-020.md) |
+| Isolated Renderer, Object Storage, Playwright, Chromium, and environment    | DEC-221, DEC-230–DEC-235         | [Session-022](../sessions/session-022.md)                                            |
+| deterministic validation and Render Regression                              | DEC-245, DEC-259–DEC-263         | [Session-023](../sessions/session-023.md)                                            |
+| Human Gates, post-MVP M6 order, and release boundary                        | DEC-269–DEC-285, DEC-293–DEC-295 | [Session-024](../sessions/session-024.md), user confirmation 2026-08-12              |
 
 The authoritative status and wording of every Decision is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).

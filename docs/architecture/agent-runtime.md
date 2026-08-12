@@ -4,7 +4,7 @@
 
 **Scope:** Versioned Agent execution, model boundaries, Context, validation, recovery, Candidate handling, security, and auditability
 
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-12
 
 This document defines how ContentOS executes Agent Specs and model calls in a controlled and auditable way. It defines responsibilities and invariants, not Prompt content, JSON Schemas, Provider selection, model names, package versions, or concrete budget values.
 
@@ -269,7 +269,7 @@ A successful Provider response alone is insufficient for Promotion.
 
 ## 15. Tool and Capability Gateway
 
-Tool access is disabled by default. MVP Research, Writer, Packaging, and Visual Agents run primarily from Frozen Input to structured Candidate output.
+Tool access is disabled by default. MVP Research, Writer, and Packaging Agents run primarily from Frozen Input to structured Candidate output. The Visual Agent follows the same rule when introduced post-MVP.
 
 If an Agent capability is authorized:
 
@@ -390,15 +390,15 @@ These decisions must preserve the boundaries above. Selecting a Provider or pack
 
 ## 22. Decision Traceability
 
-| Agent Runtime area | Accepted Decisions | Primary historical sources |
-|---|---|---|
-| Specialized and single-responsibility Agents | DEC-009–DEC-011, DEC-039 | [Session-003](../sessions/session-003.md), [Session-008](../sessions/session-008.md) |
-| Writer and Packaging input, output, and deterministic gates | DEC-076–DEC-097 | [Session-013](../sessions/session-013.md), [Session-014](../sessions/session-014.md) |
-| Visual Agent and Image Generation boundaries | DEC-098–DEC-110 | [Session-015](../sessions/session-015.md) |
-| Task, Agent Run, Frozen Input, failure, and Promotion | DEC-125–DEC-139 | [Session-017](../sessions/session-017.md) |
-| Agent Specs, Prompts, models, Context, execution, validation, recovery, and security | DEC-177–DEC-198 | [Session-020](../sessions/session-020.md) |
-| Stack, Schemas, Queue, telemetry, and repeatable development | DEC-221–DEC-242 | [Session-022](../sessions/session-022.md) |
-| Runtime tests, Evals, configuration gates, and release quality | DEC-244–DEC-266 | [Session-023](../sessions/session-023.md) |
-| Agent implementation order and MVP recovery requirements | DEC-280–DEC-285, DEC-291, DEC-293 | [Session-024](../sessions/session-024.md) |
+| Agent Runtime area                                                                   | Accepted Decisions                        | Primary historical sources                                                           |
+| ------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------------------------------------------------------------------------ |
+| Specialized and single-responsibility Agents                                         | DEC-009–DEC-011, DEC-039                  | [Session-003](../sessions/session-003.md), [Session-008](../sessions/session-008.md) |
+| Writer and Packaging input, output, and deterministic gates                          | DEC-076–DEC-097                           | [Session-013](../sessions/session-013.md), [Session-014](../sessions/session-014.md) |
+| Visual Agent and Image Generation boundaries                                         | DEC-098–DEC-110                           | [Session-015](../sessions/session-015.md)                                            |
+| Task, Agent Run, Frozen Input, failure, and Promotion                                | DEC-125–DEC-139                           | [Session-017](../sessions/session-017.md)                                            |
+| Agent Specs, Prompts, models, Context, execution, validation, recovery, and security | DEC-177–DEC-198                           | [Session-020](../sessions/session-020.md)                                            |
+| Stack, Schemas, Queue, telemetry, and repeatable development                         | DEC-221–DEC-242                           | [Session-022](../sessions/session-022.md)                                            |
+| Runtime tests, Evals, configuration gates, and release quality                       | DEC-244–DEC-266                           | [Session-023](../sessions/session-023.md)                                            |
+| Agent implementation order and MVP recovery requirements                             | DEC-280–DEC-285, DEC-291, DEC-293–DEC-295 | [Session-024](../sessions/session-024.md), user confirmation 2026-08-12              |
 
 The authoritative status and wording of every Decision is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).

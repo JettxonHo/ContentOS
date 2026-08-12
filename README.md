@@ -5,7 +5,9 @@ Language: English | [简体中文](README.zh-CN.md)
 ContentOS is a single-user, desktop-first Personal AI Content Studio. It turns private, reviewable source material into a traceable content flow:
 
 ```text
-Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Render → Export
+Source → Research → Human Opinion or Research-based Mode
+→ approved Blog Markdown + approved Xiaohongshu text
+→ manual text export
 ```
 
 It is not a bulk-writing tool or an autonomous publishing system.
@@ -20,7 +22,7 @@ This repository now provides workspace installation, local and CI quality checks
 
 ## MVP boundary
 
-The formal MVP is a private, single-user, desktop-first web application with human review. It produces both Blog and Xiaohongshu outputs from a shared Content Foundation, then supports deterministic rendering and manual export/publishing. Public registration, automatic publishing, multi-user collaboration, and unsupported media inputs are outside the MVP. Read the complete [MVP Scope](docs/product/mvp-scope.md).
+The formal MVP is a private, single-user, desktop-first web application with human review. It independently produces approved Blog Markdown and approved Xiaohongshu text from a shared Content Foundation, then supports manual portable-text export and publishing. Design, image generation, PNG rendering, rich asset packages, production deployment, public registration, automatic publishing, multi-user collaboration, and unsupported media inputs are post-MVP or out of scope. Read the complete [MVP Scope](docs/product/mvp-scope.md) and approved execution [Goal](GOAL.md).
 
 ## Repository contents
 

@@ -5,7 +5,9 @@
 ContentOS 是一个单用户、桌面优先的 Personal AI Content Studio（个人 AI 内容工作室）。它将私有、可审阅的来源材料转化为可追溯的内容流程：
 
 ```text
-Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Render → Export
+Source → Research → Human Opinion 或 Research-based Mode
+→ 已批准 Blog Markdown + 已批准 Xiaohongshu 文本
+→ 手工文本导出
 ```
 
 它不是批量写作工具，也不是自动化发布系统。
@@ -22,7 +24,7 @@ Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Rend
 
 ## MVP 边界
 
-正式 MVP 是一个私有、单用户、桌面优先、有人类审阅的 Web 应用。它从共享的 Content Foundation 生成 Blog 和 Xiaohongshu 两种输出，然后支持确定性的渲染与手动导出／发布。公开注册、自动发布、多用户协作以及不受支持的媒体输入均不属于 MVP。请阅读完整的 [MVP Scope](docs/product/mvp-scope.md)。
+正式 MVP 是一个私有、单用户、桌面优先、有人类审阅的 Web 应用。它从共享的 Content Foundation 独立生成已批准的 Blog Markdown 和 Xiaohongshu 文本，并支持手工可移植文本导出与发布。Design、图片生成、PNG Render、复杂资产包、生产部署、公开注册、自动发布、多用户协作以及不受支持的媒体输入属于 post-MVP 或明确不在范围内。请阅读完整的 [MVP Scope](docs/product/mvp-scope.md) 与已批准的执行 [Goal](GOAL.md)。
 
 ## 仓库内容
 

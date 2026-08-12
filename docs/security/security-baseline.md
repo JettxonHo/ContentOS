@@ -4,7 +4,7 @@
 
 **Scope:** MVP security goals, identity and trust boundaries, input containment, audit, deletion, recovery, and release-blocking requirements
 
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-12
 
 This document defines the minimum security behavior ContentOS must preserve from M0 onward. It specifies current security rules and invariants, not an Authentication library, concrete IAM policy, firewall syntax, event Schema, retention duration, encryption product, or implementation code.
 
@@ -25,6 +25,24 @@ Related current-truth documents:
 
 ---
 
+## 0. Applying this baseline proportionally
+
+This baseline is capability-triggered, not a requirement to implement or re-review every future control in every Work Item.
+
+The active M2 security surface is limited to authenticated owner access, private data/object access, `.md`/`.txt` input validation, public-URL SSRF and resource limits, Queue/lease eligibility, Secret separation, and redacted errors/logs. Existing deterministic tests for these seams are the default evidence.
+
+Additional controls become implementation and release gates only when their capability exists:
+
+| Capability introduced or changed | Additional security work that becomes relevant                                                       |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Model Provider or Agent tools    | Prompt-injection containment, minimum provider data, capability authorization, Candidate-only output |
+| Renderer or active content       | network isolation, sanitization, registered inputs, render resource limits                           |
+| Export or sharing                | explicit field/file allowlist, authorization, leakage checks                                         |
+| Delete, restore, or backup       | deletion ledger, restore filtering, recovery evidence                                                |
+| Production deployment            | transport protection, production Secret provisioning, monitoring, incident and rollback gates        |
+
+For an ordinary change that does not introduce or alter one of these boundaries, the Work Item records `No new security boundary`; it does not repeat this document, invent speculative threats, add unrelated adversarial fixtures, or require a separate security review. A focused review names the credible attack path, affected asset, existing control, and smallest missing evidence. Merely imaginable or unreachable variants are not release blockers.
+
 ## 1. Security Goals
 
 ContentOS must provide:
@@ -44,24 +62,24 @@ ContentOS must provide:
 
 The baseline addresses at least these threats:
 
-| Threat | Boundary and required containment |
-|---|---|
-| Unauthorized user access | Browser/API boundary: authentication, secure Session, server-side Authorization, and denial by default |
-| Owner data crossover | Query, Command, Object, download, upload, Workflow, and diagnostics boundaries: Owner checks on every protected operation |
-| Session theft | Browser/API boundary: protected Session Credential, expiry, revocation, secure transport, and no token logging |
-| Secret leakage | Configuration/runtime boundary: Secret Layer, per-process references, redaction, no Git/Queue/Prompt/Export inclusion |
-| Prompt Injection | Source/Provider boundary: content/instruction separation, no default tools, minimal Context, typed output, deterministic checks, human gates |
-| SSRF | Fetcher/public network boundary: URL, DNS, connection, redirect, port, size, and destination policy |
-| Malicious upload | Upload/quarantine boundary: allowlist, validation, isolation, no execution, cleanup |
-| Unsafe Markdown or HTML | Display/render boundary: raw/safe separation, sanitization, allowlists, no arbitrary active content |
-| Remote image tracking | Browser/Fetcher/Object Storage boundary: no uncontrolled browser loading; proxy or internalize under explicit policy |
-| Model output requesting privileged action | Agent Runtime/Executor boundary: output remains Candidate or Proposal; deterministic Authorization and policy required |
-| Queue replay | Queue/Worker boundary: Task ID is not authority; reload PostgreSQL truth; idempotency, lease, cancellation, and eligibility checks |
-| Duplicate Promotion | Candidate/Artifact boundary: stable identity and atomic duplicate prevention |
-| Stale or cancelled result Promotion | Agent/Workflow boundary: Promotion rechecks exact dependencies, cancellation, supersession, and current eligibility |
-| Renderer external request | Renderer/network boundary: public egress disabled; any attempt is a Blocking security signal |
-| Export data leakage | Export boundary: construct from an explicit field and file allowlist, never a directory or Object prefix |
-| Backup restoring deleted data | Restore/active-system boundary: reapply Deletion Ledger and verify final Domain state before availability |
+| Threat                                    | Boundary and required containment                                                                                                            |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unauthorized user access                  | Browser/API boundary: authentication, secure Session, server-side Authorization, and denial by default                                       |
+| Owner data crossover                      | Query, Command, Object, download, upload, Workflow, and diagnostics boundaries: Owner checks on every protected operation                    |
+| Session theft                             | Browser/API boundary: protected Session Credential, expiry, revocation, secure transport, and no token logging                               |
+| Secret leakage                            | Configuration/runtime boundary: Secret Layer, per-process references, redaction, no Git/Queue/Prompt/Export inclusion                        |
+| Prompt Injection                          | Source/Provider boundary: content/instruction separation, no default tools, minimal Context, typed output, deterministic checks, human gates |
+| SSRF                                      | Fetcher/public network boundary: URL, DNS, connection, redirect, port, size, and destination policy                                          |
+| Malicious upload                          | Upload/quarantine boundary: allowlist, validation, isolation, no execution, cleanup                                                          |
+| Unsafe Markdown or HTML                   | Display/render boundary: raw/safe separation, sanitization, allowlists, no arbitrary active content                                          |
+| Remote image tracking                     | Browser/Fetcher/Object Storage boundary: no uncontrolled browser loading; proxy or internalize under explicit policy                         |
+| Model output requesting privileged action | Agent Runtime/Executor boundary: output remains Candidate or Proposal; deterministic Authorization and policy required                       |
+| Queue replay                              | Queue/Worker boundary: Task ID is not authority; reload PostgreSQL truth; idempotency, lease, cancellation, and eligibility checks           |
+| Duplicate Promotion                       | Candidate/Artifact boundary: stable identity and atomic duplicate prevention                                                                 |
+| Stale or cancelled result Promotion       | Agent/Workflow boundary: Promotion rechecks exact dependencies, cancellation, supersession, and current eligibility                          |
+| Renderer external request                 | Renderer/network boundary: public egress disabled; any attempt is a Blocking security signal                                                 |
+| Export data leakage                       | Export boundary: construct from an explicit field and file allowlist, never a directory or Object prefix                                     |
+| Backup restoring deleted data             | Restore/active-system boundary: reapply Deletion Ledger and verify final Domain state before availability                                    |
 
 The principal trust boundaries are Browser ↔ API, API/Application ↔ PostgreSQL/Object Storage, Fetcher ↔ public Internet, Worker/Agent Runtime ↔ Model Provider, Renderer ↔ controlled render inputs, Queue ↔ Workers, and restricted diagnostics ↔ authorized operators. Crossing any boundary requires validation, appropriate identity and Authorization, data minimization, bounded resources, redaction, error handling, and audit where applicable.
 
@@ -109,13 +127,13 @@ No Authentication library or credential method is selected here.
 
 The modular monolith has five deployable processes with independent security boundaries:
 
-| Process | Required security boundary |
-|---|---|
-| `web` | No database, Redis, Object Storage administration, Provider, or server-side Secret Credential; all authoritative operations go through API |
-| `api` | Authenticates and authorizes external Domain writes; no arbitrary public Source fetch; never exposes Provider Credentials to Browser |
-| `worker` | Reads only assigned Task and frozen inputs; may resolve approved Provider Credentials; does not approve, publish, or obtain unrestricted storage administration |
-| `fetcher` | Controlled public HTTP/HTTPS egress and scoped quarantine/Snapshot access; no Model Credentials, Human Opinion access, or general Domain writes |
-| `renderer` | Exact approved input/output access; no public network, Model Credentials, Raw Human Opinion, Approval, or canonical-content mutation |
+| Process    | Required security boundary                                                                                                                                      |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `web`      | No database, Redis, Object Storage administration, Provider, or server-side Secret Credential; all authoritative operations go through API                      |
+| `api`      | Authenticates and authorizes external Domain writes; no arbitrary public Source fetch; never exposes Provider Credentials to Browser                            |
+| `worker`   | Reads only assigned Task and frozen inputs; may resolve approved Provider Credentials; does not approve, publish, or obtain unrestricted storage administration |
+| `fetcher`  | Controlled public HTTP/HTTPS egress and scoped quarantine/Snapshot access; no Model Credentials, Human Opinion access, or general Domain writes                 |
+| `renderer` | Exact approved input/output access; no public network, Model Credentials, Raw Human Opinion, Approval, or canonical-content mutation                            |
 
 Each process uses a distinct Credential Reference. API is the external authoritative Domain-write entry point. Internal execution may write only through the owning use case and its scoped contract; process separation does not create microservices or separate Domain truth.
 
@@ -322,13 +340,13 @@ The following remain open and are not selected here:
 
 ## 21. Decision Traceability
 
-| Area | Accepted Decisions | Primary historical sources |
-|---|---|---|
-| Source, opinion, Artifact, and dependency trust boundaries | DEC-059–DEC-075, DEC-125–DEC-139 | [Session-011](../sessions/session-011.md), [Session-012](../sessions/session-012.md), [Session-017](../sessions/session-017.md) |
-| Agent Runtime, Candidate authority, tools, Raw Output, and Secrets | DEC-177–DEC-198 | [Session-020](../sessions/session-020.md) |
-| Security, privacy, identities, input safety, audit, retention, deletion, and restore | DEC-199–DEC-220 | [Session-021](../sessions/session-021.md) |
-| Process isolation, PostgreSQL/Queue/Object Storage authority, Renderer, telemetry, and configuration | DEC-221, DEC-226, DEC-228–DEC-240 | [Session-022](../sessions/session-022.md) |
-| Deterministic tests, zero-tolerance invariants, and security/recovery gates | DEC-244–DEC-250, DEC-259, DEC-262 | [Session-023](../sessions/session-023.md) |
-| Private MVP, scope exclusions, horizontal security, hardening, and recovery | DEC-267–DEC-285, DEC-293 | [Session-024](../sessions/session-024.md) |
+| Area                                                                                                 | Accepted Decisions                | Primary historical sources                                                                                                      |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Source, opinion, Artifact, and dependency trust boundaries                                           | DEC-059–DEC-075, DEC-125–DEC-139  | [Session-011](../sessions/session-011.md), [Session-012](../sessions/session-012.md), [Session-017](../sessions/session-017.md) |
+| Agent Runtime, Candidate authority, tools, Raw Output, and Secrets                                   | DEC-177–DEC-198                   | [Session-020](../sessions/session-020.md)                                                                                       |
+| Security, privacy, identities, input safety, audit, retention, deletion, and restore                 | DEC-199–DEC-220                   | [Session-021](../sessions/session-021.md)                                                                                       |
+| Process isolation, PostgreSQL/Queue/Object Storage authority, Renderer, telemetry, and configuration | DEC-221, DEC-226, DEC-228–DEC-240 | [Session-022](../sessions/session-022.md)                                                                                       |
+| Deterministic tests, zero-tolerance invariants, and security/recovery gates                          | DEC-244–DEC-250, DEC-259, DEC-262 | [Session-023](../sessions/session-023.md)                                                                                       |
+| Private MVP, scope exclusions, horizontal security, hardening, and recovery                          | DEC-267–DEC-285, DEC-293          | [Session-024](../sessions/session-024.md)                                                                                       |
 
 The authoritative status and wording of every Decision is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).

@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
@@ -31,8 +31,7 @@ function git(dir: string, ...args: string[]): void {
 function writeRegister(dir: string, ids: number[]): void {
   const registerDir = join(dir, 'docs', 'decisions');
   mkdirSync(registerDir, { recursive: true });
-  const header =
-    '# Register\n\n## 8. Decision Index\n\n| ID | Title | Status | Source | Summary | Reason | Impact |\n|---|---|---|---|---|---|---|\n';
+  const header = `# Register\n\n- Indexed decisions: **${EXPECTED_DEC_COUNT}**\n- Numeric range: **DEC-001–DEC-${String(EXPECTED_DEC_COUNT).padStart(3, '0')}**\n\n## 8. Decision Index\n\n| ID | Title | Status | Source | Summary | Reason | Impact |\n|---|---|---|---|---|---|---|\n`;
   const rows = ids
     .map((id) => `| [${decId(id)}](decisions-001.md) | title | Accepted | src | summary | reason | impact |`)
     .join('\n');
@@ -106,10 +105,10 @@ describe('checkDecisionRegister', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it('passes when the register has exactly DEC-001 through DEC-294 and references resolve', () => {
+  it('passes when the register has exactly DEC-001 through DEC-295 and references resolve', () => {
     const ids = Array.from({ length: EXPECTED_DEC_COUNT }, (_, index) => index + 1);
     writeRegister(dir, ids);
-    writeFileSync(join(dir, 'doc.md'), 'See DEC-001 and DEC-294 for context.\n');
+    writeFileSync(join(dir, 'doc.md'), 'See DEC-001 and DEC-295 for context.\n');
     expect(checkDecisionRegister(dir, ['docs/decisions/decisions.md', 'doc.md'])).toEqual([]);
   });
 
@@ -136,12 +135,22 @@ describe('checkDecisionRegister', () => {
     ).toBe(true);
   });
 
-  it('reports a canonical entry outside the DEC-001-DEC-294 range', () => {
+  it('reports a canonical entry outside the DEC-001-DEC-295 range', () => {
     const ids = Array.from({ length: EXPECTED_DEC_COUNT }, (_, index) => index + 1);
-    ids.push(295);
+    ids.push(296);
     writeRegister(dir, ids);
     const findings = checkDecisionRegister(dir, ['docs/decisions/decisions.md']);
-    expect(findings.some((finding) => finding.reference === 'DEC-295')).toBe(true);
+    expect(findings.some((finding) => finding.reference === 'DEC-296')).toBe(true);
+  });
+
+  it('reports an incorrect declared Decision count', () => {
+    const ids = Array.from({ length: EXPECTED_DEC_COUNT }, (_, index) => index + 1);
+    writeRegister(dir, ids);
+    const register = join(dir, 'docs', 'decisions', 'decisions.md');
+    const text = readFileSync(register, 'utf8').replace('Indexed decisions: **295**', 'Indexed decisions: **294**');
+    writeFileSync(register, text);
+    const findings = checkDecisionRegister(dir, ['docs/decisions/decisions.md']);
+    expect(findings.some((finding) => finding.problem === 'declared indexed Decision count must be 295')).toBe(true);
   });
 
   it('reports a Decision reference that is outside the canonical range', () => {

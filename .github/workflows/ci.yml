@@ -12,8 +12,50 @@ permissions:
   contents: read
 
 jobs:
+  classify:
+    name: Change scope
+    runs-on: ubuntu-24.04
+    outputs:
+      docs_only: ${{ steps.scope.outputs.docs_only }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Classify pull request paths
+        id: scope
+        shell: bash
+        run: |
+          docs_only=false
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && git rev-parse HEAD^1 >/dev/null 2>&1; then
+            docs_only=true
+            saw_path=false
+            while IFS= read -r path; do
+              saw_path=true
+              case "$path" in
+                *.md|.github/ISSUE_TEMPLATE/*) ;;
+                *) docs_only=false; break ;;
+              esac
+              # These Markdown paths can change executable commands, accepted
+              # governance, runtime expectations, or formal release evidence.
+              # They deliberately remain on the full CI path.
+              case "$path" in
+                AGENTS.md|GOAL.md|docs/decisions/*|docs/quality/*|docs/security/*|docs/implementation/agent-collaboration-workflow.md|docs/implementation/work-item-template.md|docs/implementation/milestone-exit-criteria.md|docs/implementation/*acceptance-record*.md|docs/implementation/work-packets/*acceptance-record*.md)
+                  docs_only=false
+                  break
+                  ;;
+              esac
+            done < <(git diff --name-only HEAD^1 HEAD)
+            if [ "$saw_path" != "true" ]; then
+              docs_only=false
+            fi
+          fi
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+
   docker-independent:
     name: Docker-independent quality
+    needs: classify
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -41,14 +83,24 @@ jobs:
       - name: Install (frozen lockfile)
         run: corepack pnpm install --frozen-lockfile
       - name: Workspace resolution
+        if: needs.classify.outputs.docs_only != 'true'
         run: corepack pnpm workspace:check
       - name: Docker-independent quality gate (format/lint/typecheck/test/build)
+        if: needs.classify.outputs.docs_only != 'true'
         run: corepack pnpm check
+      - name: Documentation formatting gate
+        if: needs.classify.outputs.docs_only == 'true'
+        shell: bash
+        run: |
+          git diff --name-only -z HEAD^1 HEAD -- '*.md' '.github/ISSUE_TEMPLATE/**' \
+            | xargs -0 corepack pnpm exec prettier --check --ignore-unknown
       - name: Repository checks (Markdown links, Decision register, Secret scan)
         run: corepack pnpm repository:check
 
   integration-smoke:
     name: Integration smoke (Docker)
+    needs: classify
+    if: needs.classify.outputs.docs_only != 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -80,6 +132,8 @@ jobs:
 
   browser-smoke:
     name: M1/M2 browser smoke (Chromium)
+    needs: classify
+    if: needs.classify.outputs.docs_only != 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
