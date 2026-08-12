@@ -1,26 +1,26 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M1 completed; M2 is in progress. M2 Source, Workflow, Fetcher, Workspace, and acceptance-harness Work Items are completed. `M2-GOV-005` remains **Completed — Exit Review Blocked** in [M2 Acceptance Record 001](docs/implementation/m2-acceptance-record-001.md) on reviewed commit `c64fe74ab27513b07a2eb95e86c8f55b90245923`; its recorded `nanoid` advisory blocker was remediated by `M2-MAINT-002` through PR #142, squash merge `5b9640707217aba3d7f59c14f2343e6fcc7f102b`, with Issue #139 closed. M2 remains In Progress pending a new numbered exit review and M3 remains Not Started.
-**Last updated:** 2026-08-08
+**Current stage:** M0 and M1 are completed. The M2 Source/Workflow implementation is present, but M2 remains In Progress until one accepted current-main exit record is merged. M3 is Not Started.
+**Last updated:** 2026-08-12
 
 ## 1. Project identity and current stage
 
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
-The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the private Login → Dashboard → Content Package Workspace loop and its Domain/persistence/security foundations. M2 — Source and Workflow Foundation — is in progress; its Source, Workflow, delivery, Gateway, recovery, Result, public-transport, Candidate/Snapshot, Queue-to-Gateway Fetcher, internal current-Approved Source input projection, private notification-only SSE, Source Intake Workspace, and Source Review and Approval Workspace foundations through `M2-WEB-001B` are completed. `M2-FETCH-001` is completed through PR #100, squash merge `4fe20a48a02b83ec68886bae68b86f5e65ba3895` (`feat: add queue-to-gateway Fetcher orchestration (#100)`); `M2-SRC-004` is completed through PR #104, squash merge `d2ec063743681b64f0406b4903805700bd9866e3` (`feat: add approved Source input projection (#104)`); `M2-WF-004A` is completed through PR #108, squash merge `acdb971ffd8a1c8898666182ac017817f095e1b7` (`feat: add workflow projection and timeline queries (#108)`), with owner-scoped authoritative Workflow projection and Timeline REST reads. `M2-WF-004B` is completed through PR #112, squash merge `d9460747c530797dc11c341374183ad57e7fa85e` (`feat: add workflow SSE recovery (#112)`), with private notification-only SSE and a reusable browser recovery controller. `M2-WEB-001B` is completed through PR #122, squash merge `9af5f68b8846ab172bff7599657c9409faed85c4` (`feat: add Source review and approval workspace (#122)`). `M2-QUAL-001` is completed through PR #126, squash merge `4ee1911c69d9ad55bbb34a3729be3cd3d9625f23` (`test: add M2 acceptance harness (#126)`). `M2-GOV-005` remains Completed — Exit Review Blocked in [M2 Acceptance Record 001](docs/implementation/m2-acceptance-record-001.md); its recorded `nanoid` advisory blocker was remediated by `M2-MAINT-002` through PR #142, squash merge `5b9640707217aba3d7f59c14f2343e6fcc7f102b`, with Issue #139 closed. M2 remains incomplete pending a new numbered exit review and M3 remains Not Started.
-
-`M2-WEB-001A` is completed through PR #118, squash merge `58d2e8ca1f80d0ea03ef991aa22f40c3b058c25c` (`feat: add Source intake workspace (#118)`). The active Workspace now provides Source intake, explicit Source Working Copy review and save, immutable Version history, exact Review Candidate human Approval, and a safe REST Workflow Timeline composed through the existing notification/Polling recovery controller. Source Approval does not transition `source_review` or append a Workflow Timeline Event, and archived Package review commands remain unavailable. Research, Agent, Render, and Export behavior remain unimplemented.
+The repository has completed **M0** and **M1 — Product Skeleton and Domain Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed private Login → Dashboard → Content Package Workspace loop. M2 now includes Source intake/review/Approval, URL Fetcher, Queue/lease recovery, owner-scoped Workflow reads, private SSE notification, and the acceptance harness. Its acceptance history remains in the M2 Records and Git history; do not reproduce that chronology here. Research, Agent, Render, and Export behavior remain unimplemented.
 
 ## 2. Product goal and MVP boundary
 
-The formal MVP follows this bounded flow:
+DEC-295 rebaselines the formal MVP to this bounded text-first flow:
 
 ```text
-Source → Research → Human Opinion → Blog / Xiaohongshu → Design → Render → Export
+Source → Research → Human Opinion or Research-based Mode
+→ approved Blog Markdown + approved Xiaohongshu text
+→ manual text export
 ```
 
-It is a private web application with human review. Blog and Xiaohongshu are independent outputs from the same Content Foundation; both are required for the formal MVP. Publishing is manual. Do not duplicate the full scope here—read the [MVP Scope](docs/product/mvp-scope.md).
+It is a private web application with human review. Blog and Xiaohongshu remain independent outputs from the same Content Foundation; both are required. Design, image generation, PNG Render, rich asset packages, production deployment, backup/restore, and automatic publishing are post-MVP. Read the [MVP Scope](docs/product/mvp-scope.md) and the approved execution [Goal](GOAL.md).
 
 ## 3. Authoritative documents
 
@@ -31,7 +31,7 @@ Read only the documents relevant to the Work Item, in this order:
 - Architecture Current-truth: [domain](docs/architecture/domain-overview.md), [versioning](docs/architecture/artifact-versioning.md), [technical architecture](docs/architecture/technical-architecture.md), [topology](docs/architecture/process-topology.md), [repository structure](docs/architecture/repository-structure.md), [workflow](docs/architecture/workflow-overview.md), [agent runtime](docs/architecture/agent-runtime.md), and [rendering](docs/architecture/rendering.md).
 - Security Current-truth: [data classification](docs/security/data-classification.md), [security baseline](docs/security/security-baseline.md), [source fetcher](docs/security/source-fetcher.md), and [secret management](docs/security/secret-management.md).
 - Quality Current-truth: [test strategy](docs/quality/test-strategy.md), [vertical-slice acceptance](docs/quality/vertical-slice-acceptance.md), and [release gates](docs/quality/release-gates.md).
-- Implementation governance: [roadmap](docs/implementation/roadmap.md), [milestone exit criteria](docs/implementation/milestone-exit-criteria.md), and [Work Item template](docs/implementation/work-item-template.md).
+- Implementation governance: [Goal](GOAL.md), [roadmap](docs/implementation/roadmap.md), [milestone exit criteria](docs/implementation/milestone-exit-criteria.md), and [Work Item template](docs/implementation/work-item-template.md).
 
 [Sessions](docs/sessions/) preserve historical discussion; [vision.md](docs/product/vision.md) preserves product background. Neither is the normal implementation entry point.
 
@@ -53,10 +53,10 @@ Do not select packages, versions, providers, images, or CI products unless a Rea
 
 ## 6. Architecture and process boundaries
 
-- Build a TypeScript **modular monolith** with isolated `web`, `api`, `worker`, `fetcher`, and `renderer` processes—not microservices with independent databases.
+- Build a TypeScript **modular monolith** with isolated `web`, `api`, `worker`, and `fetcher` processes for the text-first MVP. The existing `renderer` entry point remains dormant until post-MVP visual work; these are not microservices with independent databases.
 - PostgreSQL is the authoritative state source. Redis/BullMQ transports work; it is not Workflow truth.
 - Domain Core must not depend on a framework, ORM, queue, or provider SDK.
-- Fetcher and Renderer have separate least-privilege identities. Renderer has no public network access and no LLM access.
+- Fetcher has a least-privilege identity. When Renderer is activated post-MVP, it has a separate identity, no public network access, and no LLM access.
 - API owns domain-state changes. Web, workers, and tools do not bypass API/domain rules by writing state directly.
 
 ## 7. Domain and versioning invariants
@@ -100,19 +100,30 @@ Keep review and defensive design proportional to credible product risk:
 - Cover accepted invariants and plausible failure paths without repeatedly defending against effectively unreachable variants.
 - Use rubrics to support engineering judgment, not as mechanical checklists that override context, risk, or product value.
 
+Default to the shortest evidence path that proves the affected behavior:
+
+- An ordinary reversible change uses one Work Item, one implementation branch, one independent review, and the affected tests. The same agent may plan and implement; it may not independently approve its own change.
+- A GitHub Issue may be the Work Item. A separate Work Packet, planning-only Pull Request, dual review, or postmerge reconciliation is required only for a milestone exit, an immutable Acceptance Record, an irreversible migration, a production action, or an explicitly high-risk security/architecture change.
+- Do not require literal command ledgers, exact working-tree cardinalities, serialized tool-return values, byte-for-byte documentation reconstruction, or repeated status snapshots for ordinary implementation. Record commands and results once in the Pull Request or completion report.
+- A normal test, formatting, CI, or tool failure may be diagnosed and corrected on the same branch, followed by the smallest relevant rerun. Strict first-failure freeze/no-rerun rules apply only when a Work Item explicitly protects destructive, production, migration, or immutable acceptance evidence.
+- Documentation-only changes run formatting, repository documentation checks, and `git diff --check`. They do not run Docker Integration or Browser suites unless they change commands, test harness behavior, release evidence, or runtime configuration.
+- Security review is trigger-based. Require focused security review for Authentication/Authorization, external input or network access, Secrets, private data, Object Storage access, rendering active content, deletion/restore, production configuration, or a changed security boundary. Otherwise state `No new security boundary` and rely on existing baseline tests.
+- Controls for capabilities that do not exist yet—Model Providers, Agent tools, Renderer execution, Export, backup/restore, production deployment—must not block earlier milestones. Introduce and verify them with the capability that creates the risk.
+- Formatting fixes, evidence wording, and review corrections stay in the same Work Item unless they change scope or invalidate already-merged immutable evidence.
+
 ## 11. Work Item contract
 
-Every Work Item must state: Task ID, Goal, In Scope, Out of Scope, Relevant DEC, Relevant Documents, Acceptance Criteria, Tests, and Documentation Updates. Use the [Work Item template](docs/implementation/work-item-template.md); it also defines Contracts, file boundaries, security review, migration review, and observability requirements.
+Every Work Item must state: Task ID/title, Goal, In Scope, Out of Scope, relevant DEC/specifications, allowed files or modules, Acceptance Criteria, Verification, and Documentation Updates. Use the [Work Item template](docs/implementation/work-item-template.md); add contract, security, migration, observability, or production supplements only when their trigger applies.
 
 For a separated planning, implementation, and independent-review handoff, use the [Agent Collaboration Workflow](docs/implementation/agent-collaboration-workflow.md) and its templates. It does not replace this file, the Work Item contract, or the authority hierarchy.
 
 ## 12. Definition of Ready
 
-Start only a Ready Work Item: its scope, dependencies, relevant Accepted DEC, contracts, testable acceptance criteria, fixtures, security and migration impacts, documentation target, and no Blocking Design Question must be known. See [Definition of Ready](docs/implementation/work-item-template.md#17-definition-of-ready).
+Start only a Ready Work Item: its outcome, scope, dependencies, applicable contracts, testable Acceptance Criteria, affected verification layers, documentation target, and any real security/migration/production impact must be known, with no Blocking Design Question. See [Definition of Ready](docs/implementation/work-item-template.md#5-definition-of-ready).
 
 ## 13. Definition of Done
 
-Required checks, relevant failure handling, documentation synchronization, and every Acceptance Criterion must be evidenced. A done change has no unrelated edits, skipped required test, or Secret, and has a reviewable diff. See [Definition of Done](docs/implementation/work-item-template.md#18-definition-of-done).
+Affected checks, relevant failure handling, documentation synchronization, and every Acceptance Criterion must be evidenced. A done change has no unrelated edits, skipped applicable test, or Secret, and has a reviewable diff approved by one independent reviewer. See [Definition of Done](docs/implementation/work-item-template.md#6-definition-of-done).
 
 ## 14. Documentation sync
 
@@ -149,7 +160,7 @@ M0-QUAL-001 extends the real workspace commands with a local quality toolchain. 
 - `corepack pnpm lint` runs the root flat ESLint configuration across source and configuration files.
 - `corepack pnpm test` runs local, deterministic Vitest unit tests. It does not require Docker or any external service.
 - `corepack pnpm check` runs `format:check`, `lint`, `typecheck`, `test`, and `build` in that order and stops at the first failure.
-- `corepack pnpm check:docs`, `check:decisions`, and `check:secrets` run the focused dependency-free repository-integrity checks; `corepack pnpm repository:check` runs all three. They validate Git-tracked Markdown local links, the Canonical Decision Register (exactly DEC-001–DEC-294, no missing or duplicate), DEC references, and a bounded high-confidence Secret scan. They are Docker-independent and not part of `check`. Read [CI Skeleton](docs/quality/ci-skeleton.md) for their scope.
+- `corepack pnpm check:docs`, `check:decisions`, and `check:secrets` run the focused dependency-free repository-integrity checks; `corepack pnpm repository:check` runs all three. They validate Git-tracked Markdown local links, the Canonical Decision Register (exactly DEC-001–DEC-295, no missing or duplicate), DEC references, and a bounded high-confidence Secret scan. They are Docker-independent and not part of `check`. Read [CI Skeleton](docs/quality/ci-skeleton.md) for their scope.
 - `corepack pnpm test:integration` runs the black-box API/process integration smoke harness against isolated PostgreSQL, Redis, and S3-compatible Object Storage.
 - `corepack pnpm test:integration:concurrent` launches two complete token-owned integration smoke runs concurrently and verifies distinct runtime state, credentials, cleanup ownership, and zero owned residue without touching unrelated harness runs.
 - `corepack pnpm test:browser` runs the M1/M2 owner-browser suite in pinned Playwright Chromium against the same isolated runtime boundary. Both Docker-dependent commands use `tmpfs`, ephemeral loopback ports, and temporary credentials outside the repository; both are intentionally excluded from `check`. Read [Integration Smoke Harness](docs/quality/integration-smoke-harness.md), [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md), and [M2 Acceptance Harness](docs/quality/m2-acceptance-harness.md).

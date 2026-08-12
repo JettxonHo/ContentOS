@@ -2,7 +2,7 @@
 
 **Status:** Current Truth  
 **Scope:** Release governance, Gate categories, release units, evaluation, and rollback boundaries  
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-12
 
 This document defines what must be evaluated before ContentOS application and versioned operational configuration may advance or release. It establishes governance, not CI configuration, a feature-flag system, approver implementation, release storage Schema, or numeric thresholds.
 
@@ -108,6 +108,8 @@ Examples include Title preference, Caption length, edit distance, Approval time,
 
 The tier design describes governance only and does not create a CI configuration.
 
+Documentation-only Pull Requests use a documentation gate: formatting, links/Decision integrity, bounded Secret scan, and diff hygiene. They do not require Integration or Browser execution unless they modify test commands, harness behavior, runtime configuration, or release/acceptance evidence. Required-check configuration should preserve this affected-path distinction rather than forcing expensive unrelated suites.
+
 ## 14. Release Evaluation Record
 
 Every formal release has immutable, auditable evaluation evidence containing at least:
@@ -182,6 +184,6 @@ The following remain open: Release Evaluation storage location; approver model; 
 | ---------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------- |
 | Tests, Evals, Hard Gates, CI, and release records                | DEC-244–DEC-266                  | [Session-023](../sessions/session-023.md)                                           |
 | Agent Runtime, Workflow, Render, and security release boundaries | DEC-125–DEC-139, DEC-177–DEC-243 | [Session-017](../sessions/session-017.md)–[Session-022](../sessions/session-022.md) |
-| M0, M7, M8, and formal MVP completion                            | DEC-275–DEC-285, DEC-291–DEC-293 | [Session-024](../sessions/session-024.md)                                           |
+| M0, post-MVP hardening/deployment, and formal MVP completion     | DEC-275–DEC-285, DEC-291–DEC-295 | [Session-024](../sessions/session-024.md), user confirmation 2026-08-12             |
 
 The authoritative status and wording of Decisions remains in the [Canonical Decision Register Index](../decisions/decisions.md).

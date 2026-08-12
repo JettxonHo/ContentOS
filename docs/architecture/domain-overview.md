@@ -4,7 +4,7 @@
 
 **Scope:** Domain concepts, responsibilities, relationships, and invariants
 
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-12
 
 This document defines the current ContentOS domain language. It describes conceptual ownership and lifecycle boundaries, not code types, Schemas, persistence layouts, APIs, deployable processes, or framework modules.
 
@@ -103,14 +103,14 @@ ContentOS does not use one universal Artifact JSON model to erase the difference
 
 The Source Domain owns capture and the formal material supplied to Research.
 
-| Concept | Domain meaning |
-|---|---|
-| Source Reference | Stable identity and submission context for where material came from. |
-| Raw Snapshot | Immutable evidence of what ContentOS captured at a specific time. A recapture creates another Snapshot. |
-| Extracted Content | Machine-produced readable content derived from one Raw Snapshot. It is not original evidence. |
-| Normalized Source Version | Reviewed, immutable Source content approved as a formal Research input. |
-| Primary Source | The single Source that defines the Package's main content center. |
-| Supporting Source | One of zero to five Sources providing context, verification, disagreement, or supplementary evidence. |
+| Concept                   | Domain meaning                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Source Reference          | Stable identity and submission context for where material came from.                                    |
+| Raw Snapshot              | Immutable evidence of what ContentOS captured at a specific time. A recapture creates another Snapshot. |
+| Extracted Content         | Machine-produced readable content derived from one Raw Snapshot. It is not original evidence.           |
+| Normalized Source Version | Reviewed, immutable Source content approved as a formal Research input.                                 |
+| Primary Source            | The single Source that defines the Package's main content center.                                       |
+| Supporting Source         | One of zero to five Sources providing context, verification, disagreement, or supplementary evidence.   |
 
 The formal chain is:
 
@@ -131,15 +131,15 @@ Source Capture and Research are separate responsibilities. Capture obtains and n
 
 The Research Domain turns approved Source Versions into a structured, reviewable content foundation. Research is not final publishing content.
 
-| Concept | Domain meaning |
-|---|---|
-| Research Result | Stable Artifact representing one Package's structured analysis family. |
-| Research Item | Individually reviewable claim, fact, tension, term, opportunity, question, or other structured unit. |
-| Source Evidence | Typed link from a Research Item to an exact Source Version and stable evidence locator. |
-| Needs Verification | Review state indicating that an item remains uncertain and cannot be presented as a confirmed fact. |
-| Review Working Copy | Mutable review state in which the user accepts, corrects, excludes, or reclassifies Research Items. |
-| Research Version | Immutable checkpoint containing reviewed structured Research and exact Source dependencies. |
-| Approval | Append-only decision authorizing one exact Research Version for downstream use. |
+| Concept             | Domain meaning                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| Research Result     | Stable Artifact representing one Package's structured analysis family.                               |
+| Research Item       | Individually reviewable claim, fact, tension, term, opportunity, question, or other structured unit. |
+| Source Evidence     | Typed link from a Research Item to an exact Source Version and stable evidence locator.              |
+| Needs Verification  | Review state indicating that an item remains uncertain and cannot be presented as a confirmed fact.  |
+| Review Working Copy | Mutable review state in which the user accepts, corrects, excludes, or reclassifies Research Items.  |
+| Research Version    | Immutable checkpoint containing reviewed structured Research and exact Source dependencies.          |
+| Approval            | Append-only decision authorizing one exact Research Version for downstream use.                      |
 
 AI-generated Research remains preserved. User correction creates a new Version through the Review Working Copy rather than changing the generated Version. Only Approved Research Items permitted by policy may enter Human Opinion, Blog, or Xiaohongshu work.
 
@@ -155,13 +155,13 @@ Raw Response
 → Human Opinion Version
 ```
 
-| Concept | Domain meaning |
-|---|---|
-| Raw Response | The user's original words; preserved independently from AI interpretation. |
-| AI Interpretation | A structured proposal for how the system understood the response. It is not yet the user's view. |
-| Confirmed Opinion Statement | A position, judgment, experience, or recommendation explicitly accepted by the user. |
-| Editorial Expression | Optional AI-assisted wording that preserves a Confirmed Opinion and requires confirmation before representing the user. |
-| Human Opinion Version | Immutable set of confirmed opinion content and its exact Research dependency. |
+| Concept                     | Domain meaning                                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Raw Response                | The user's original words; preserved independently from AI interpretation.                                              |
+| AI Interpretation           | A structured proposal for how the system understood the response. It is not yet the user's view.                        |
+| Confirmed Opinion Statement | A position, judgment, experience, or recommendation explicitly accepted by the user.                                    |
+| Editorial Expression        | Optional AI-assisted wording that preserves a Confirmed Opinion and requires confirmation before representing the user. |
+| Human Opinion Version       | Immutable set of confirmed opinion content and its exact Research dependency.                                           |
 
 First-person claims must trace to an eligible Confirmed Opinion Statement and, for experience claims, to confirmed experience. AI Interpretation alone never grants that authority.
 
@@ -171,15 +171,15 @@ Research-based Mode is a legal workflow path when the user skips Human Opinion o
 
 The Publishing Domain owns the two formal platform content families.
 
-| Concept | Domain meaning |
-|---|---|
-| Blog Artifact | Stable identity for the long-form Blog content family. Its MVP canonical Body is Markdown. |
+| Concept              | Domain meaning                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Blog Artifact        | Stable identity for the long-form Blog content family. Its MVP canonical Body is Markdown.                         |
 | Xiaohongshu Artifact | Stable identity for the platform-native title, carousel pages, Caption, CTA, Hashtags, references, and provenance. |
-| Blog Plan | Generation metadata describing the intended Blog structure; it is not a second canonical Blog Body. |
-| Packaging Plan | Generation metadata describing the Xiaohongshu narrative and content allocation; it is not publishable content. |
-| Working Copy | Mutable editing state for one Artifact family. |
-| Approved Version | Exact immutable Version authorized by an append-only Approval Record and selected by the Artifact Head. |
-| Export Package | Portable, user-facing delivery package produced from eligible approved content and dependencies. |
+| Blog Plan            | Generation metadata describing the intended Blog structure; it is not a second canonical Blog Body.                |
+| Packaging Plan       | Generation metadata describing the Xiaohongshu narrative and content allocation; it is not publishable content.    |
+| Working Copy         | Mutable editing state for one Artifact family.                                                                     |
+| Approved Version     | Exact immutable Version authorized by an append-only Approval Record and selected by the Artifact Head.            |
+| Export Package       | Portable, user-facing delivery package produced from eligible approved content and dependencies.                   |
 
 Blog and Xiaohongshu consume the same Approved Content Foundation:
 
@@ -195,16 +195,16 @@ They are planned, generated, edited, versioned, validated, and approved independ
 
 The Visual and Asset Domain translates an Approved Xiaohongshu Version into reviewable visual intent and approved visual dependencies.
 
-| Concept | Domain meaning |
-|---|---|
-| Design Specification | Authoritative structured contract between Visual planning and deterministic rendering. |
-| Component Registry | Versioned set of allowed visual components and their capabilities. |
-| Brand Theme | Versioned visual tokens and brand rules, separate from component structure. |
-| Asset Request | Structured request describing a needed visual Asset and its communication purpose. |
-| Asset | Stable identity for a visual resource across candidates and replacements. |
-| Asset Version | Immutable visual resource checkpoint with origin, review, attribution, and dependency information. |
-| Design Working Copy | Mutable visual configuration based on exact approved content and configuration Versions. |
-| Design Version | Immutable Design Specification checkpoint with content bindings and exact dependencies. |
+| Concept              | Domain meaning                                                                                     |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
+| Design Specification | Authoritative structured contract between Visual planning and deterministic rendering.             |
+| Component Registry   | Versioned set of allowed visual components and their capabilities.                                 |
+| Brand Theme          | Versioned visual tokens and brand rules, separate from component structure.                        |
+| Asset Request        | Structured request describing a needed visual Asset and its communication purpose.                 |
+| Asset                | Stable identity for a visual resource across candidates and replacements.                          |
+| Asset Version        | Immutable visual resource checkpoint with origin, review, attribution, and dependency information. |
+| Design Working Copy  | Mutable visual configuration based on exact approved content and configuration Versions.           |
+| Design Version       | Immutable Design Specification checkpoint with content bindings and exact dependencies.            |
 
 Visual Agent may select registered components, define hierarchy, bind content, and request Assets. It must not alter Approved Xiaohongshu Canonical Content or maintain a second editable copy. A content-fit problem returns to Packaging review or becomes a Blocking Error.
 
@@ -212,34 +212,34 @@ Only an Approved Design Version and Approved Asset Versions may enter Final Rend
 
 ## 10. Render and Export Domain
 
-| Concept | Domain meaning |
-|---|---|
-| Render Job | One requested rendering execution with fixed input dependencies and eligibility rules. |
-| Render Output | Immutable, versioned result of a successful render, including complete files, validation, hashes, and environment identity. |
-| Preview Render | Review aid that may use a Design Working Copy and preview-eligible Asset candidates. It is not export-eligible. |
-| Final Render | Atomic, validated output produced only from Approved Design and Asset Versions and other legal dependencies. |
+| Concept        | Domain meaning                                                                                                              |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Render Job     | One requested rendering execution with fixed input dependencies and eligibility rules.                                      |
+| Render Output  | Immutable, versioned result of a successful render, including complete files, validation, hashes, and environment identity. |
+| Preview Render | Review aid that may use a Design Working Copy and preview-eligible Asset candidates. It is not export-eligible.             |
+| Final Render   | Atomic, validated output produced only from Approved Design and Asset Versions and other legal dependencies.                |
 | Export Package | User-facing delivery bundle assembled from exact approved content and, for Xiaohongshu, the selected eligible Final Render. |
 
 Render Output and Export Package are separate objects: the former records internal pixel production; the latter organizes the files and publishing preparation metadata delivered to the user.
 
 Preview and Final Render have different eligibility rules. A Preview cannot become a formal Export merely because it looks complete. Re-rendering creates a new Render Output and never overwrites historical output.
 
-`Exported` does not mean `Published`. Publication remains an external user action in the MVP.
+`Exported` does not mean `Published`. Publication remains an external user action.
 
-ContentOS's MVP Renderer primarily produces Xiaohongshu carousel PNGs. Blog output is portable Markdown plus assets; public Blog rendering belongs to the publishing site rather than the ContentOS MVP Renderer.
+The text-first MVP exports Blog Markdown and Xiaohongshu text/carousel data without a Renderer. The post-MVP Renderer may produce Xiaohongshu carousel PNGs; public Blog rendering belongs to the publishing site rather than ContentOS.
 
 ## 11. Workflow Domain
 
-| Concept | Domain meaning |
-|---|---|
-| Workflow Template | Versioned, fixed definition of allowed MVP stages, branches, Gates, and transitions. |
-| Workflow Instance | One Package-specific enactment of a Workflow Template. |
-| Workflow Node State | Execution progress of one workflow step. |
-| Workflow Command | Structured, authorized request for a state-changing action. |
-| Workflow Event | Append-only record of user-visible orchestration activity and history. |
-| Task | Specific unit of work intended by the Workflow. |
-| Current Action | Derived explanation of the next legal user or system action. |
-| Human Gate | Workflow Node that requires explicit user review or confirmation. |
+| Concept             | Domain meaning                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| Workflow Template   | Versioned, fixed definition of allowed MVP stages, branches, Gates, and transitions. |
+| Workflow Instance   | One Package-specific enactment of a Workflow Template.                               |
+| Workflow Node State | Execution progress of one workflow step.                                             |
+| Workflow Command    | Structured, authorized request for a state-changing action.                          |
+| Workflow Event      | Append-only record of user-visible orchestration activity and history.               |
+| Task                | Specific unit of work intended by the Workflow.                                      |
+| Current Action      | Derived explanation of the next legal user or system action.                         |
+| Human Gate          | Workflow Node that requires explicit user review or confirmation.                    |
 
 Artifact State, Workflow Node State, and Workflow Instance State are different state categories:
 
@@ -251,16 +251,16 @@ A user-facing current stage may be derived from these states but cannot replace 
 
 ## 12. Agent Execution Domain
 
-| Concept | Domain meaning |
-|---|---|
-| Agent Spec | Versioned authoritative behavior Contract: purpose, responsibilities, prohibited actions, input/output expectations, capabilities, and validation policy. |
-| Prompt Template | Independently versioned model-facing expression of an Agent Spec. |
-| Model Configuration | Independently versioned approved provider/model capability and execution configuration; it contains a Credential Reference, not a Secret. |
-| Agent Run | One logical execution under a fixed Agent Spec, Prompt Template, Runtime Policy, Model Configuration, and Frozen Input Snapshot. |
-| Model Call Attempt | One provider invocation inside an Agent Run. Fallback, repair, or regeneration creates another Attempt. |
-| Frozen Input Snapshot | Immutable record of exact input and configuration Versions used when the Agent Run started. |
-| Candidate | Parsed output that may be evaluated for domain use but has no approval or execution authority. |
-| Promotion | Deterministic process that validates a Candidate and decides whether it may create a Version or become a Review Candidate. |
+| Concept               | Domain meaning                                                                                                                                            |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent Spec            | Versioned authoritative behavior Contract: purpose, responsibilities, prohibited actions, input/output expectations, capabilities, and validation policy. |
+| Prompt Template       | Independently versioned model-facing expression of an Agent Spec.                                                                                         |
+| Model Configuration   | Independently versioned approved provider/model capability and execution configuration; it contains a Credential Reference, not a Secret.                 |
+| Agent Run             | One logical execution under a fixed Agent Spec, Prompt Template, Runtime Policy, Model Configuration, and Frozen Input Snapshot.                          |
+| Model Call Attempt    | One provider invocation inside an Agent Run. Fallback, repair, or regeneration creates another Attempt.                                                   |
+| Frozen Input Snapshot | Immutable record of exact input and configuration Versions used when the Agent Run started.                                                               |
+| Candidate             | Parsed output that may be evaluated for domain use but has no approval or execution authority.                                                            |
+| Promotion             | Deterministic process that validates a Candidate and decides whether it may create a Version or become a Review Candidate.                                |
 
 Task, Agent Run, and Model Call Attempt are distinct:
 
@@ -277,15 +277,15 @@ Raw Model Output is untrusted diagnostic input. After parsing and validation it 
 
 The Security Domain defines ownership, identity, sensitive references, audit, and lifecycle controls at a conceptual level.
 
-| Concept | Domain meaning |
-|---|---|
-| Owner | The single user who owns a root Content Package and its owned or derived data. |
-| Principal | Authenticated security identity evaluated for authorization, such as a user or Service Identity. A Principal is distinct from a domain Actor. |
-| Service Identity | Least-privilege Principal assigned to a background or isolated service boundary. |
-| Credential Reference | Non-secret reference used to resolve a credential through the Secret boundary. |
-| Security Audit Event | Append-only record of security-relevant access or configuration activity, distinct from a Workflow Event. |
-| Retention Policy | Versioned rules governing how long different data classes and records are retained. |
-| Delete Request | Explicit lifecycle request that initiates authorization, impact analysis, confirmation, and policy-governed purge. It is not Archive. |
+| Concept              | Domain meaning                                                                                                                                |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Owner                | The single user who owns a root Content Package and its owned or derived data.                                                                |
+| Principal            | Authenticated security identity evaluated for authorization, such as a user or Service Identity. A Principal is distinct from a domain Actor. |
+| Service Identity     | Least-privilege Principal assigned to a background or isolated service boundary.                                                              |
+| Credential Reference | Non-secret reference used to resolve a credential through the Secret boundary.                                                                |
+| Security Audit Event | Append-only record of security-relevant access or configuration activity, distinct from a Workflow Event.                                     |
+| Retention Policy     | Versioned rules governing how long different data classes and records are retained.                                                           |
+| Delete Request       | Explicit lifecycle request that initiates authorization, impact analysis, confirmation, and policy-governed purge. It is not Archive.         |
 
 Owner data must not be mixed across Packages or authorization boundaries. Agents and Services receive only the capabilities and data needed for the Task. The exact authentication, storage, encryption, purge, and audit mechanisms belong to Security specifications.
 
@@ -340,38 +340,38 @@ Framework modules do not define these domain boundaries. A framework composition
 
 ## 17. Terminology Glossary
 
-| Term | Canonical meaning |
-|---|---|
-| Content Package | Business aggregate root and product-level entry for one content-production project. |
-| Artifact | Stable content-asset identity across Working Copies and Versions. |
-| Working Copy | Mutable, revision-controlled editing state; not formal history. |
-| Artifact Version | Immutable content checkpoint with exact dependencies and Schema Version. |
-| Artifact Head | Explicit pointers to Working Copy, Latest Version, Review Candidate, and Approved Version. |
-| Approval | Append-only authorization of one exact immutable Version. |
-| Content Foundation | Approved Research plus Confirmed Human Opinion, or explicit Research-based Mode. |
-| Dependency | Exact upstream Version relationship used for reproducibility and eligibility. |
-| Provenance | Typed trace from content or output to evidence, user contribution, Asset origin, or transformation. |
-| Stale | Upstream analysis or execution result that no longer reflects the current input context. |
-| Outdated | Downstream Artifact or output based on an older approved dependency; historical content remains valid. |
-| Invalidated | Object known to have a defect, integrity failure, or security problem; not the normal result of an upstream update. |
-| Candidate | Validatable proposed output without approval or execution authority. |
-| Promotion | Deterministic eligibility process for moving a Candidate toward formal Artifact state. |
-| Human Gate | Workflow step requiring an explicit user decision. |
-| Render Output | Immutable internal pixel-generation result. |
-| Export Package | Portable delivery bundle prepared for manual use or publication. |
-| Owner | User who owns the Package and its owned or derived data. |
+| Term               | Canonical meaning                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Content Package    | Business aggregate root and product-level entry for one content-production project.                                 |
+| Artifact           | Stable content-asset identity across Working Copies and Versions.                                                   |
+| Working Copy       | Mutable, revision-controlled editing state; not formal history.                                                     |
+| Artifact Version   | Immutable content checkpoint with exact dependencies and Schema Version.                                            |
+| Artifact Head      | Explicit pointers to Working Copy, Latest Version, Review Candidate, and Approved Version.                          |
+| Approval           | Append-only authorization of one exact immutable Version.                                                           |
+| Content Foundation | Approved Research plus Confirmed Human Opinion, or explicit Research-based Mode.                                    |
+| Dependency         | Exact upstream Version relationship used for reproducibility and eligibility.                                       |
+| Provenance         | Typed trace from content or output to evidence, user contribution, Asset origin, or transformation.                 |
+| Stale              | Upstream analysis or execution result that no longer reflects the current input context.                            |
+| Outdated           | Downstream Artifact or output based on an older approved dependency; historical content remains valid.              |
+| Invalidated        | Object known to have a defect, integrity failure, or security problem; not the normal result of an upstream update. |
+| Candidate          | Validatable proposed output without approval or execution authority.                                                |
+| Promotion          | Deterministic eligibility process for moving a Candidate toward formal Artifact state.                              |
+| Human Gate         | Workflow step requiring an explicit user decision.                                                                  |
+| Render Output      | Immutable internal pixel-generation result.                                                                         |
+| Export Package     | Portable delivery bundle prepared for manual use or publication.                                                    |
+| Owner              | User who owns the Package and its owned or derived data.                                                            |
 
 ## 18. Decision Traceability
 
-| Domain area | Accepted Decisions | Primary historical sources |
-|---|---|---|
-| Content Package, Artifact, identity, ownership, and module boundaries | DEC-005–DEC-006, DEC-030–DEC-032, DEC-160–DEC-176 | [Session-002](../sessions/session-002.md), [Session-007](../sessions/session-007.md), [Session-019](../sessions/session-019.md) |
-| Source and Research | DEC-059–DEC-068, DEC-076–DEC-085 | [Session-011](../sessions/session-011.md), [Session-012](../sessions/session-012.md), [Session-013](../sessions/session-013.md) |
-| Human Opinion | DEC-069–DEC-075 | [Session-012](../sessions/session-012.md) |
-| Blog and Xiaohongshu publishing content | DEC-043–DEC-058, DEC-076–DEC-097 | [Session-009](../sessions/session-009.md), [Session-010](../sessions/session-010.md), [Session-013](../sessions/session-013.md), [Session-014](../sessions/session-014.md) |
-| Visual, Asset, Render, and Export | DEC-098–DEC-124 | [Session-015](../sessions/session-015.md), [Session-016](../sessions/session-016.md) |
-| Workflow and Agent execution | DEC-125–DEC-139, DEC-177–DEC-198 | [Session-017](../sessions/session-017.md), [Session-019](../sessions/session-019.md) |
-| Security concepts | DEC-199–DEC-220 | [Canonical Decision Register Index](../decisions/decisions.md) |
-| Final MVP boundaries | DEC-267–DEC-275, DEC-280–DEC-285, DEC-293 | [Session-024](../sessions/session-024.md) |
+| Domain area                                                           | Accepted Decisions                                | Primary historical sources                                                                                                                                                 |
+| --------------------------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Content Package, Artifact, identity, ownership, and module boundaries | DEC-005–DEC-006, DEC-030–DEC-032, DEC-160–DEC-176 | [Session-002](../sessions/session-002.md), [Session-007](../sessions/session-007.md), [Session-019](../sessions/session-019.md)                                            |
+| Source and Research                                                   | DEC-059–DEC-068, DEC-076–DEC-085                  | [Session-011](../sessions/session-011.md), [Session-012](../sessions/session-012.md), [Session-013](../sessions/session-013.md)                                            |
+| Human Opinion                                                         | DEC-069–DEC-075                                   | [Session-012](../sessions/session-012.md)                                                                                                                                  |
+| Blog and Xiaohongshu publishing content                               | DEC-043–DEC-058, DEC-076–DEC-097                  | [Session-009](../sessions/session-009.md), [Session-010](../sessions/session-010.md), [Session-013](../sessions/session-013.md), [Session-014](../sessions/session-014.md) |
+| Visual, Asset, Render, and Export                                     | DEC-098–DEC-124                                   | [Session-015](../sessions/session-015.md), [Session-016](../sessions/session-016.md)                                                                                       |
+| Workflow and Agent execution                                          | DEC-125–DEC-139, DEC-177–DEC-198                  | [Session-017](../sessions/session-017.md), [Session-019](../sessions/session-019.md)                                                                                       |
+| Security concepts                                                     | DEC-199–DEC-220                                   | [Canonical Decision Register Index](../decisions/decisions.md)                                                                                                             |
+| Final MVP boundaries                                                  | DEC-267–DEC-275, DEC-280–DEC-285, DEC-293–DEC-295 | [Session-024](../sessions/session-024.md), user confirmation 2026-08-12                                                                                                    |
 
 The authoritative status and wording of all Decisions is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).

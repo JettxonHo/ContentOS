@@ -2,7 +2,7 @@
 
 **Status:** Current Truth
 **Scope:** Entry conditions, completion evidence, blocking rules, and formal acceptance for M0–M8
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-12
 
 This document defines what evidence permits a Milestone to pass to its successor. It does not prescribe a calendar, CI implementation, evidence-record Schema, or implementation plan.
 
@@ -28,8 +28,8 @@ Before a Milestone begins, all of the following apply:
 - relevant Current-truth Specifications exist;
 - the required Contract is known;
 - Acceptance Criteria are testable;
-- Security impact is identified;
-- Migration impact is identified;
+- applicable Security impact is identified;
+- applicable Migration impact is identified;
 - no unresolved Blocking Design Question remains.
 
 ## 4. Common Exit Criteria
@@ -72,7 +72,7 @@ A **Warning** may be explicitly acknowledged only when the applicable rule permi
 
 M0-A passes only when the documentation runway has all of the following:
 
-- navigable DEC-001–DEC-294;
+- navigable DEC-001–DEC-295;
 - complete Product, Domain, Technical, Workflow/Runtime/Rendering, Security, and Quality Current-truth;
 - complete Roadmap, Milestone Exit Criteria, and Work Item Template;
 - current, usable `AGENTS.md` and `README.md`;
@@ -119,33 +119,35 @@ M1 requires Authentication and owner checks, Content Package creation, persisten
 
 ## 12. M2 Exit Criteria
 
-M2 requires SSRF denial, Upload Quarantine, Raw Snapshot / Safe Display separation, an Approved Source Version, and URL failure fallback. It also requires duplicate Queue protection, Outbox recovery, Redis-loss reconciliation, Lease recovery, SSE fallback, Workflow Timeline, and proof that Research accepts Approved Source only.
+M2 requires SSRF denial, Upload Quarantine, Raw Snapshot / Safe Display separation, an Approved Source Version, and URL failure fallback. It also requires duplicate Queue protection, Outbox recovery, Redis-loss reconciliation, Lease recovery, SSE fallback, Workflow Timeline, and an owner-scoped projection that exposes only exact Approved Source Versions to future Research.
 
 ## 13. M3 Exit Criteria
 
-M3 requires Frozen Input, Evidence navigation, Unsupported Claim handling, Prompt Injection containment, and Raw Output separation. It also requires Bounded Repair, duplicate Promotion protection, Cancel and Late Result protection, Fake Provider coverage, a Research Eval baseline, and restricted diagnostics.
+M3 requires exact Approved Source input, Evidence navigation, Unsupported Claim handling, Prompt/input separation, and Raw Output separation. It also requires duplicate Promotion protection, Cancel and Late Result protection where applicable, Fake Provider coverage, one bounded real-Provider path when separately authorized, a small Research Eval baseline, and restricted diagnostics.
 
 ## 14. M4 Exit Criteria
 
-M4 requires that AI Interpretation receives confirmation and that Confirmed Opinion traces to Raw Response. It requires first-person integrity, Research-based Mode, Citation and Direct Quote handling, Revision Proposal, autosave, Revision Conflict, an immutable Blog Version, Approved Blog Export, and Writer Eval evidence.
+M4 requires that AI Interpretation receives confirmation and that Confirmed Opinion traces to Raw Response. It requires first-person integrity, Research-based Mode, Citation and Direct Quote handling, direct Markdown editing, a Working Copy, immutable Blog checkpoint Versions, exact Approval, portable `article.md` export, and a small Writer evidence set. Selective-apply Diff, rich Blocks, asset packaging, and automated import are not M4 gates.
 
 ## 15. M5 Exit Criteria
 
-M5 requires independent Xiaohongshu generation, 6–10 pages with the default 8-page route, Page Purpose, and Platform / Cover title separation. It requires Caption complementarity, first-person rules, density validation, outdated propagation, Approved Xiaohongshu before Visual work, and Packaging Eval evidence.
+M5 requires independent Xiaohongshu generation, 6–10 text pages with the default 8-page route, Page Purpose, and Platform / Cover title separation. It requires Caption complementarity, first-person rules, density validation, direct editing/order, outdated propagation, immutable checkpoint Versions, exact Approval, portable Markdown/JSON text export, and a small Packaging evidence set.
+
+M5 also requires one current-main text-first acceptance run from supported Sources through reviewed Research and Opinion/Research-based Mode to both approved text exports. This Acceptance Record completes the formal MVP defined by DEC-295. Design, image, Renderer, rich package, backup/restore, and production deployment evidence are not M5 gates.
 
 ## 16. M6 Exit Criteria
 
-M6 requires that Visual does not modify Xiaohongshu, that only Registered Components are used, and that Content Binding is valid. It requires Asset Approval, Renderer network isolation, an LLM-free Renderer, a missing Font blocking Final Render, overflow and clipping detection, an atomic carousel, immutable Render Output, safe Export, and a complete happy-path Vertical Slice.
+M6 is post-MVP. It requires that Visual does not modify Xiaohongshu, that only Registered Components are used, and that Content Binding is valid. It requires Asset Approval, Renderer network isolation, an LLM-free Renderer, a missing Font blocking Final Render, overflow and clipping detection, an atomic carousel, immutable Render Output, and safe rich Export.
 
 ## 17. M7 Exit Criteria
 
-M7 requires all Zero-tolerance conditions to pass and zero unresolved Critical or High security issues or Duplicate Promotion. It provides successful Worker Crash, Redis Loss, Provider Outage, Object Storage Failure, Backup Restore, and Deletion Restore drills; Agent Holdout with no critical regression; Render Regression; resource-limit evidence; validated rollback; and a Release Evaluation Record.
+M7 is post-MVP production hardening. It requires all applicable Zero-tolerance conditions to pass and zero unresolved Critical or High security issues or Duplicate Promotion. It provides the production-relevant recovery drills, Holdout/Render regression for implemented capabilities, resource-limit evidence, validated rollback, and a Release Evaluation Record.
 
 ## 18. M8 Exit Criteria
 
 ### Product
 
-M8 requires an Approved Blog Export, an Approved Xiaohongshu Export, manual fallback, Human Opinion Skip, Version History, Approval, Outdated handling, and manual Publishing guidance.
+M8 revalidates the approved Blog and Xiaohongshu outputs, manual fallback, Human Opinion Skip, Version History, Approval, Outdated handling, and manual Publishing guidance in the production target.
 
 ### Security
 
@@ -161,7 +163,7 @@ Each exit review produces an immutable, reviewable Acceptance Record containing:
 
 ## 20. Failure of Exit Review
 
-On failure, the Milestone remains In Progress or Blocked. It does not advance automatically. A bounded remediation Work Item is created, failure evidence is retained, historical Acceptance Records are not modified, and a new review produces a new Record.
+On failure, the Milestone remains In Progress or Blocked. It does not advance automatically. Correct a reversible defect within the same bounded Work Item and rerun only affected evidence. Create a successor Work Item or new immutable Record only when scope/authority changes, a merged historical Record must remain immutable, or the failed action was destructive/production/irreversible.
 
 ## 21. Exception Governance
 
@@ -169,4 +171,4 @@ Zero-tolerance Gates allow no ordinary Exception. A Conditional Gate requires an
 
 ## 22. Decision Traceability
 
-The central decisions are DEC-244–DEC-266 for quality, Evals, recovery, and release evidence; DEC-267–DEC-286 for MVP scope, M0–M8, and release order; and DEC-291–DEC-293 for completion and Work Item governance. [Session-024](../sessions/session-024.md) is the primary historical milestone source; the [Canonical Decision Register](../decisions/decisions.md) is authoritative.
+The central decisions are DEC-244–DEC-266 for quality, Evals, recovery, and release evidence; DEC-267–DEC-286 for the historical MVP/roadmap baseline; DEC-291–DEC-293 for completion and Work Item governance; and DEC-295 for the text-first MVP rebaseline. [Session-024](../sessions/session-024.md) is the primary historical milestone source; the [Canonical Decision Register](../decisions/decisions.md) is authoritative.

@@ -34,7 +34,7 @@ Keep each commit focused on one Work Item and use a clear conventional-style sub
 
 ## 6. Pull request expectations
 
-Use the [pull-request template](docs/implementation/templates/pull-request-template.md). On GitHub, open the matching native [Pull Request template](.github/pull_request_template.md) after creating the applicable Work Item, Bug, or Decision Review Issue. GitHub forms are an adaptation layer, not a replacement for the authoritative Work Item Contract. A review must identify the Work Item ID, Goal, scope, relevant DEC, verification, security impact, migration impact, documentation changes, known limitations, and confirmation that no unrelated change or Secret is included.
+Use the [pull-request template](docs/implementation/templates/pull-request-template.md). On GitHub, open the matching native [Pull Request template](.github/pull_request_template.md) after creating the applicable Work Item, Bug, or Decision Review Issue. GitHub forms are an adaptation layer, not a replacement for the authoritative Work Item Contract. A review must identify the Work Item ID, Goal, scope, relevant DEC/specification, verification, documentation changes, known limitations, and confirmation that no unrelated change or Secret is included. Add security or migration impact only when the change affects that boundary; otherwise one short `No new security boundary` or `No migration` statement is sufficient.
 
 Associate each GitHub branch and Pull Request with one bounded Issue or Work Item. Do not use GitHub automation, branch-protection settings, or a broad branch strategy unless a later authorized Work Item introduces them.
 
@@ -46,4 +46,4 @@ Associate each GitHub branch and Pull Request with one bounded Issue or Work Ite
 
 ## 8. Review checklist
 
-Review against the [Definition of Done](docs/implementation/work-item-template.md#18-definition-of-done), applicable [Release Gates](docs/quality/release-gates.md), and the Work Item’s Acceptance Criteria. A pass requires evidence, not a statement that the change “looks complete.”
+Review against the [Definition of Done](docs/implementation/work-item-template.md#6-definition-of-done), applicable [Release Gates](docs/quality/release-gates.md), and the Work Item’s Acceptance Criteria. A pass requires affected-layer evidence, not a statement that the change “looks complete.”

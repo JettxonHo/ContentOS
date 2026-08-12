@@ -106,10 +106,10 @@ describe('checkDecisionRegister', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it('passes when the register has exactly DEC-001 through DEC-294 and references resolve', () => {
+  it('passes when the register has exactly DEC-001 through DEC-295 and references resolve', () => {
     const ids = Array.from({ length: EXPECTED_DEC_COUNT }, (_, index) => index + 1);
     writeRegister(dir, ids);
-    writeFileSync(join(dir, 'doc.md'), 'See DEC-001 and DEC-294 for context.\n');
+    writeFileSync(join(dir, 'doc.md'), 'See DEC-001 and DEC-295 for context.\n');
     expect(checkDecisionRegister(dir, ['docs/decisions/decisions.md', 'doc.md'])).toEqual([]);
   });
 
@@ -136,12 +136,12 @@ describe('checkDecisionRegister', () => {
     ).toBe(true);
   });
 
-  it('reports a canonical entry outside the DEC-001-DEC-294 range', () => {
+  it('reports a canonical entry outside the DEC-001-DEC-295 range', () => {
     const ids = Array.from({ length: EXPECTED_DEC_COUNT }, (_, index) => index + 1);
-    ids.push(295);
+    ids.push(296);
     writeRegister(dir, ids);
     const findings = checkDecisionRegister(dir, ['docs/decisions/decisions.md']);
-    expect(findings.some((finding) => finding.reference === 'DEC-295')).toBe(true);
+    expect(findings.some((finding) => finding.reference === 'DEC-296')).toBe(true);
   });
 
   it('reports a Decision reference that is outside the canonical range', () => {

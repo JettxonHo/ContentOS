@@ -4,7 +4,7 @@
 
 **Scope:** Primary user, jobs, responsibilities, and initial success signals
 
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-12
 
 This document defines who the first ContentOS release serves and what that user must be able to accomplish. It does not introduce demographic assumptions, market claims, pricing assumptions, or unverified Persona stories.
 
@@ -99,8 +99,8 @@ The user should be able to:
 4. **Choose the contribution mode.** The user provides and confirms Human Opinion for Creator-led Mode, or explicitly continues in Research-based Mode.
 5. **Form the Content Foundation.** ContentOS binds the approved Research and the applicable Human Opinion Version or mode.
 6. **Work through parallel output branches.** Blog and Xiaohongshu are independently planned, generated, edited, validated, versioned, and approved.
-7. **Review Xiaohongshu design and rendering.** The user reviews structured design choices, approved Assets, and the final rendered carousel.
-8. **Export both outputs.** The user downloads an Approved Blog Export and an Approved Xiaohongshu Export.
+7. **Export both text outputs.** The user downloads approved Blog Markdown and approved Xiaohongshu text/carousel files.
+8. **Optionally continue into post-MVP visuals.** Design, Assets, and rendered carousel review are not required for first-MVP completion.
 9. **Publish manually.** Publication happens outside ContentOS; Export does not imply Published.
 
 At every stage, the Workspace—not Chat history—shows the authoritative Artifact and workflow state.
@@ -217,13 +217,13 @@ These exclusions do not make claims about future markets; they only bound the cu
 
 ## 15. Decision Traceability
 
-| User or job area | Accepted Decisions | Primary historical sources |
-|---|---|---|
-| Primary user and product form | DEC-014, DEC-019, DEC-267, DEC-273 | [Session-004](../sessions/session-004.md), [Session-005](../sessions/session-005.md), [Session-024](../sessions/session-024.md) |
-| Primary job and dual-output value | DEC-001, DEC-003–DEC-005, DEC-008, DEC-036–DEC-037, DEC-269, DEC-293–DEC-294 | [Session-001](../sessions/session-001.md), [Session-002](../sessions/session-002.md), [Session-008](../sessions/session-008.md), [Session-024](../sessions/session-024.md) |
-| Human Opinion modes and first-person rules | DEC-067–DEC-075, DEC-093 | [Session-012](../sessions/session-012.md), [Session-014](../sessions/session-014.md) |
-| Independent platform work | DEC-086–DEC-097, DEC-147 | [Session-014](../sessions/session-014.md), [Session-018](../sessions/session-018.md) |
-| Review, editing, trust, and history | DEC-145, DEC-150–DEC-155, DEC-271–DEC-272 | [Session-018](../sessions/session-018.md), [Session-024](../sessions/session-024.md) |
-| Non-primary users and excluded product types | DEC-040–DEC-042, DEC-267, DEC-270, DEC-274 | [Session-008](../sessions/session-008.md), [Session-024](../sessions/session-024.md) |
+| User or job area                             | Accepted Decisions                                                           | Primary historical sources                                                                                                                                                                               |
+| -------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Primary user and product form                | DEC-014, DEC-019, DEC-267, DEC-273                                           | [Session-004](../sessions/session-004.md), [Session-005](../sessions/session-005.md), [Session-024](../sessions/session-024.md)                                                                          |
+| Primary job and dual-output value            | DEC-001, DEC-003–DEC-005, DEC-008, DEC-036–DEC-037, DEC-269, DEC-293–DEC-295 | [Session-001](../sessions/session-001.md), [Session-002](../sessions/session-002.md), [Session-008](../sessions/session-008.md), [Session-024](../sessions/session-024.md), user confirmation 2026-08-12 |
+| Human Opinion modes and first-person rules   | DEC-067–DEC-075, DEC-093                                                     | [Session-012](../sessions/session-012.md), [Session-014](../sessions/session-014.md)                                                                                                                     |
+| Independent platform work                    | DEC-086–DEC-097, DEC-147                                                     | [Session-014](../sessions/session-014.md), [Session-018](../sessions/session-018.md)                                                                                                                     |
+| Review, editing, trust, and history          | DEC-145, DEC-150–DEC-155, DEC-271–DEC-272                                    | [Session-018](../sessions/session-018.md), [Session-024](../sessions/session-024.md)                                                                                                                     |
+| Non-primary users and excluded product types | DEC-040–DEC-042, DEC-267, DEC-270, DEC-274                                   | [Session-008](../sessions/session-008.md), [Session-024](../sessions/session-024.md)                                                                                                                     |
 
 The authoritative status and wording of all Decisions is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).

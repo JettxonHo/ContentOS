@@ -48,8 +48,8 @@ export interface RunResult {
   stderr: string;
 }
 
-/** Canonical Decision Register covers exactly DEC-001 through DEC-294. */
-export const EXPECTED_DEC_COUNT = 294;
+/** Canonical Decision Register covers exactly DEC-001 through DEC-295. */
+export const EXPECTED_DEC_COUNT = 295;
 /** Path of the canonical register relative to the repository root. */
 export const DECISION_REGISTER = join('docs', 'decisions', 'decisions.md');
 
@@ -204,7 +204,7 @@ export function checkMarkdownLinks(root: string, files: string[]): LinkFinding[]
 
 /**
  * Verifies canonical Decision Register continuity (exactly one index entry for
- * DEC-001 through DEC-294, no missing or duplicate entries) and that every
+ * DEC-001 through DEC-295, no missing or duplicate entries) and that every
  * DEC-NNN reference in tracked Markdown resolves to the canonical range.
  */
 export function checkDecisionRegister(root: string, files: string[]): DecisionFinding[] {
@@ -246,7 +246,7 @@ export function checkDecisionRegister(root: string, files: string[]): DecisionFi
       findings.push({
         file: DECISION_REGISTER,
         reference: decId(id),
-        problem: 'canonical entry outside range DEC-001-DEC-294',
+        problem: 'canonical entry outside range DEC-001-DEC-295',
       });
     }
   }
@@ -274,7 +274,7 @@ export function checkDecisionRegister(root: string, files: string[]): DecisionFi
         const reference = `DEC-${digits}`;
         if (!reported.has(reference)) {
           reported.add(reference);
-          findings.push({ file: rel, reference, problem: 'Decision reference not in canonical range DEC-001-DEC-294' });
+          findings.push({ file: rel, reference, problem: 'Decision reference not in canonical range DEC-001-DEC-295' });
         }
       }
     }

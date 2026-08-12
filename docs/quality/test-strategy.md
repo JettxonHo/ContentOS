@@ -33,6 +33,21 @@ Tests verify deterministic behavior. Agent Evals assess generative quality. Acce
 - **Reproducible Eval Runs:** the run preserves its input/configuration identity and historical result.
 - **No Hidden Production-data Reuse:** production user content is not silently copied into evaluation material.
 
+### 2.1 Affected-layer verification
+
+Run the smallest layer set that can prove the change. Higher layers are selected by affected behavior, not by Work Item ceremony:
+
+| Change                          | Default verification                                                                     |
+| ------------------------------- | ---------------------------------------------------------------------------------------- |
+| Documentation only              | targeted formatting, repository documentation/decision/Secret checks, `git diff --check` |
+| Pure deterministic module       | targeted unit/validator tests plus root static checks                                    |
+| Database or API contract        | targeted repository/migration/API integration tests plus root static checks              |
+| Queue/process/recovery behavior | targeted Worker/Integration scenario plus root static checks                             |
+| User-visible workflow           | targeted Browser scenario plus the affected lower layers                                 |
+| Security boundary change        | focused security tests for the credible boundary plus affected functional layers         |
+
+Do not run Integration, Concurrent, Browser, Evals, Render, or recovery drills for an unrelated documentation or isolated deterministic change. Do not repeat an already-green unaffected layer merely to produce more evidence. CI may retain broader periodic or main-branch coverage, but a Work Item is judged by affected-layer evidence.
+
 ## 3. Hard Gates versus Dimension Scores
 
 Hard Gates and quality dimensions are separate results.
@@ -244,11 +259,11 @@ The following remain open: Test Runner; lint/formatter; property-based test libr
 
 ## 24. Decision Traceability
 
-| Area                                                                         | Accepted Decisions                        | Primary Sessions                                                                     |
-| ---------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------ |
-| Deterministic tests, Evals, and Gates                                        | DEC-244–DEC-258                           | [Session-023](../sessions/session-023.md)                                            |
-| Zero-tolerance, render, Vertical Slice, recovery, CI, configuration releases | DEC-259–DEC-266                           | [Session-023](../sessions/session-023.md)                                            |
-| Versions, approval, dependencies, workflow, runtime, and rendering           | DEC-051–DEC-139, DEC-177–DEC-198          | [Session-010](../sessions/session-010.md)–[Session-020](../sessions/session-020.md)  |
-| Security and MVP release boundary                                            | DEC-199–DEC-220, DEC-269–DEC-285, DEC-293 | [Session-021](../sessions/session-021.md), [Session-024](../sessions/session-024.md) |
+| Area                                                                         | Accepted Decisions                                | Primary Sessions                                                                                                   |
+| ---------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Deterministic tests, Evals, and Gates                                        | DEC-244–DEC-258                                   | [Session-023](../sessions/session-023.md)                                                                          |
+| Zero-tolerance, render, Vertical Slice, recovery, CI, configuration releases | DEC-259–DEC-266                                   | [Session-023](../sessions/session-023.md)                                                                          |
+| Versions, approval, dependencies, workflow, runtime, and rendering           | DEC-051–DEC-139, DEC-177–DEC-198                  | [Session-010](../sessions/session-010.md)–[Session-020](../sessions/session-020.md)                                |
+| Security and MVP release boundary                                            | DEC-199–DEC-220, DEC-269–DEC-285, DEC-293–DEC-295 | [Session-021](../sessions/session-021.md), [Session-024](../sessions/session-024.md), user confirmation 2026-08-12 |
 
 The authoritative status and wording of Decisions remains in the [Canonical Decision Register Index](../decisions/decisions.md).

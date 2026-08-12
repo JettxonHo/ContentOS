@@ -2,11 +2,11 @@
 
 **Status:** Current Truth
 
-**Scope:** MVP deployable processes, runtime responsibilities, permissions, communication, and recovery boundaries
+**Scope:** Deployable processes, runtime responsibilities, permissions, communication, and recovery boundaries
 
-**Last Updated:** 2026-08-07
+**Last Updated:** 2026-08-12
 
-This document defines the logical runtime topology for the ContentOS MVP. A process boundary provides workload and security isolation; it does not create a microservice, separate Domain model, separate database, or independent release.
+This document defines the logical runtime topology for ContentOS. DEC-295 leaves the Renderer dormant for the text-first MVP. A process boundary provides workload and security isolation; it does not create a microservice, separate Domain model, separate database, or independent release.
 
 Related documents:
 
@@ -20,7 +20,7 @@ Related documents:
 
 ## 1. Process Overview
 
-The MVP has five deployable processes:
+The repository has five deployable process entry points. The text-first MVP uses `web`, `api`, `worker`, and `fetcher`; `renderer` remains dormant until the post-MVP visual capability is implemented:
 
 | Process    | Primary responsibility                                                  | Trust boundary                                                             |
 | ---------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -312,6 +312,6 @@ No choice is made in this document.
 | Task, Outbox, idempotency, and execution records                         | DEC-160–DEC-198                                   | [Session-019](../sessions/session-019.md), [Session-020](../sessions/session-020.md)                                            |
 | Process identity, SSRF, render isolation, Secrets, and telemetry privacy | DEC-199–DEC-220                                   | [Session-021](../sessions/session-021.md)                                                                                       |
 | Five processes, queues, reconciliation, health, and deployment           | DEC-221–DEC-243                                   | [Session-022](../sessions/session-022.md)                                                                                       |
-| M0 and MVP implementation boundary                                       | DEC-267–DEC-293                                   | [Session-024](../sessions/session-024.md)                                                                                       |
+| M0 and MVP implementation boundary                                       | DEC-267–DEC-295                                   | [Session-024](../sessions/session-024.md), user confirmation 2026-08-12                                                         |
 
 The authoritative status and wording of every Decision is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).

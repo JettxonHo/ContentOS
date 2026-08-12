@@ -2,11 +2,11 @@
 
 **Status:** Current Truth
 
-**Scope:** MVP system architecture, approved technology responsibilities, state authority, and implementation constraints
+**Scope:** Product architecture, approved technology responsibilities, state authority, and implementation constraints
 
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-08-12
 
-This document defines the current technical architecture for the ContentOS MVP. It integrates Accepted Decisions into implementation-facing constraints without choosing unresolved package versions, products, deployment vendors, or code structure details.
+This document defines the current technical architecture for ContentOS. DEC-295 makes Renderer and production deployment post-MVP without removing their later architecture boundaries. This document integrates Accepted Decisions into implementation-facing constraints without choosing unresolved package versions, products, deployment vendors, or code structure details.
 
 Related current-truth documents:
 
@@ -21,11 +21,11 @@ Related current-truth documents:
 
 ## 1. Architecture Goals
 
-The MVP architecture must:
+The architecture must:
 
-- Preserve one coherent Domain model across UI, API, asynchronous execution, rendering, and persistence;
+- Preserve one coherent Domain model across UI, API, asynchronous execution, and persistence, with rendering added only post-MVP;
 - Make Workflow, Task, Approval, Version, dependency, and execution state auditable and recoverable;
-- Isolate untrusted public Source retrieval from the application and isolate Browser rendering from public-network access;
+- Isolate untrusted public Source retrieval from the application; isolate Browser rendering from public-network access only when that post-MVP capability is activated;
 - Keep early development, deployment, and operations understandable for a private single-user product;
 - Support deterministic validation, idempotent recovery, and exact execution traceability;
 - Preserve clear module and process boundaries that can scale independently when justified;
@@ -53,50 +53,50 @@ The modular monolith means:
 
 It does **not** mean one executable, one Node.js process, one giant NestJS Module, or unrestricted access to every table.
 
-The `web`, `api`, `worker`, `fetcher`, and `renderer` applications may run as separate processes or containers. They remain parts of one coherently versioned application. ContentOS does not use database-separated microservices in the MVP.
+The repository contains `web`, `api`, `worker`, `fetcher`, and `renderer` application entry points. The text-first MVP does not require the `renderer` capability to run; when activated post-MVP, all five remain parts of one coherently versioned application. ContentOS does not use database-separated microservices.
 
 ## 3. Approved Technical Stack
 
 No exact package version is approved here except the runtime baseline explicitly named by Accepted Decisions.
 
-| Area | Approved technology | Responsibility |
-|---|---|---|
-| Primary language | TypeScript | Web, API, Workers, Agent Runtime, Renderer, shared Contracts, and tooling |
-| Runtime | Node.js 24 LTS | Initial development and production runtime |
-| Workspace | pnpm Workspace | One Monorepo dependency graph and one lockfile |
-| Web | Next.js App Router | Product UI, routes, server-rendered queries, and client Editors |
-| API | NestJS + Fastify | Composition, HTTP adapter, authorization, Commands, Queries, and lifecycle |
-| HTTP contract | REST + OpenAPI | Versioned Application API and generated or synchronized clients |
-| Authoritative data | PostgreSQL | Domain, Workflow, execution, version, approval, and audit metadata |
-| Database access | Drizzle ORM | Schema, typed queries, transactions, Repository Adapters, and migration tooling |
-| Schema change | Reviewed SQL Migrations | Version-controlled and deployment-gated production changes |
-| Short-lived coordination | Redis | BullMQ state, delayed work, retry timing, locks, and bounded coordination |
-| Async dispatch | BullMQ | Delivery of already-authorized Tasks to eligible Workers |
-| File storage | Private S3-compatible Object Storage | Snapshots, uploads, Assets, Previews, Renders, and Exports |
-| Cross-boundary schema | JSON Schema 2020-12 | Persisted Artifact, Agent, Workflow payload, and Export Manifest Contracts |
-| Runtime schema validation | Ajv | JSON Schema validation; not a replacement for Domain or security validation |
-| Browser rendering | Playwright + pinned Chromium | Controlled Preview and Final Render execution |
-| Progress updates | Server-Sent Events | One-way status updates from API to client |
-| Recovery transport | Polling fallback | Restores client state from authoritative read APIs after missed SSE events |
-| Logs | Structured JSON Logs | Machine-readable operational events with redaction |
-| Telemetry | OpenTelemetry Traces and Metrics | Cross-process execution correlation and operational measures |
-| Local orchestration | Docker Compose | Local state services and process topology |
-| Initial production | Single-region container deployment | Private single-user deployment; compute may begin on one host |
+| Area                      | Approved technology                  | Responsibility                                                                  |
+| ------------------------- | ------------------------------------ | ------------------------------------------------------------------------------- |
+| Primary language          | TypeScript                           | Web, API, Workers, Agent Runtime, Renderer, shared Contracts, and tooling       |
+| Runtime                   | Node.js 24 LTS                       | Initial development and production runtime                                      |
+| Workspace                 | pnpm Workspace                       | One Monorepo dependency graph and one lockfile                                  |
+| Web                       | Next.js App Router                   | Product UI, routes, server-rendered queries, and client Editors                 |
+| API                       | NestJS + Fastify                     | Composition, HTTP adapter, authorization, Commands, Queries, and lifecycle      |
+| HTTP contract             | REST + OpenAPI                       | Versioned Application API and generated or synchronized clients                 |
+| Authoritative data        | PostgreSQL                           | Domain, Workflow, execution, version, approval, and audit metadata              |
+| Database access           | Drizzle ORM                          | Schema, typed queries, transactions, Repository Adapters, and migration tooling |
+| Schema change             | Reviewed SQL Migrations              | Version-controlled and deployment-gated production changes                      |
+| Short-lived coordination  | Redis                                | BullMQ state, delayed work, retry timing, locks, and bounded coordination       |
+| Async dispatch            | BullMQ                               | Delivery of already-authorized Tasks to eligible Workers                        |
+| File storage              | Private S3-compatible Object Storage | Snapshots, uploads, Assets, Previews, Renders, and Exports                      |
+| Cross-boundary schema     | JSON Schema 2020-12                  | Persisted Artifact, Agent, Workflow payload, and Export Manifest Contracts      |
+| Runtime schema validation | Ajv                                  | JSON Schema validation; not a replacement for Domain or security validation     |
+| Browser rendering         | Playwright + pinned Chromium         | Controlled Preview and Final Render execution                                   |
+| Progress updates          | Server-Sent Events                   | One-way status updates from API to client                                       |
+| Recovery transport        | Polling fallback                     | Restores client state from authoritative read APIs after missed SSE events      |
+| Logs                      | Structured JSON Logs                 | Machine-readable operational events with redaction                              |
+| Telemetry                 | OpenTelemetry Traces and Metrics     | Cross-process execution correlation and operational measures                    |
+| Local orchestration       | Docker Compose                       | Local state services and process topology                                       |
+| Initial production        | Single-region container deployment   | Private single-user deployment; compute may begin on one host                   |
 
 Python is not the core MVP backend. It may be considered later only behind an explicit isolated boundary when a concrete capability requires it.
 
 ## 4. Source of Truth
 
-| Information | Authority | Non-authoritative representations |
-|---|---|---|
-| Domain entities and ownership | PostgreSQL | Browser state, Queue state, projections |
-| Artifact, Working Copy, immutable Version, and Head | PostgreSQL | Editor cache, SSE events |
-| Workflow, Command, Task, Agent Run, and lease | PostgreSQL | BullMQ Job state, Worker memory |
-| Approval, dependency, Provenance, and warning acknowledgement | PostgreSQL | UI badges, cached summaries |
-| Outbox, Render, Export, and execution metadata | PostgreSQL | Queue state, local files |
+| Information                                                    | Authority              | Non-authoritative representations        |
+| -------------------------------------------------------------- | ---------------------- | ---------------------------------------- |
+| Domain entities and ownership                                  | PostgreSQL             | Browser state, Queue state, projections  |
+| Artifact, Working Copy, immutable Version, and Head            | PostgreSQL             | Editor cache, SSE events                 |
+| Workflow, Command, Task, Agent Run, and lease                  | PostgreSQL             | BullMQ Job state, Worker memory          |
+| Approval, dependency, Provenance, and warning acknowledgement  | PostgreSQL             | UI badges, cached summaries              |
+| Outbox, Render, Export, and execution metadata                 | PostgreSQL             | Queue state, local files                 |
 | Raw snapshots, uploads, Assets, Previews, Renders, and Exports | Private Object Storage | Temporary local workspace, temporary URL |
-| Queue delivery and short-term coordination | Redis / BullMQ | Never the sole business record |
-| Client progress notification | SSE | Never Workflow truth |
+| Queue delivery and short-term coordination                     | Redis / BullMQ         | Never the sole business record           |
+| Client progress notification                                   | SSE                    | Never Workflow truth                     |
 
 The Browser may hold editor and ephemeral UI state, but it cannot authoritatively decide Workflow status. Read APIs resolve current state from PostgreSQL-backed application Queries.
 
@@ -122,14 +122,14 @@ Domain objects and Application Use Cases remain framework-independent. They expo
 
 ## 6. Modular Monolith Boundaries
 
-| Boundary | Meaning |
-|---|---|
-| Domain Module | Owns terminology, invariants, entities, values, errors, and write rules for one business capability |
-| Application Use Case | Coordinates one authorized business action using Domain rules and Ports |
-| Port | Framework-independent capability required by Domain or Application code |
-| Infrastructure Adapter | Implements a Port with PostgreSQL, BullMQ, Object Storage, Provider, or another approved technology |
-| Query Projection | Read-oriented view that may combine data across module-owned tables without gaining write authority |
-| Composition Root | Wires Use Cases, Ports, Adapters, process configuration, and lifecycle at an application entry point |
+| Boundary               | Meaning                                                                                              |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| Domain Module          | Owns terminology, invariants, entities, values, errors, and write rules for one business capability  |
+| Application Use Case   | Coordinates one authorized business action using Domain rules and Ports                              |
+| Port                   | Framework-independent capability required by Domain or Application code                              |
+| Infrastructure Adapter | Implements a Port with PostgreSQL, BullMQ, Object Storage, Provider, or another approved technology  |
+| Query Projection       | Read-oriented view that may combine data across module-owned tables without gaining write authority  |
+| Composition Root       | Wires Use Cases, Ports, Adapters, process configuration, and lifecycle at an application entry point |
 
 Cross-module writes must go through the owning module's Use Case, Command, or Event. A shared database does not authorize one module to update another module's tables directly.
 
@@ -207,13 +207,13 @@ The architecture does not bind ContentOS to a particular cloud, bucket product, 
 
 ContentOS keeps these representations distinct:
 
-| Contract type | Purpose |
-|---|---|
-| TypeScript Domain Type | Internal entities, values, invariants, and Application results |
+| Contract type                       | Purpose                                                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| TypeScript Domain Type              | Internal entities, values, invariants, and Application results                                         |
 | JSON Schema cross-boundary Contract | Runtime validation of persisted Artifacts, Agent input/output, Workflow payloads, and Export Manifests |
-| OpenAPI HTTP Contract | External Application API requests, responses, errors, and versioned endpoints |
-| Database Row | Persistence representation owned by a Repository Adapter |
-| Queue Payload | Minimal dispatch envelope identifying authoritative Task state |
+| OpenAPI HTTP Contract               | External Application API requests, responses, errors, and versioned endpoints                          |
+| Database Row                        | Persistence representation owned by a Repository Adapter                                               |
+| Queue Payload                       | Minimal dispatch envelope identifying authoritative Task state                                         |
 
 The mapping boundary is:
 
@@ -269,9 +269,9 @@ The approved local baseline consists of:
 
 Local development must be repeatable without real model cost or network availability. Real Providers are enabled only for explicit integration or manual testing. The current M0 Compose baseline uses SeaweedFS `weed mini` only as its local S3-compatible implementation; commands, ports, image pinning, and environment-file requirements belong to the Repository and README guidance. This does not select a production Object Storage provider.
 
-## 14. Initial Production Deployment
+## 14. Post-MVP Production Deployment
 
-The initial product is a private, single-user, single-region container deployment. The five compute processes may initially run on one Host while retaining separate process identities, Secrets, networks, and resource boundaries.
+The later production target is a private, single-user, single-region container deployment. The required compute processes may initially run on one Host while retaining separate process identities, Secrets, networks, and resource boundaries.
 
 PostgreSQL, Redis, and Object Storage may be managed or self-hosted. This architecture does not select a VPS, cloud vendor, or managed-service vendor.
 
@@ -332,15 +332,15 @@ These choices require bounded implementation work and must preserve the architec
 
 ## 18. Decision Traceability
 
-| Architecture area | Accepted Decisions | Primary historical sources |
-|---|---|---|
+| Architecture area                                                         | Accepted Decisions                        | Primary historical sources                                                           |
+| ------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------ |
 | Chief Editor, deterministic execution, logical Agents, and Vertical Slice | DEC-023–DEC-025, DEC-036, DEC-038–DEC-039 | [Session-006](../sessions/session-006.md), [Session-008](../sessions/session-008.md) |
-| Domain, persistence, API, dependency, and Outbox foundations | DEC-030–DEC-035, DEC-160–DEC-176 | [Session-007](../sessions/session-007.md), [Session-019](../sessions/session-019.md) |
-| Renderer and Export boundaries | DEC-111–DEC-124 | [Session-016](../sessions/session-016.md) |
-| Workflow, Tasks, idempotency, and Promotion | DEC-125–DEC-139 | [Session-017](../sessions/session-017.md) |
-| Agent Runtime and model boundary | DEC-177–DEC-198 | [Session-020](../sessions/session-020.md) |
-| Security, process identity, Source isolation, and telemetry privacy | DEC-199–DEC-220 | [Session-021](../sessions/session-021.md) |
-| Technical stack, processes, storage, queues, contracts, and deployment | DEC-221–DEC-243 | [Session-022](../sessions/session-022.md) |
-| MVP, M0, implementation, and governance boundary | DEC-267–DEC-293 | [Session-024](../sessions/session-024.md) |
+| Domain, persistence, API, dependency, and Outbox foundations              | DEC-030–DEC-035, DEC-160–DEC-176          | [Session-007](../sessions/session-007.md), [Session-019](../sessions/session-019.md) |
+| Renderer and Export boundaries                                            | DEC-111–DEC-124                           | [Session-016](../sessions/session-016.md)                                            |
+| Workflow, Tasks, idempotency, and Promotion                               | DEC-125–DEC-139                           | [Session-017](../sessions/session-017.md)                                            |
+| Agent Runtime and model boundary                                          | DEC-177–DEC-198                           | [Session-020](../sessions/session-020.md)                                            |
+| Security, process identity, Source isolation, and telemetry privacy       | DEC-199–DEC-220                           | [Session-021](../sessions/session-021.md)                                            |
+| Technical stack, processes, storage, queues, contracts, and deployment    | DEC-221–DEC-243                           | [Session-022](../sessions/session-022.md)                                            |
+| MVP, M0, implementation, and governance boundary                          | DEC-267–DEC-295                           | [Session-024](../sessions/session-024.md), user confirmation 2026-08-12              |
 
 The authoritative status and wording of every Decision is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).

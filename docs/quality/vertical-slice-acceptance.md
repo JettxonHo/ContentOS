@@ -1,213 +1,168 @@
 # ContentOS Vertical Slice Acceptance
 
-**Status:** Current Truth  
-**Scope:** Formal MVP end-to-end acceptance behavior and evidence  
-**Last Updated:** 2026-07-27
+**Status:** Current Truth
+**Scope:** Formal text-first MVP end-to-end acceptance behavior and evidence
+**Last Updated:** 2026-08-12
 
-This specification defines the complete behavior that proves the ContentOS MVP, once implemented, rather than a collection of working pages or model calls. It defines acceptance semantics and evidence, not fixtures, Schema, tooling, thresholds, or implementation code.
+This specification defines the smallest complete behavior that proves the DEC-295 MVP. It tests the user-visible product and authoritative state together; it does not require post-MVP visual production or production deployment.
 
-Related current-truth documents: [Product Definition](../product/product-definition.md), [MVP Scope](../product/mvp-scope.md), [Workflow Overview](../architecture/workflow-overview.md), [Agent Runtime](../architecture/agent-runtime.md), [Rendering](../architecture/rendering.md), and [Security Baseline](../security/security-baseline.md).
+Related documents: [Product Definition](../product/product-definition.md), [MVP Scope](../product/mvp-scope.md), [Workflow Overview](../architecture/workflow-overview.md), [Agent Runtime](../architecture/agent-runtime.md), [Test Strategy](test-strategy.md), and [Security Baseline](../security/security-baseline.md).
 
 ---
 
-## 1. Acceptance Purpose
-
-A Vertical Slice is one complete product behavior across:
-
-```text
-UI → API → Domain → Persistence → Workflow → Queue → Agent Runtime
-→ Validation → Human Gate → Render → Export
-```
-
-It verifies the user-visible product and its authoritative state together. A Queue Job, page, preview, or successful model response alone is not a Vertical Slice completion signal.
-
-## 2. Formal MVP Path
-
-The formal acceptance path is:
+## 1. Acceptance path
 
 ```text
 Create Content Package
-→ Add Source
-→ Capture and Normalize
-→ Review and Approve Source
-→ Generate and Review Research
-→ Confirm or Skip Human Opinion
-→ Generate Blog
-→ Generate Xiaohongshu
-→ Approve Content
-→ Generate Design
-→ Preview
-→ Approve Design
-→ Final Render
-→ Export Blog
-→ Export Xiaohongshu
+→ add and approve Sources
+→ generate, review, and approve Research
+→ confirm Human Opinion or explicitly choose Research-based Mode
+→ generate, edit, validate, and approve Blog Markdown
+→ independently generate, edit, validate, and approve Xiaohongshu text
+→ manually export both approved text outputs
 ```
 
-The flow uses the fixed, versioned Workflow Template, structured commands, durable Tasks, exact dependencies, human Gates, and current eligibility policy.
+A page, Queue Job, model response, Draft, or one output alone is not completion.
 
-## 3. Required Final Results
+## 2. Required final results
 
-Formal MVP acceptance requires all of the following:
+Acceptance requires:
 
-- an Approved Blog Version;
-- an Approved Blog Export Package;
-- an Approved Xiaohongshu Version;
-- an Approved Design Version;
-- a valid immutable Final Render Output;
-- an Approved Xiaohongshu Export Package.
+- an exact Approved Research Version;
+- a Confirmed Human Opinion Version or recorded Research-based Mode;
+- an Approved Blog Version and portable `article.md`;
+- an independently generated Approved Xiaohongshu Version and portable Markdown/JSON text export;
+- exact dependencies and Provenance connecting outputs to their Content Foundation; and
+- no unresolved Blocking Defect in the active flow.
 
-Blog-only behavior is a valid internal Milestone but does not satisfy the formal MVP.
+Design Version, Assets, Final Render, PNG files, ZIP package, production deployment, backup/restore, and automatic publishing are not required.
 
-## 4. Source Acceptance
+## 3. Source acceptance
 
-Acceptance verifies Public URL success, Pasted Text, `.md`, and `.txt` inputs; exactly one Primary Source and **0–5 Supporting Sources**; visible Capture Failure; Manual Fallback; and an Approved Normalized Source.
+Verify supported Public URL, Pasted Text, `.md`, and `.txt` input; one Primary and zero to five Supporting Sources; visible capture failure; manual fallback; review; and exact Source Version Approval.
 
-URL capture preserves distinct Raw Snapshot, Extracted Content, Safe Display, and normalized-review representations. Source capture failure never fabricates success; Pasted Text or allowed upload remains a formal alternative Source path.
+URL capture preserves raw/original evidence, normalized reviewable content, origin metadata, SSRF/resource boundaries, and safe display. Failure never fabricates success.
 
-## 5. Research Acceptance
+## 4. Research acceptance
 
-Research consumes Approved Sources only and provides Evidence navigation. The user can Correct, Exclude, or mark items Needs Verification, producing a new immutable Research Version for review and Approval. Unsupported Claim handling is visible and deterministic: claims without adequate support are blocked or explicitly represented as uncertain, never silently promoted as fact.
+Research consumes only exact Approved Source Versions. It exposes Summary, Facts/Claims, Evidence or locators, Open Questions, and Needs Verification items.
 
-## 6. Human Opinion Acceptance
+The user can correct, exclude, or mark items uncertain, checkpoint an immutable Version, and approve an exact eligible Version. Unsupported claims remain blocked or visibly uncertain. Raw Provider output never becomes approved Research automatically.
 
-### Creator-led Mode
+## 5. Human Opinion acceptance
 
-The flow preserves:
+Creator-led Mode preserves:
 
 ```text
-Raw Response → AI Interpretation → User Confirmation → Confirmed Opinion
+Raw Response → AI Interpretation → User confirmation/correction → Confirmed Opinion
 ```
 
-Only Confirmed Human Opinion makes a first-person statement eligible. The confirmation boundary, original response, and interpretation remain traceable.
+Only confirmed Opinion supports first-person content.
 
-### Research-based Mode
+The user may explicitly choose Research-based Mode. It does not fabricate experience, belief, team activity, recommendation, or personal judgment. A free-form interview system is not required.
 
-The user can Skip Human Opinion. The resulting content is visibly research-based and does not fabricate experience, belief, recommendation, team experience, or first-person opinion.
+## 6. Blog acceptance
 
-## 7. Blog Acceptance
+Verify:
 
-Blog acceptance verifies Blog Plan, mutable Working Copy, autosave, visible Revision Conflict, AI Revision Proposal, selective apply, Citation, Direct Quote, Provenance, immutable Version, Approval, and Export Package.
+- independently generated Blog Draft from the Approved Content Foundation;
+- title, summary, Markdown body, public References, internal Provenance, and Content Mode;
+- direct Markdown edit and preview;
+- Working Copy and immutable checkpoint Version;
+- deterministic validation and exact Version Approval; and
+- manual `article.md` export from the Approved Version.
 
-The Blog uses the exact Approved Content Foundation or valid Research-based Mode. Markdown remains the sole canonical Blog body in the MVP; an AI Proposal cannot silently overwrite the Working Copy or create Approval.
+AI output cannot silently overwrite the Working Copy or create Approval. Rich Blocks, selective-apply Diff, asset package, manifest, and automated publishing are outside this acceptance.
 
-## 8. Xiaohongshu Acceptance
+## 7. Xiaohongshu text acceptance
 
-Xiaohongshu acceptance verifies a Packaging Plan; a 6–10 page carousel with the **Default 8-page** path; Page Purpose; Platform Title; Cover Title; Caption; CTA; Hashtags; page edit and reorder; immutable Version; and Approval.
+Verify:
 
-Platform Title, Cover Title, Page Heading, and Caption remain independently reviewable fields. The Xiaohongshu branch does not derive its canonical editable content by shortening Blog.
+- independent generation rather than Blog shortening;
+- Platform Title candidates/selection and separate Cover Title;
+- ordered 6–10 text pages with the default 8-page path;
+- stable page identity, Page Purpose, heading/body, emphasis, and Provenance;
+- Caption, CTA, Hashtags, and public References;
+- direct field editing and page reordering;
+- Working Copy, immutable checkpoint Version, validation, and exact Approval; and
+- portable Markdown/JSON text export.
 
-## 9. Design and Asset Acceptance
+Visual component choice, Design Specification, image generation, Asset review, PNG Render, clipping/pixel checks, and carousel image export are post-MVP.
 
-Design begins from Approved Xiaohongshu only. Acceptance verifies a versioned Component Registry and Brand Theme, Content Binding, Asset Request, Asset Review, Asset Reject/Replace, Design Version, Design Approval, and Fit Issue handling.
+## 8. Workflow and failure acceptance
 
-The Visual Agent cannot modify canonical Xiaohongshu text. Ineligible content density or bindings return a Fit Issue or Packaging Revision Request rather than silent clipping, rewriting, or layout invention.
+Judge failures by final Domain/Workflow state, not by process output alone. Cover the credible active-flow paths:
 
-## 10. Render Acceptance
+- URL capture failure and supported fallback;
+- malformed Provider output or Provider/task timeout;
+- duplicate Workflow command or Queue delivery;
+- Worker interruption and existing delivery/lease recovery;
+- page refresh and SSE/Polling recovery;
+- cancellation, retry, and late result rejection where applicable;
+- upstream Version change and Outdated propagation; and
+- no duplicate Version, Promotion, Approval, or export eligibility.
 
-Render acceptance verifies Preview and Final separation; Approved dependency eligibility; approved Font; no public-network request; overflow/clipping detection; atomic carousel behavior; retry behavior; immutable Render Output; and Environment Fingerprint.
+Do not add image, Renderer, backup, deletion-restore, production rollback, or unrelated future-capability drills.
 
-A Preview is not Final evidence or Export eligibility. Final Render uses one exact Approved Xiaohongshu Version, Approved Design Version, required Approved Assets, eligible registry/theme/font/profile, and a controlled Renderer environment. One invalid page makes the complete Final carousel unavailable.
+## 9. Security acceptance
 
-## 11. Export Acceptance
+Verify the active boundaries:
 
-The Blog Export Package contains:
+- Authentication and Owner Authorization;
+- private API/Object access;
+- upload validation and safe display;
+- public-URL SSRF/redirect/TLS/resource denial;
+- least-privilege service identities and Secret separation;
+- Prompt/input separation and model output remaining Candidate material;
+- Markdown-safe display and log/error redaction; and
+- no Approval bypass or cross-owner data.
 
-```text
-article.md
-manifest.json
-assets/
-```
+A Security Error remains Blocking. Renderer isolation, asset Export allowlists, backup/restore, public sharing, and production controls are evaluated only when implemented.
 
-The Xiaohongshu Export Package contains:
+## 10. UX and accessibility acceptance
 
-```text
-images/
-post.md
-references.md
-manifest.json
-```
+The Workspace makes Current Stage and Current Action clear; distinguishes Working, Review, Approved, Warning, and Blocking Error; identifies AI Candidates; explains Outdated state; shows failure/retry state; survives refresh; and distinguishes Exported from Published.
 
-Each Export verifies file hashes and exact dependency identity. It contains no Prompt, Raw Output, Secret, temporary URL, or internal diagnostic payload. Exported is not Published; the MVP provides manual download and external manual publication only.
+The active flow supports keyboard use, visible focus, labels, associated errors, non-color-only status, and meaningful heading hierarchy. Formal broader accessibility certification is not required for first MVP completion.
 
-## 12. Failure-path Acceptance
+## 11. Evidence
 
-Acceptance includes URL Capture Failure and Pasted Text fallback; Malformed Model Output; Provider Timeout; Research Correction; Human Opinion Skip; Revision Conflict; duplicate Workflow Command; Duplicate Queue Job; Worker Crash; Redis Job Loss; Agent Late Result; Upstream Version Change; Outdated propagation; Asset Failure; Render Retry; Page Refresh; SSE Disconnect; Pause/Resume; and Cancel.
+The Acceptance Record retains only evidence needed to review the decision:
 
-Every failure path is judged by the final domain and workflow state: no duplicate version or promotion, no cancelled Late Result promotion, no false approval, no skipped human Gate, and clear recovery or human next action.
+- reviewed commit/build;
+- test environment and input fixture;
+- relevant Artifact/Version identities;
+- affected automated checks;
+- Demo Result;
+- active failure/security results;
+- Provider/cost result when a real Provider is used;
+- human reviewer;
+- known limitations, Blocking Defects, and final decision.
 
-## 13. Security Acceptance
+Detailed logs remain in CI/artifacts. Do not copy Secrets, raw Provider payloads, private content, runtime URLs, or terminal transcripts into the Record.
 
-The Vertical Slice includes Authentication, Owner Authorization, Prompt Injection containment, SSRF denial, Upload Quarantine, Secret redaction, Renderer network isolation, Export allowlist behavior, Delete Request, and Restore applying the Deletion Ledger before active data is made available.
+## 12. Milestone application
 
-A Security Error is a blocking outcome. It cannot be turned into ordinary Retry, Fallback, Warning acknowledgement, or manual bypass.
+| Milestone | Acceptance focus                                                               |
+| --------- | ------------------------------------------------------------------------------ |
+| M0        | Development environment and quality entry points                               |
+| M1        | Content Package thin slice                                                     |
+| M2        | Source and Workflow foundation                                                 |
+| M3        | Approved Research                                                              |
+| M4        | Confirmed Opinion/Research-based Mode and Approved Blog Markdown               |
+| M5        | Approved Xiaohongshu text, both manual text exports, and formal MVP acceptance |
+| M6        | Post-MVP Design/Render/rich Export                                             |
+| M7        | Post-MVP production hardening                                                  |
+| M8        | Private production release                                                     |
 
-## 14. UX Acceptance
+## 13. Completion rule
 
-The Workspace makes the Current Stage and Current Action clear; distinguishes Warning from Blocking Error and Working from Review from Approved; visibly identifies AI Proposals; explains Outdated state; shows failure and Retry status; preserves authoritative state through refresh; and distinguishes Export from Published.
+The formal MVP is complete when one current-main run produces both approved text outputs from formal Sources through the reviewable, traceable flow, and the active failure/security paths are green.
 
-Chat may explain or propose an action, but the structured Workspace and authoritative queries remain the source of product state.
+It is not complete with only pages, model calls, Drafts, one output, or an unreviewed happy path. It is not blocked by an unimplemented deferred visual/production capability.
 
-## 15. Accessibility Acceptance
+## 14. Decision traceability
 
-High-level acceptance includes Keyboard navigation, visible focus, form labels, error association, status not communicated by color only, heading hierarchy, alternative text, and accessible progress. The formal accessibility standard, test tooling, and supported browser versions remain Open Implementation Decisions.
+DEC-295 governs the text-first acceptance boundary. DEC-269–DEC-272 preserve independent dual outputs, manual publishing, Human Gates, Versions, dependencies, and Provenance. DEC-244–DEC-266 continue to govern applicable quality evidence. Earlier Design/Renderer/production Decisions apply after MVP when those capabilities begin.
 
-## 16. Recovery Acceptance
-
-Recovery acceptance verifies Worker Crash recovery, Redis Loss reconciliation, Provider Outage behavior, Object Storage Failure behavior, Database Restore, Deletion Restore, absence of duplicate Promotion, and the correct final Domain State.
-
-PostgreSQL-backed Domain state remains authoritative; process memory, Queue state, SSE delivery, browser state, and temporary render files do not decide correctness.
-
-## 17. Acceptance Evidence
-
-Every formal Vertical Slice execution retains:
-
-- Release or Build identity;
-- test environment;
-- input fixture;
-- Artifact IDs and Versions;
-- Workflow Events;
-- Task Results;
-- Validation Results;
-- Render Fingerprint;
-- Export Manifest;
-- Failure-path Results;
-- Human Reviewer;
-- known limitations.
-
-This requirement does not define a persistence Schema or evidence-record format.
-
-## 18. Milestone Application
-
-| Milestone | Acceptance focus                                                    |
-| --------- | ------------------------------------------------------------------- |
-| M0        | Development environment and quality entry points only               |
-| M1        | Content Package Thin Slice                                          |
-| M2        | Source plus Workflow foundation                                     |
-| M3        | Research                                                            |
-| M4        | Human Opinion plus Blog                                             |
-| M5        | Xiaohongshu Content                                                 |
-| M6        | Complete functional Happy Path including Design, Render, and Export |
-| M7        | Failure, Security, Recovery, and Release hardening                  |
-| M8        | Formal Private MVP Release Acceptance                               |
-
-M6 Happy Path does not satisfy M7 Hardening, and no internal milestone represents formal MVP completion by itself.
-
-## 19. Formal Completion Rule
-
-MVP completion is not page completion, a model that can generate content, an occasional Happy Path, Blog-only behavior, Preview Render, or a downloadable file. It requires a complete, auditable, traceable, and recoverable dual-output loop that reaches both approved Export Packages from formal Sources.
-
-## 20. Open Implementation Decisions
-
-The following remain open: Acceptance Fixture content; Acceptance execution tool; supported browser versions; formal accessibility baseline; performance threshold; cost threshold; human-review sample size; and Acceptance Evidence Record format.
-
-## 21. Decision Traceability
-
-| Area                                                              | Accepted Decisions               | Primary Sessions                                                                    |
-| ----------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------- |
-| Source, Research, Human Opinion, Blog, and Xiaohongshu acceptance | DEC-051–DEC-110, DEC-125–DEC-139 | [Session-010](../sessions/session-010.md)–[Session-017](../sessions/session-017.md) |
-| Design, Final Render, and Export                                  | DEC-111–DEC-124                  | [Session-016](../sessions/session-016.md)                                           |
-| Runtime, security, recovery, and topology                         | DEC-177–DEC-243                  | [Session-020](../sessions/session-020.md)–[Session-022](../sessions/session-022.md) |
-| Quality and full Vertical Slice                                   | DEC-244–DEC-266                  | [Session-023](../sessions/session-023.md)                                           |
-| Formal MVP, milestones, release boundary, and completion          | DEC-267–DEC-285, DEC-293         | [Session-024](../sessions/session-024.md)                                           |
-
-The authoritative status and wording of Decisions remains in the [Canonical Decision Register Index](../decisions/decisions.md).
+The [Canonical Decision Register](../decisions/decisions.md) remains authoritative.

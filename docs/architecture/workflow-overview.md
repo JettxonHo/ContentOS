@@ -4,7 +4,7 @@
 
 **Scope:** MVP workflow coordination, state boundaries, Commands, Human Gates, recovery, and execution invariants
 
-**Last Updated:** 2026-08-07
+**Last Updated:** 2026-08-12
 
 This document defines how ContentOS coordinates one Content Package through fixed, auditable, and recoverable Workflow behavior. It defines semantics and boundaries, not database tables, API endpoints, JSON Schemas, concrete enums, or implementation timing values.
 
@@ -281,15 +281,16 @@ Natural-language text is never executed directly. Repeating an equivalent Comman
 
 The MVP retains explicit human decisions at these boundaries:
 
-| Human Gate                 | Human responsibility                                             | Formal effect                                                              |
-| -------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Source Review              | Confirm or correct normalized Source material and Source role    | Authorizes exact Source Version use by Research                            |
-| Research Review            | Accept, correct, exclude, or mark uncertainty and evidence       | May approve one exact Research Version                                     |
-| Human Opinion Confirmation | Confirm, correct, reject, skip, or stop interpreted opinion      | Creates Confirmed Opinion statements or explicit Research-based Mode       |
-| Blog Approval              | Review content, citations, provenance, and warnings              | Approves one exact Blog Version                                            |
-| Xiaohongshu Approval       | Review platform content, page structure, citations, and warnings | Approves one exact Xiaohongshu Version                                     |
-| Design Approval            | Review one Design Version and required Assets                    | Approves exact Design and eligible Asset dependencies                      |
-| Final Export Eligibility   | Confirm the complete approved dependency set and final output    | Authorizes creation or selection of the formal Export Package under policy |
+| Human Gate                 | Human responsibility                                             | Formal effect                                                          |
+| -------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Source Review              | Confirm or correct normalized Source material and Source role    | Authorizes exact Source Version use by Research                        |
+| Research Review            | Accept, correct, exclude, or mark uncertainty and evidence       | May approve one exact Research Version                                 |
+| Human Opinion Confirmation | Confirm, correct, reject, skip, or stop interpreted opinion      | Creates Confirmed Opinion statements or explicit Research-based Mode   |
+| Blog Approval              | Review content, citations, provenance, and warnings              | Approves one exact Blog Version                                        |
+| Xiaohongshu Approval       | Review platform content, page structure, citations, and warnings | Approves one exact Xiaohongshu Version                                 |
+| Text Export Eligibility    | Confirm both approved text outputs and their dependencies        | Authorizes manual portable-text export for the formal MVP              |
+| Post-MVP Design Approval   | Review one Design Version and required Assets                    | Approves exact Design and eligible Asset dependencies                  |
+| Post-MVP Rich Export       | Confirm the complete visual dependency set and final output      | Authorizes creation or selection of a rich Export Package under policy |
 
 AI does not create a human Approval, acknowledge a Warning on the user's behalf, or publish content. A Human Gate cannot use a normal “continue anyway” action to bypass a Blocking Error.
 
@@ -301,10 +302,10 @@ After an Approved Content Foundation exists, the Blog and Xiaohongshu branches m
 - Each branch owns independent Working Copies, Versions, validation, Tasks, Gates, Approval, and outdated state;
 - Failure, Pause, or revision in one branch does not automatically cancel the other branch unless an explicit shared prerequisite becomes ineligible;
 - A newer approved upstream Version propagates outdated state through the Dependency Graph to affected branch Artifacts;
-- Formal Package completion requires both the approved Blog Export and approved Xiaohongshu Export required by the MVP;
+- Formal Package completion requires both approved text exports required by the MVP;
 - A Blog-only completion is an internal Milestone, not formal MVP completion.
 
-The Xiaohongshu visual subflow begins only after an exact Xiaohongshu Version is Approved.
+The optional post-MVP Xiaohongshu visual subflow begins only after an exact Xiaohongshu Version is Approved.
 
 ## 10. Task and Agent Run Relationship
 
@@ -469,6 +470,6 @@ These choices must preserve the semantics and invariants above. A change to Acce
 | Artifact Versions, dependencies, late results, and eligibility                           | DEC-160–DEC-176, DEC-184–DEC-189                  | [Artifact Versioning](artifact-versioning.md), [Session-019](../sessions/session-019.md), [Session-020](../sessions/session-020.md) |
 | PostgreSQL authority, Queue delivery, Outbox, SSE, and Reconciliation                    | DEC-226, DEC-228–DEC-229, DEC-234, DEC-238        | [Session-022](../sessions/session-022.md)                                                                                           |
 | Workflow, Queue, and release tests                                                       | DEC-244–DEC-250, DEC-259, DEC-261                 | [Session-023](../sessions/session-023.md)                                                                                           |
-| Final MVP Gates, implementation order, and recovery requirements                         | DEC-269–DEC-285, DEC-293                          | [Session-024](../sessions/session-024.md)                                                                                           |
+| Final MVP Gates, implementation order, and affected recovery requirements                | DEC-269–DEC-285, DEC-293–DEC-295                  | [Session-024](../sessions/session-024.md), user confirmation 2026-08-12                                                             |
 
 The authoritative status and wording of every Decision is maintained in the [Canonical Decision Register Index](../decisions/decisions.md).
