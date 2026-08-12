@@ -1,25 +1,37 @@
 # M2-QUAL-039 — Complete Worker Outbox Observation Repair Reconstruction and Publication Audit Recovery
 
-**Status:** In Review — Complete Worker Repair Reconstructed; inherited runtime
-evidence accepted; publication pending
+**Status:** Completed — Worker Repair Published; postmerge audit reconciliation
+pending dual reviews, then first eligible three-job CI and Orchestrator merge
 
-**Issue:** #262 is Open and body parity is synchronized by the Orchestrator to
-this fresh current-main Packet/Roadmap head; planning has no Issue, GitHub,
-Git, runtime, or commit mutation authority.
+**Issue:** #262 is Closed by the effective PR #263 publication. This
+postmerge audit has no Issue, GitHub, Git, runtime, or commit mutation
+authority.
 
-**Current merged truth:** PR #260 (`docs: record blocked M2-QUAL-038 replay`)
-is effective from base `e2e1e9c6` to head `32a6813e`, with run `31557773857`
-quality 1m31, Integration 3m02, Browser 2m39, and squash/current main
-`096bb29404154127f493f5dbe6ebea95625cc78f` at
-`2026-08-12T02:46:55Z`. PR #261 (`docs: reconcile M2-QUAL-038 merge status`)
-is the effective docs-only reconciliation from base `096bb294` to current
-main `eb26c5b0bf49fd50916201d7cf6626878446ee84`; no code, Worker, QUAL003,
-runtime, or Issue-state change is inferred from that reconciliation.
+**Effective merged truth:** PR #263 (`test: publish complete Worker
+observation repair`) is effective from base
+`eb26c5b0bf49fd50916201d7cf6626878446ee84` to head
+`ef6c8b936b4ff0751abd4006a3a20ecbbe9fddff` (exact four). First-attempt run
+`31562708126` passed quality in 2m20, Integration in 2m34, and Browser in
+2m39. The squash/current main is
+`c96fd9850484a211a7052b620a3c1adb486cec58` at
+`2026-08-12T04:19:36Z`. The local merge command was nonzero only because the
+local main worktree was occupied; the remote merge was already effective and
+no second merge was attempted.
 
-**Linked Issues:** #259, #257, #256, #255, #253, #208, #204, #196, and #147
-are the bounded Worker-repair chain. #229, #226, #222, #218, #215, #175,
-#184, and #144 remain Open boundaries. M2 remains In Progress, M3 remains Not
-Started, and no M2 exit review is claimed.
+Worker and original QUAL003 are effective through PR #263. PR #260 and PR
+#261 remain historical reconciliation records; their earlier publication
+pending language is superseded by PR #263.
+
+**Premerge evidence boundary:** All later PR #260/PR #261, Issue #262 Open,
+In Review, unpublished, and pending-check/CI/merge statements are retained as
+historical premerge chronology only. They are explicitly superseded by the
+effective PR #263 merge and the Completed/current truth above; the current
+reconciliation path is defined in the postmerge section below.
+
+**Linked Issues:** #262, #259, #257, #256, #255, #253, #208, #204, #196,
+and #147 are closed by the completed Worker-repair publication chain. #229,
+#226, #222, #218, #215, #175, #184, and #144 remain Open boundaries. M2
+remains In Progress, M3 remains Not Started, and no M2 exit review is claimed.
 
 ## Identification
 
@@ -254,7 +266,7 @@ Browser `16/16`, and one outer Concurrent RC0. QUAL039 local Worker/root/
 Integration/Browser/Concurrent invocation counts remain **0 for the entire
 epoch**; no fallback replay or partial inheritance is allowed.
 
-### Exact-four documentation and publication evidence (no local runtime replay)
+### Exact-four documentation and publication evidence (historical premerge; superseded by PR #263)
 
 After the equality boundary, update original QUAL003 from historical text only
 with proposed non-effective status `Completed — Repair Verified through
@@ -285,9 +297,9 @@ Prettier `--check` (RC0), Node24 `repository:check` (RC0), `git diff --check`
 (RC0), and status/scope (RC0, exactly three paths). The exact-four ledger is
 the one three-document formatter write, the same three-document Prettier check,
 Node24 repository, diff, exact-four status/scope, and final Worker equality;
-each ran once with RC0/PASS and no later edit. Only dual actual-shape reviews,
-the first eligible three-job CI, and Orchestrator merge remain pending. The
-postmerge tracked exact-two
+each ran once with RC0/PASS and no later edit. Historical premerge pending
+claims for dual actual-shape reviews, the first eligible three-job CI, and
+Orchestrator merge are superseded by PR #263. The postmerge tracked exact-two
 audit repeats independent Node24 formatter, Prettier check, repository, diff,
 and status commands once; expected status is exactly tracked `M` Packet + `M`
 Roadmap with Worker/QUAL003/code zero.
@@ -297,7 +309,7 @@ authorized in this Work Item. Their only evidence is the named frozen QUAL034
 aggregate inheritance after the equality predicates; local invocation counts
 remain zero.
 
-## Review, CI, merge, and postmerge boundaries
+## Review, CI, merge, and postmerge boundaries (historical premerge contract; superseded by PR #263)
 
 Two independent actual-shape reviews must PASS with no findings after final
 checks. First eligible quality, Integration, and Browser CI on that exact head
@@ -347,10 +359,10 @@ transfers docs recovery to QUAL040.
    replacement, diagnosis, cleanup, hash, probe, or shape forcing; publication
    red/missing transfers to QUAL040.
 
-## Definition of Ready
+## Definition of Ready (historical premerge checkpoint; superseded by PR #263)
 
-- [x] Issue #262 Open/body parity is synchronized by the Orchestrator to this
-      current-main Packet/Roadmap head.
+- [x] Historical checkpoint: Issue #262 was Open/body parity synchronized by
+      the Orchestrator before PR #263; PR #263 now supersedes it as Closed.
 - [x] Two independent Definition-of-Ready reviewers PASS with no findings,
       no Blocking Design Question, and no DEC; the review record is below.
 - [x] Base `eb26c5b`, frozen QUAL034 allowlist, literal commands, exact recipe,
@@ -383,7 +395,7 @@ transfers docs recovery to QUAL040.
   documentation/equality sequence each passed once; no later edit followed.
   No local runtime replay or Git/GitHub/Issue mutation occurred.
 
-## Completion Report (planning)
+## Completion Report (planning; historical premerge checkpoint superseded by PR #263)
 
 - Summary (historical planning checkpoint): fresh current-main QUAL039 planning
   exact two; stale 096bb draft was abandoned before implementation.
@@ -404,12 +416,13 @@ diff --check`, and exact-two/code-zero scope each ran once and PASSed, with no
 - Git status target (historical planning checkpoint): exact two planning docs,
   no commit/publication.
 
-## Implementation Completion Report (QUAL039 local)
+## Implementation Completion Report (QUAL039 local; historical premerge report superseded by PR #263)
 
-- Summary: the approved Worker reconstruction is complete at exact four after
-  one binding and three bounded `dispatched` waits. Status is `In Review —
-Complete Worker Repair Reconstructed; inherited runtime evidence accepted;
-publication pending`.
+- Summary (historical premerge): the approved Worker reconstruction reached
+  exact four after one binding and three bounded `dispatched` waits. Its
+  premerge status was `In Review — Complete Worker Repair Reconstructed;
+inherited runtime evidence accepted; publication pending`; PR #263 now
+  supersedes that status as effective Completed.
 - Files changed: Worker test, original QUAL003 Packet with one proposed
   non-effective QUAL039 appendix, this Packet, and Roadmap; no other file.
 - Commands/evidence: Gate1 all 10 pure-Git calls passed once; Gate2 injection,
@@ -418,9 +431,8 @@ publication pending`.
   both RC0; preliminary exact-three Worker static/scope calls passed once.
   One three-document Node24 formatter write and final exact-four Prettier,
   repository, diff, status, and Worker-equality calls passed once before the
-  review metadata sync. This review metadata sync requires the final
-  current-head exact-four checks below; then first-eligible three-job CI and
-  Orchestrator merge remain pending.
+  review metadata sync. These are historical premerge gates superseded by PR
+  #263; they are not current publication-pending claims.
 - Tests/runtime: frozen QUAL034 evidence is accepted after all equality
   predicates: focused Worker `3 × (1 file / 7 tests)`, root `54 files / 578
 tests` plus five builds, Integration `27 files / 185 tests`, Browser `16/16`,
@@ -433,16 +445,73 @@ tests` plus five builds, Integration `27 files / 185 tests`, Browser `16/16`,
   boundaries.
 - Security impact: none; no product, API, schema, dependency, credential,
   or production behavior changed.
-- Known limitations: the Worker and proposed QUAL003 appendix remain
-  unpublished until final current-head checks, CI, and Orchestrator merge.
-- Incomplete items: final current-head exact-four checks, exact-head three-job
-  CI, squash merge, and Issue closures remain unearned.
+- Known limitations (historical premerge): the Worker and proposed QUAL003
+  appendix were unpublished pending final checks, CI, and Orchestrator merge;
+  PR #263 now makes them effective.
+- Incomplete items (historical premerge): final current-head exact-four checks,
+  exact-head three-job CI, squash merge, and Issue closures were then
+  unearned; PR #263 supersedes these claims.
 - Documentation updates: this Packet, Roadmap, and one fresh QUAL003 appendix.
 - Possible new DEC: none; this is a bounded test-observation reconstruction.
 - Git status: exact four actual paths (`M` Worker, `M` QUAL003, `??` QUAL039
   Packet, `M` Roadmap); no commit or publication authority was used.
 
-## Independent exact-four review record
+## Postmerge audit reconciliation (§18)
+
+- Effective publication: PR #263 (`test: publish complete Worker observation
+repair`) used base `eb26c5b0bf49fd50916201d7cf6626878446ee84`, head
+  `ef6c8b936b4ff0751abd4006a3a20ecbbe9fddff`, and exact-four evidence. Run
+  `31562708126` was first-attempt green (quality 2m20, Integration 2m34,
+  Browser 2m39); squash/current main is
+  `c96fd9850484a211a7052b620a3c1adb486cec58`, merged at
+  `2026-08-12T04:19:36Z`. The local merge nonzero was the occupied-main
+  worktree condition only; no second merge occurred.
+- Audit identity: worktree
+  `/private/tmp/contentos-m2-qual-039-postmerge-audit-wt`, branch
+  `codex/m2-qual-039-postmerge-audit`, base/HEAD
+  `c96fd9850484a211a7052b620a3c1adb486cec58`. One Packet/Roadmap facts and
+  status sync records the effective PR, CI, squash, Issue, and M2/M3 truth.
+  The audit shape is tracked `M` Packet + `M` Roadmap; Worker, QUAL003, and
+  all other code paths are zero.
+- Audit boundary: this is reconciliation-only. A Node24 formatter write over
+  these two docs, followed by Node24 Prettier, Node24 `repository:check`,
+  `git diff --check`, and tracked exact-two/code-zero verification, is the
+  bounded audit sequence. The initial audit sequence ran once before this
+  bounded truth correction: formatter RC0 with dependency materialization,
+  then Node24 Prettier, Node24 `repository:check`, `git diff --check`, and
+  tracked exact-two/code-zero each PASSed once. This correction explicitly
+  supersedes surviving premerge wording. The latest chronology is distinct:
+  the current-head Node24 Prettier check first returned RC1 formatting-only
+  warnings, so later checks were not run; one explicitly authorized
+  Packet/Roadmap-only Node24 Prettier write then recovered the docs, after
+  which Node24 Prettier, Node24 `repository:check`, `git diff --check`, and
+  tracked exact-two/code-zero/no-unexpected each PASSed once, with no later
+  edit. This was a docs-only, non-laundering recovery and did not rerun any
+  runtime or code gate. The audit cannot reverse PR #263, its Issue closures,
+  or the M2/M3 status; any audit red transfers docs recovery to QUAL040.
+- Current reconciliation path: dual independent reconciliation reviews, then
+  the first eligible exact-head quality, Integration, and Browser CI, followed
+  by the Orchestrator squash merge. A red or missing result closes the audit
+  unmerged with no same-head rerun or replacement and transfers docs recovery
+  to QUAL040; it cannot reverse PR #263 or its closures.
+- Completion status remains effective Completed for QUAL039, Worker, and
+  QUAL003 while this tracked audit records the merged current truth. No local
+  runtime replay, GitHub mutation, Issue mutation, or commit is authorized.
+
+## Postmerge reconciliation independent review
+
+- Reviewers: `/root/m2_qual_014_dor_correctness` and
+  `/root/m2_qual_012_browser_setup_diagnosis`; role `INDEPENDENT_REVIEWER`;
+  requested `gpt-5.6-sol` High; actual `UNVERIFIED_RUNTIME_MODEL`.
+- Reviewed base/HEAD `c96fd9850484a211a7052b620a3c1adb486cec58`, the corrected
+  tracked exact-two Packet/Roadmap audit, physical code-zero scope, PR #263,
+  and current Issue facts.
+- Result: PASS with no findings. Authority is reconciliation-publication
+  review only; it grants no code, runtime, Issue, M2/M3, Git, or GitHub
+  mutation authority. Only final exact-head static/scope verification, the
+  first eligible three-job CI, and Orchestrator squash merge remain.
+
+## Independent exact-four review record (historical premerge; superseded by PR #263)
 
 - Reviewers: `/root/m2_qual_014_dor_correctness` and
   `/root/m2_qual_012_browser_setup_diagnosis`; role `INDEPENDENT_REVIEWER`;
@@ -450,8 +519,6 @@ tests` plus five builds, Integration `27 files / 185 tests`, Browser `16/16`,
 - Reviewed base/HEAD `eb26c5b0bf49fd50916201d7cf6626878446ee84`, corrected
   physical exact-four evidence and Completion Report, frozen QUAL034 target,
   and live Issue #262 parity.
-- Result: PASS with no findings. Authority is exact-four publication
-  eligibility only; it grants no Git, GitHub, Issue, or merge authority. The
-  review metadata sync requires the final current-head exact-four checks below;
-  after those pass, only first-eligible three-job CI and Orchestrator merge
-  remain pending.
+- Result: PASS with no findings. This is historical premerge exact-four review
+  evidence; its publication-eligibility and pending-check/CI/merge wording is
+  superseded by effective PR #263 and the current postmerge reconciliation.
