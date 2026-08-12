@@ -546,6 +546,312 @@ export const researchApprovals = pgTable(
   ],
 );
 
+export const opinionArtifacts = pgTable(
+  'opinion_artifacts',
+  {
+    id: uuid('id').primaryKey(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('opinion_artifacts_package_unique').on(table.contentPackageId),
+    unique('opinion_artifacts_id_package_owner_unique').on(table.id, table.contentPackageId, table.ownerUserId),
+    foreignKey({
+      name: 'opinion_artifacts_package_owner_fk',
+      columns: [table.contentPackageId, table.ownerUserId],
+      foreignColumns: [contentPackages.id, contentPackages.ownerUserId],
+    }).onDelete('restrict'),
+  ],
+);
+
+export const opinionDrafts = pgTable(
+  'opinion_drafts',
+  {
+    opinionId: uuid('opinion_id').primaryKey(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    researchVersionId: uuid('research_version_id').notNull(),
+    question: text('question').notNull(),
+    rawResponse: text('raw_response').notNull(),
+    interpretation: text('interpretation').notNull(),
+    revision: integer('revision').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'opinion_drafts_artifact_package_owner_fk',
+      columns: [table.opinionId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [opinionArtifacts.id, opinionArtifacts.contentPackageId, opinionArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'opinion_drafts_research_version_fk',
+      columns: [table.researchVersionId],
+      foreignColumns: [researchVersions.id],
+    }).onDelete('restrict'),
+    check('opinion_drafts_revision_check', sql`${table.revision} >= 1`),
+    check('opinion_drafts_question_check', sql`char_length(${table.question}) BETWEEN 1 AND 500`),
+    check('opinion_drafts_raw_check', sql`octet_length(${table.rawResponse}) BETWEEN 1 AND 10000`),
+    check('opinion_drafts_interpretation_check', sql`octet_length(${table.interpretation}) BETWEEN 1 AND 10000`),
+  ],
+);
+
+export const opinionVersions = pgTable(
+  'opinion_versions',
+  {
+    id: uuid('id').primaryKey(),
+    opinionId: uuid('opinion_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    versionNumber: integer('version_number').notNull(),
+    researchVersionId: uuid('research_version_id').notNull(),
+    question: text('question').notNull(),
+    rawResponse: text('raw_response').notNull(),
+    interpretation: text('interpretation').notNull(),
+    confirmedStatement: text('confirmed_statement').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('opinion_versions_opinion_number_unique').on(table.opinionId, table.versionNumber),
+    unique('opinion_versions_id_opinion_unique').on(table.id, table.opinionId),
+    foreignKey({
+      name: 'opinion_versions_artifact_package_owner_fk',
+      columns: [table.opinionId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [opinionArtifacts.id, opinionArtifacts.contentPackageId, opinionArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'opinion_versions_research_version_fk',
+      columns: [table.researchVersionId],
+      foreignColumns: [researchVersions.id],
+    }).onDelete('restrict'),
+    check('opinion_versions_number_check', sql`${table.versionNumber} >= 1`),
+    check('opinion_versions_statement_check', sql`octet_length(${table.confirmedStatement}) BETWEEN 1 AND 10000`),
+  ],
+);
+
+export const opinionHeads = pgTable(
+  'opinion_heads',
+  {
+    opinionId: uuid('opinion_id').primaryKey(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    confirmedVersionId: uuid('confirmed_version_id'),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'opinion_heads_artifact_package_owner_fk',
+      columns: [table.opinionId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [opinionArtifacts.id, opinionArtifacts.contentPackageId, opinionArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'opinion_heads_confirmed_version_fk',
+      columns: [table.confirmedVersionId, table.opinionId],
+      foreignColumns: [opinionVersions.id, opinionVersions.opinionId],
+    }).onDelete('restrict'),
+  ],
+);
+
+export const blogArtifacts = pgTable(
+  'blog_artifacts',
+  {
+    id: uuid('id').primaryKey(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('blog_artifacts_package_unique').on(table.contentPackageId),
+    unique('blog_artifacts_id_package_owner_unique').on(table.id, table.contentPackageId, table.ownerUserId),
+    foreignKey({
+      name: 'blog_artifacts_package_owner_fk',
+      columns: [table.contentPackageId, table.ownerUserId],
+      foreignColumns: [contentPackages.id, contentPackages.ownerUserId],
+    }).onDelete('restrict'),
+  ],
+);
+
+export const blogRuns = pgTable(
+  'blog_runs',
+  {
+    id: uuid('id').primaryKey(),
+    requestId: uuid('request_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    providerAlias: varchar('provider_alias', { length: 100 }).notNull(),
+    rawOutput: text('raw_output').notNull(),
+    state: varchar('state', { length: 16 }).notNull(),
+    safeErrorCode: varchar('safe_error_code', { length: 64 }),
+    blogId: uuid('blog_id'),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('blog_runs_request_owner_unique').on(table.requestId, table.ownerUserId),
+    foreignKey({
+      name: 'blog_runs_package_owner_fk',
+      columns: [table.contentPackageId, table.ownerUserId],
+      foreignColumns: [contentPackages.id, contentPackages.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'blog_runs_artifact_package_owner_fk',
+      columns: [table.blogId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [blogArtifacts.id, blogArtifacts.contentPackageId, blogArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    check('blog_runs_state_check', sql`${table.state} IN ('succeeded', 'failed')`),
+    check('blog_runs_raw_output_check', sql`octet_length(${table.rawOutput}) BETWEEN 0 AND 1000000`),
+  ],
+);
+
+export const blogVersions = pgTable(
+  'blog_versions',
+  {
+    id: uuid('id').primaryKey(),
+    blogId: uuid('blog_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    versionNumber: integer('version_number').notNull(),
+    parentVersionId: uuid('parent_version_id'),
+    body: jsonb('body').$type<Record<string, unknown>>().notNull(),
+    contentHash: char('content_hash', { length: 64 }).notNull(),
+    schemaVersion: varchar('schema_version', { length: 32 }).notNull(),
+    researchVersionId: uuid('research_version_id').notNull(),
+    opinionVersionId: uuid('opinion_version_id'),
+    contentMode: varchar('content_mode', { length: 32 }).notNull(),
+    origin: varchar('origin', { length: 32 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('blog_versions_id_blog_unique').on(table.id, table.blogId),
+    unique('blog_versions_blog_number_unique').on(table.blogId, table.versionNumber),
+    foreignKey({
+      name: 'blog_versions_artifact_package_owner_fk',
+      columns: [table.blogId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [blogArtifacts.id, blogArtifacts.contentPackageId, blogArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'blog_versions_parent_blog_fk',
+      columns: [table.parentVersionId, table.blogId],
+      foreignColumns: [table.id, table.blogId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'blog_versions_research_version_fk',
+      columns: [table.researchVersionId],
+      foreignColumns: [researchVersions.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'blog_versions_opinion_version_fk',
+      columns: [table.opinionVersionId],
+      foreignColumns: [opinionVersions.id],
+    }).onDelete('restrict'),
+    check('blog_versions_number_check', sql`${table.versionNumber} >= 1`),
+    check('blog_versions_body_check', sql`jsonb_typeof(${table.body}) = 'object'`),
+    check('blog_versions_hash_check', sql`${table.contentHash} ~ '^[0-9a-f]{64}$'`),
+    check('blog_versions_schema_check', sql`${table.schemaVersion} = 'blog/v1'`),
+    check('blog_versions_mode_check', sql`${table.contentMode} IN ('creator_led', 'research_based')`),
+    check('blog_versions_origin_check', sql`${table.origin} IN ('generated', 'user_checkpoint')`),
+  ],
+);
+
+export const blogWorkingCopies = pgTable(
+  'blog_working_copies',
+  {
+    id: uuid('id').primaryKey(),
+    blogId: uuid('blog_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    body: jsonb('body').$type<Record<string, unknown>>().notNull(),
+    revision: integer('revision').notNull(),
+    checkpointedRevision: integer('checkpointed_revision'),
+    baseVersionId: uuid('base_version_id').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('blog_working_copies_blog_unique').on(table.blogId),
+    unique('blog_working_copies_id_blog_unique').on(table.id, table.blogId),
+    foreignKey({
+      name: 'blog_working_copies_artifact_package_owner_fk',
+      columns: [table.blogId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [blogArtifacts.id, blogArtifacts.contentPackageId, blogArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'blog_working_copies_base_version_fk',
+      columns: [table.baseVersionId, table.blogId],
+      foreignColumns: [blogVersions.id, blogVersions.blogId],
+    }).onDelete('restrict'),
+    check('blog_working_copies_revision_check', sql`${table.revision} >= 1`),
+  ],
+);
+
+export const blogHeads = pgTable(
+  'blog_heads',
+  {
+    blogId: uuid('blog_id').primaryKey(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    workingCopyId: uuid('working_copy_id').notNull(),
+    latestVersionId: uuid('latest_version_id').notNull(),
+    reviewCandidateVersionId: uuid('review_candidate_version_id').notNull(),
+    approvedVersionId: uuid('approved_version_id'),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'blog_heads_artifact_package_owner_fk',
+      columns: [table.blogId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [blogArtifacts.id, blogArtifacts.contentPackageId, blogArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'blog_heads_working_copy_fk',
+      columns: [table.workingCopyId, table.blogId],
+      foreignColumns: [blogWorkingCopies.id, blogWorkingCopies.blogId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'blog_heads_latest_version_fk',
+      columns: [table.latestVersionId, table.blogId],
+      foreignColumns: [blogVersions.id, blogVersions.blogId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'blog_heads_review_version_fk',
+      columns: [table.reviewCandidateVersionId, table.blogId],
+      foreignColumns: [blogVersions.id, blogVersions.blogId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'blog_heads_approved_version_fk',
+      columns: [table.approvedVersionId, table.blogId],
+      foreignColumns: [blogVersions.id, blogVersions.blogId],
+    }).onDelete('restrict'),
+  ],
+);
+
+export const blogApprovals = pgTable(
+  'blog_approvals',
+  {
+    id: uuid('id').primaryKey(),
+    blogId: uuid('blog_id').notNull(),
+    approvedVersionId: uuid('approved_version_id').notNull(),
+    contentPackageId: uuid('content_package_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    approvedById: uuid('approved_by_id').notNull(),
+    validationSummary: jsonb('validation_summary').notNull(),
+    approvedAt: timestamp('approved_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    unique('blog_approvals_blog_version_unique').on(table.blogId, table.approvedVersionId),
+    foreignKey({
+      name: 'blog_approvals_artifact_package_owner_fk',
+      columns: [table.blogId, table.contentPackageId, table.ownerUserId],
+      foreignColumns: [blogArtifacts.id, blogArtifacts.contentPackageId, blogArtifacts.ownerUserId],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'blog_approvals_version_blog_fk',
+      columns: [table.approvedVersionId, table.blogId],
+      foreignColumns: [blogVersions.id, blogVersions.blogId],
+    }).onDelete('restrict'),
+    check('blog_approvals_owner_check', sql`${table.approvedById} = ${table.ownerUserId}`),
+    check('blog_approvals_validation_summary_check', sql`jsonb_typeof(${table.validationSummary}) = 'object'`),
+  ],
+);
+
 export const workflowTemplates = pgTable(
   'workflow_templates',
   {

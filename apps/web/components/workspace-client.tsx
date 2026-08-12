@@ -19,6 +19,7 @@ import { AppShell, StatusMessage } from './app-shell';
 import { SourceIntakePanel } from './source-intake-panel';
 import { SourceReviewPanel } from './source-review-panel';
 import { ResearchReviewPanel } from './research-review-panel';
+import { OpinionBlogPanel } from './opinion-blog-panel';
 import { WorkflowTimelinePanel } from './workflow-timeline-panel';
 
 export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: string; contentPackageId: string }) {
@@ -35,7 +36,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
-  const [section, setSection] = useState<'sources' | 'research' | 'details'>('sources');
+  const [section, setSection] = useState<'sources' | 'research' | 'opinion-blog' | 'details'>('sources');
   const [sources, setSources] = useState<readonly SourceListItemResource[] | null>(null);
   const [intakes, setIntakes] = useState<readonly UrlCaptureIntakeResource[] | null>(null);
   const [sourceLoading, setSourceLoading] = useState(false);
@@ -254,7 +255,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     );
   }
 
-  function chooseSection(next: 'sources' | 'research' | 'details'): void {
+  function chooseSection(next: 'sources' | 'research' | 'opinion-blog' | 'details'): void {
     if ((reviewDirty || reviewBusy) && next !== section) {
       setSourceError('Save or discard the unsaved review draft before changing Workspace sections.');
       return;
@@ -366,7 +367,13 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
             <section
               className="workspace-main"
               aria-labelledby={
-                section === 'sources' ? 'sources-title' : section === 'research' ? 'research-title' : 'metadata-title'
+                section === 'sources'
+                  ? 'sources-title'
+                  : section === 'research'
+                    ? 'research-title'
+                    : section === 'opinion-blog'
+                      ? 'opinion-blog-title'
+                      : 'metadata-title'
               }
             >
               {section === 'sources' ? (
@@ -423,6 +430,16 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
                 <ResearchReviewPanel
                   api={api}
                   contentPackageId={contentPackage.id}
+                  active={contentPackage.lifecycle === 'active'}
+                  onDirtyChange={setReviewDirty}
+                  onBusyChange={setReviewBusy}
+                  onUnauthenticated={() => router.replace('/login')}
+                />
+              ) : section === 'opinion-blog' ? (
+                <OpinionBlogPanel
+                  api={api}
+                  contentPackageId={contentPackage.id}
+                  configuredMode={contentPackage.contentMode}
                   active={contentPackage.lifecycle === 'active'}
                   onDirtyChange={setReviewDirty}
                   onBusyChange={setReviewBusy}
@@ -564,16 +581,23 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
                   <small>{contentPackage.lifecycle === 'archived' ? 'Unavailable while archived' : 'Available'}</small>
                 </div>
               </button>
-              <div className="stage-future">
+              <button
+                className={section === 'opinion-blog' ? 'stage-current stage-button' : 'stage-future stage-button'}
+                type="button"
+                aria-pressed={section === 'opinion-blog'}
+                onClick={() => chooseSection('opinion-blog')}
+                disabled={
+                  contentPackage.lifecycle === 'archived' || ((reviewDirty || reviewBusy) && section !== 'opinion-blog')
+                }
+              >
                 <span>04</span>
                 <div>
                   <strong>Opinion & creation</strong>
-                  <small>Not implemented</small>
+                  <small>{contentPackage.lifecycle === 'archived' ? 'Unavailable while archived' : 'Available'}</small>
                 </div>
-              </div>
+              </button>
               <p className="stage-note">
-                Research uses a deterministic Fake Provider. Opinion, writing, exports, and real Provider calls remain
-                unavailable.
+                Research and Blog generation use deterministic Fake Providers. Real Provider calls remain unavailable.
               </p>
               {contentPackage.lifecycle === 'active' ? (
                 <button

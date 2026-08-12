@@ -11,6 +11,15 @@ import {
   SourceService,
   ResearchService,
   FakeResearchProvider,
+  BlogService,
+  FakeBlogProvider,
+  type BlogArtifactId,
+  type BlogWorkingCopyId,
+  type BlogVersionId,
+  type BlogApprovalId,
+  type BlogRunId,
+  type OpinionArtifactId,
+  type OpinionVersionId,
   type ResearchArtifactId,
   type ResearchWorkingCopyId,
   type ResearchVersionId,
@@ -48,6 +57,7 @@ import { ApiExceptionFilter } from './http/api-exception.filter';
 import { TrustedOriginGuard } from './http/trusted-origin.guard';
 import { SourceController } from './source/source.controller';
 import { ResearchController } from './research/research.controller';
+import { BlogController } from './blog/blog.controller';
 import { UrlCaptureController } from './url-capture/url-capture.controller';
 import { FetcherGatewayController } from './fetcher-gateway/fetcher-gateway.controller';
 import { WorkflowController } from './workflow/workflow.controller';
@@ -62,6 +72,7 @@ import {
   OBJECT_STORE,
   SOURCE_SERVICE,
   RESEARCH_SERVICE,
+  BLOG_SERVICE,
   URL_CAPTURE_SERVICE,
   FETCHER_GATEWAY_SERVICE,
   FETCHER_RESULT_SERVICE,
@@ -80,6 +91,7 @@ export class AppModule {
         ContentPackageController,
         SourceController,
         ResearchController,
+        BlogController,
         UrlCaptureController,
         FetcherGatewayController,
         WorkflowController,
@@ -161,6 +173,25 @@ export class AppModule {
                 generateVersionId: () => randomUUID() as ResearchVersionId,
                 generateApprovalId: () => randomUUID() as ResearchApprovalId,
                 generateRunId: () => randomUUID() as ResearchRunId,
+              },
+              { now: () => new Date() },
+            ),
+        },
+        {
+          provide: BLOG_SERVICE,
+          inject: [DatabaseService],
+          useFactory: (database: DatabaseService): BlogService =>
+            new BlogService(
+              database.blog,
+              new FakeBlogProvider(),
+              {
+                blog: () => randomUUID() as BlogArtifactId,
+                blogVersion: () => randomUUID() as BlogVersionId,
+                blogWorkingCopy: () => randomUUID() as BlogWorkingCopyId,
+                blogApproval: () => randomUUID() as BlogApprovalId,
+                blogRun: () => randomUUID() as BlogRunId,
+                opinion: () => randomUUID() as OpinionArtifactId,
+                opinionVersion: () => randomUUID() as OpinionVersionId,
               },
               { now: () => new Date() },
             ),

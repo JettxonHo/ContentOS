@@ -14,9 +14,9 @@ It is not a bulk-writing tool or an autonomous publishing system.
 
 ## Current status
 
-The repository has completed **M0**, **M1 — Product Skeleton and Domain Foundation**, and **M2 — Source and Workflow Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision for the private Source/Workflow foundation. The G1/M3 Research thin slice is implemented by the current reviewed change; G2 remains Not Started.
+The repository has completed **M0**, **M1 — Product Skeleton and Domain Foundation**, and **M2 — Source and Workflow Foundation**. [M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) records the Passed decision for the first private Login → Dashboard → Workspace loop. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision for the private Source/Workflow foundation. G1/M3 Research is effective; the G2 Human Opinion/Blog thin slice is implemented by the current reviewed change.
 
-This repository now provides workspace installation, quality checks, builds, five process entry points, isolated local state services, authentication, Content Package/Source/Workflow/Fetcher foundations, and G1 Research. The active Workspace can generate deterministic evidence-linked Research from exact Approved Source Versions, let the owner correct/review items, checkpoint an immutable Version, approve it exactly, and see Outdated state after a Source dependency changes. PostgreSQL and the API remain authoritative; Raw Provider output is server-side only. No real Provider, generic Agent runtime, Human Opinion, Blog, Xiaohongshu, Render, Export, publishing, production deployment, or development server exists yet.
+This repository now provides workspace installation, quality checks, builds, five process entry points, isolated local state services, authentication, Content Package/Source/Workflow/Fetcher foundations, G1 Research, and the G2 Human Opinion/Blog thin slice. The active Workspace can confirm one explicit Human Opinion or choose Research-based Mode, generate a deterministic provenance-bound Blog Candidate, edit and checkpoint it, approve an exact Version, see Outdated state, and download eligible `article.md`. PostgreSQL and the API remain authoritative; Raw Provider output is server-side only. No real Provider, generic Agent runtime, Xiaohongshu, Render, rich Export, publishing, production deployment, or development server exists yet.
 
 ## MVP boundary
 
@@ -133,7 +133,7 @@ The workflow references no repository Secrets, persists no credentials, uploads 
 ## Next implementation steps
 
 1. Review, verify CI, and merge the bounded [G1 Research Work Item](docs/implementation/work-packets/g1-research-thin-slice.md).
-2. Begin G2 Human Opinion/Research-based Mode and Blog only after G1 is effective; real Provider calls remain separately authorized.
+2. Review, verify CI, and merge the bounded G2 Human Opinion/Research-based Mode and Blog thin slice; real Provider calls remain separately authorized.
 
 No completion date is committed by this repository.
 

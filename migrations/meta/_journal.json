@@ -71,6 +71,13 @@
       "when": 1786554035449,
       "tag": "0009_breezy_thundra",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786560591242,
+      "tag": "0010_neat_ultimo",
+      "breakpoints": true
     }
   ]
 }

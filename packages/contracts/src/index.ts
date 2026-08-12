@@ -3,6 +3,7 @@ export * from './api/content-package-contracts.js';
 export * from './api/error-contract.js';
 export * from './api/fetcher-gateway-contracts.js';
 export * from './api/research-contracts.js';
+export * from './api/blog-contracts.js';
 export * from './api/source-contracts.js';
 export * from './api/url-capture-contracts.js';
 export * from './api/workflow-query-contracts.js';
