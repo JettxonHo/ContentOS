@@ -764,6 +764,50 @@ eligibility only; they are not GOV006 exit/runtime evidence and cannot
 reclassify Record 002 or M2. No code, configuration, Accepted DEC, M2/M3
 boundary, or Record 001 changes.
 
+### M2-GOV-011 — M2 Acceptance Record 002 apply_patch Result Contract Recovery
+
+| Work Item                                                                                                                                                                | Goal                                                                                                                                       | Depends on                                                                                                                                                                                                                                                                                  | Status boundary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`M2-GOV-011 — M2 Acceptance Record 002 apply_patch Result Contract Recovery`](work-packets/m2-gov-011-m2-acceptance-record-002-apply-patch-result-contract-recovery.md) | Recover strict Blocked Record 002 publication with an explicit non-error tool-result plus immediate physical-effect verification contract. | GOV010 planning PR #279/run `31585514462` exact-three-job success and squash `6acde678ff3a3bba3002ea23bfad310b43551530`; frozen GOV006 exact-six source; GOV010 sole native write-1 ambiguous `{}` result with physical `AGENTS.md` modification; Issue #280 Open/body parity synchronized. | **Ready — Explicit Orchestrator same-worktree handoff recorded.** Dual DoR reviewers returned PASS/no findings/no BQ/no DEC; final exact-two checks and Issue parity are complete. GOV006/GOV008/GOV009/GOV010 reds remain immutable. GOV010 P0–P3 passed with `safe-count compiled=72 compose=0 temp=1 repo-store=0`; P4 write 1 returned literal `{}` without error and physically changed only `AGENTS.md`, but GOV010 did not define that return as explicit success. Writes 2–9/P5+ are zero; only two read-only physical-shape observations followed, with no retry/diagnosis/closeout/GitHub action. GOV011 fixes a 2/10/2 lifecycle: `{}` is an allowed non-error invocation candidate, while immediate independent per-file status plus `cmp`/`rg` proves physical success before the next write. Any red transfers to GOV012 without retry. Record 002 is ineffective; M2 remains In Progress, M3 remains Not Started, and Issues #144/#274/#276/#278/#280 remain Open. |
+
+The successful exact-ten shape is nine tracked modifications plus new Record
+002: five byte-frozen standalone documents, the GOV008/GOV009/GOV010/GOV011
+Packets, and Roadmap. Every reconstruction, review-metadata, postmerge fact,
+and postmerge metadata patch follows the same tool-result and physical-effect
+contract. Publication merge makes Record 002 effective Blocked; only a later
+merged tracked GOV011 Packet/Roadmap exact-two reconciliation permits all five
+Issues to close Completed. No direct/local exit, runtime, unit, Integration,
+Browser, audit, or migration replay occurs. Mandatory documentation-PR CI is
+publication eligibility only and cannot reclassify Record 002, M2, or M3.
+
+#### GOV011 dual-DoR correction boundary
+
+Every P4 reconstruction write, all five P7 review-metadata writes, both
+postmerge fact writes, and both postmerge review-metadata writes now have their
+own fixed relative target, literal target-only `git status` invocation, and
+independent content predicate. Mutable-document immediate predicates bind a
+unique marker added by that exact write; they do not accept planning-base text
+as proof. The GOV008 historical predicate uses the canonical spaced sentence
+for its sole monolithic P3 `apply_patch` context-verification failure. P6, P7,
+postmerge entry, and postmerge final ledgers expand every formatter, frozen
+byte comparison, mutable/fact/review predicate, scope/static check, staging
+command, and safe-count command in literal order with no repeat/reference
+shorthand. Metadata stages revalidate every affected marker after formatting.
+These corrections change only protocol executability; predecessor evidence,
+Record 002 ineffectiveness, M2/M3 state, Issue lifecycle, and prohibited
+runtime/test/audit/migration boundaries remain unchanged.
+
+The final self-verification correction removes the three GOV011 Packet
+pre-existing-marker loopholes. Immediately before P4 write 10, P7 GOV011
+metadata, and postmerge GOV011 metadata, one anchored section-count command
+must return planned RC 1 with exact output `0`; the identical post-write count
+must return RC 0 with exact output `1` after the target-only status. Each write
+adds exactly one evidence section whose Markdown heading is the anchored count
+target. The literal command lines do not begin with those headings and
+therefore do not count themselves. P5/P6/P7/postmerge final ledgers preserve
+the corresponding exact-one counts after formatting. Any other baseline or
+post count is first red and no next write runs.
+
 ## 10. M3 — Research
 
 M3 introduces the first formal Agent Vertical Slice:
