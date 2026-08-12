@@ -14,9 +14,9 @@ Source → Research → Human Opinion 或 Research-based Mode
 
 ## 当前状态
 
-仓库已完成 **M0**、**M1 — 产品骨架与领域基础** 和 **M2 — 来源与工作流基础**。[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md) 记录了首个私有 Login → Dashboard → Workspace 闭环的通过决定。[M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) 记录了基于当前 main 的私有 Source/Workflow 基础通过决定。G1/M3 Research 与 G2 Human Opinion/Blog 已经生效；当前受审候选实现 G3 Xiaohongshu 文本薄切片。
+仓库已完成 **M0**、**M1 — 产品骨架与领域基础**、**M2 — 来源与工作流基础**，以及已生效的 G1–G3 Research、Human Opinion/Blog 与 Xiaohongshu 文本交付。候选 [M5 Acceptance Record 001](docs/implementation/m5-acceptance-record-001.md) 记录了当前 main 的 text-first MVP 验收通过；有界审阅修正与最终独立审阅均已通过，仍等待首个合格 PR CI 与 merge 生效。
 
-当前仓库提供 Source/Workflow/Fetcher 基础、G1 Research、已生效的 G2 Human Opinion/Blog，以及当前 G3 Xiaohongshu 文本候选。活动 Workspace 可从同一 Content Foundation 独立生成并审阅带 provenance 的 Blog 与 Xiaohongshu 文本；G3 支持确定性的八页 Packaging Plan、显式 Creator-led/Research-based 模式、结构化编辑与排序、不变 Version checkpoint、精确 Approval、Outdated 状态，以及合格 Approved Version 的 `post.md` / `pages.json` 下载。PostgreSQL 与 API 保持权威，Raw Provider output 仅保存在服务端。真实 Provider、通用 Agent Runtime、Render、图片/ZIP Export Package、发布和生产部署仍未实现。
+当前仓库提供 Source/Workflow/Fetcher 基础、Research、Human Opinion，以及可独立 Approval 的 Blog/Xiaohongshu 文本和合格 `article.md`、`post.md`、`pages.json` 下载。候选 M5 记录已在当前 main 验证这条完整私有 text-first 路径。PostgreSQL 与 API 保持权威，Raw Provider output 仅保存在服务端。真实 Provider、通用 Agent Runtime、Render、图片/ZIP Export Package、自动发布和生产部署仍未实现。
 
 `M2-WEB-001B` 现在已接入活动 Workspace：它允许显式保存标准化 Working Copy、审核不可变 Version、确认当前准确 Review Candidate 的人工 Approval，并通过既有 SSE/Polling 恢复控制器显示有界安全 REST Timeline。Source Approval 不会推进 `source_review`，也不会追加 Workflow Timeline Event；归档 Package 仍不提供这些命令。
 
@@ -33,7 +33,7 @@ Source → Research → Human Opinion 或 Research-based Mode
 - 产品、架构、安全和质量的 Current-truth Specifications；
 - 实施治理文档：[Roadmap](docs/implementation/roadmap.md)、[Milestone Exit Criteria](docs/implementation/milestone-exit-criteria.md) 与 [Work Item template](docs/implementation/work-item-template.md)。
 
-当前 Workspace 包含五个应用和六个包。`M1-SEC-001` 新增了 `packages/database` 与认证基础。`M1-CP-001` 新增了第二个经审查的迁移、与框架无关的 Content Package 和 Artifact 身份规则、共享 HTTP Contracts、Drizzle Repository，以及现有包中的受保护 API 组合。`M2-SRC-001` 新增了 `packages/object-storage`、首个 Source 迁移、与框架无关的 Source 领域和应用规则、共享 Source Contracts、Drizzle Source Repository、S3-compatible Adapter，以及受保护的 Source API 组合。其余计划中的包在有受限 Work Item 需要前仍保持不存在。
+当前 Workspace 包含五个应用和六个包。G1–G3 未增加新包或应用：Research、Opinion、Blog 与 Xiaohongshu 规则位于 `core`，严格 HTTP contracts 位于 `contracts`，增量持久化位于 `database`，受保护组合位于 `api`，私有审阅流程位于 `web`。其余计划中的包在受限 post-MVP Work Item 真正需要前保持不存在。
 
 ## 权威文档地图
 
@@ -41,7 +41,7 @@ Source → Research → Human Opinion 或 Research-based Mode
 - 产品：[definition](docs/product/product-definition.md)、[users and jobs](docs/product/user-and-jobs.md)、[MVP scope](docs/product/mvp-scope.md)
 - 架构：[domain overview](docs/architecture/domain-overview.md)、[Content Package foundation](docs/architecture/content-package-foundation.md)、[Source foundation](docs/architecture/source-foundation.md)、[technical architecture](docs/architecture/technical-architecture.md)、[repository structure](docs/architecture/repository-structure.md)、[workflow overview](docs/architecture/workflow-overview.md)
 - 安全：[security baseline](docs/security/security-baseline.md)、[authentication foundation](docs/security/authentication-foundation.md)
-- 质量：[test strategy](docs/quality/test-strategy.md)、[release gates](docs/quality/release-gates.md)、[local quality toolchain](docs/quality/local-quality-toolchain.md)、[integration smoke harness](docs/quality/integration-smoke-harness.md)、[M1 browser thin slice](docs/quality/browser-thin-slice.md)、[M2 acceptance harness](docs/quality/m2-acceptance-harness.md)、[CI skeleton](docs/quality/ci-skeleton.md)
+- 质量：[test strategy](docs/quality/test-strategy.md)、[release gates](docs/quality/release-gates.md)、[Research Eval baseline](docs/quality/evals/research-core-v1.json)、[local quality toolchain](docs/quality/local-quality-toolchain.md)、[integration smoke harness](docs/quality/integration-smoke-harness.md)、[browser acceptance](docs/quality/browser-thin-slice.md)、[M2 acceptance harness](docs/quality/m2-acceptance-harness.md)、[CI skeleton](docs/quality/ci-skeleton.md)
 - 实施：[roadmap](docs/implementation/roadmap.md)、[exit criteria](docs/implementation/milestone-exit-criteria.md)、[M1 Acceptance Record 001](docs/implementation/m1-acceptance-record-001.md)、[M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md)、[Work Item template](docs/implementation/work-item-template.md)，以及 [agent collaboration workflow](docs/implementation/agent-collaboration-workflow.md)
 - [Decision Register](docs/decisions/decisions.md)
 - [Contribution guide](CONTRIBUTING.md)
@@ -84,7 +84,7 @@ corepack pnpm repository:check
 
 在 Commit 前运行 `corepack pnpm check`。它会按顺序执行 `format:check`、`lint`、`typecheck`、`test` 和 `build`，不会启动 Docker 服务、访问网络或读取 Secrets。依赖 Docker 的 `test:integration`、`test:integration:concurrent` 和 `test:browser` 不属于 `check`。`corepack pnpm repository:check`（以及聚焦的 `check:docs`、`check:decisions` 和 `check:secrets`）会对 Git 跟踪文件执行无依赖的仓库完整性检查。
 
-构建成功后，可使用 `corepack pnpm start:web`、`start:api`、`start:worker`、`start:fetcher` 或 `start:renderer` 启动相应进程。Web 提供登录、活跃／已归档 Dashboard、Content Package 创建、元数据／归档 Workspace，以及活动 Package 的 Source intake、Working Copy/Version/Approval 审核和安全 Timeline。API 提供存活检查、三个 `/v1/auth/*` 端点、受保护的 `/v1/content-packages` 路由、受保护的 `/v1/content-packages/:packageId/sources` 路由（粘贴文本捕获、`.md`／`.txt` 文件上传捕获、列表、读取、Working Copy 编辑、Version 创建、Version 列表、批准）、受保护的 URL-capture request 路由、私有且不进入 OpenAPI 的 Fetcher Gateway Claim/Heartbeat/Result 路由，以及 `/openapi.json`；Worker 运行有界的 Outbox Dispatcher 和 lease/delivery reconciliation，只发布固定的最小 BullMQ envelope。Fetcher 需要 Gateway Secret/origin、`CONTENTOS_FETCHER_REDIS_URL` 和 Fetcher-scoped Object Storage 配置；它只消费固定的 Fetcher Job、调用私有 Gateway，且没有 PostgreSQL 凭据。Web 与 API 的启动要求提供 `.env.example` 所记录的已验证值。
+构建成功后，可使用 `corepack pnpm start:web`、`start:api`、`start:worker`、`start:fetcher` 或 `start:renderer` 启动相应进程。Web 提供登录、Dashboard、Content Package/Source/Research 审阅、Human Opinion 确认、显式 Creator-led/Research-based 选择、独立 Blog/Xiaohongshu 编辑、checkpoint、精确 Approval、provenance 审阅与可移植文本下载。API 提供对应的 owner-scoped Content Package/Source/Workflow/Research/Opinion/Blog/Xiaohongshu 路由、私有 Fetcher Gateway 和 `/openapi.json`。本地 deterministic Fake Provider 不暴露 Raw Provider output；Worker 与 Fetcher 保持各自受限的投递身份。Web 与 API 启动要求提供 `.env.example` 记录的已验证值。
 
 交互式生成本地 owner-password hash，然后仅在通过环境变量提供目标 PostgreSQL URL 后应用已提交的数据库迁移：
 
@@ -114,13 +114,13 @@ corepack pnpm infra:down
 corepack pnpm test:integration
 ```
 
-该命令会启动隔离的 `contentos-smoke-*` Compose 项目：它用 `tmpfs` 替换持久卷、仅将临时端口绑定到 `127.0.0.1`、在仓库外使用每次运行唯一的临时目录和凭据、应用经审查的迁移，并演练 Session、Content Package 和粘贴文本 Source API 行为。它绝不会读取、挂载或修改 `contentos-local` named volumes。
+该命令会启动隔离的 `contentos-smoke-*` Compose 项目：它用 `tmpfs` 替换持久卷、仅将临时端口绑定到 `127.0.0.1`、在仓库外使用每次运行唯一的临时目录和凭据、应用经审查的迁移，并演练从 Source、Research、Opinion 到 Blog/Xiaohongshu、精确 Approval、Outdated、owner/archive denial 与可移植导出的私有 API/PostgreSQL 路径。它绝不会读取、挂载或修改 `contentos-local` named volumes。
 
 运行 `corepack pnpm test:integration:concurrent` 可并发启动两个完整、由 token 所有的 smoke run，并验证它们的目录、状态、Compose 项目、端口、凭据和清理操作彼此隔离，也与无关 harness run 隔离。
 
-安装固定的 Chromium revision（`corepack pnpm exec playwright install chromium`）后，运行 `corepack pnpm test:browser` 以演练 M1/M2/G1 owner-browser suite。其安全、清理和范围边界请阅读 [M1 Browser Thin Slice](docs/quality/browser-thin-slice.md) 和 [M2 Acceptance Harness](docs/quality/m2-acceptance-harness.md)。
+安装固定的 Chromium revision（`corepack pnpm exec playwright install chromium`）后，运行 `corepack pnpm test:browser` 以演练当前 owner-browser suite，包括两条已批准文本分支和三个下载。其安全、清理和范围边界请阅读 [Browser Acceptance](docs/quality/browser-thin-slice.md) 和 [M2 Acceptance Harness](docs/quality/m2-acceptance-harness.md)。
 
-这些命令仍只是受限的 M1 基础，加上当前已实现的 M2 Source、delivery、Fetcher execution 和 Source-evidence slices。当前没有 `dev`、广泛的产品 E2E suite、持久 request/delivery/lease/recovery/result 边界之外的 Workflow Engine、Agent、Render 或内容发布功能。
+这些命令覆盖私有 text-first MVP，并保留 M2 delivery/recovery 边界。当前没有 `dev`、真实 Provider 执行、通用 Agent Runtime、Design/Render/图片包、自动发布、生产部署或广泛的 post-MVP 运维套件。
 
 ## 持续集成
 
@@ -128,14 +128,14 @@ corepack pnpm test:integration
 
 - 一个 Docker-independent Job：Workspace 解析、`corepack pnpm check` 和 `corepack pnpm repository:check`（Markdown 本地链接、Canonical Decision Register 和 Secret 检查）；
 - 一个 Docker-dependent Job：通过现有隔离 smoke harness 执行 `corepack pnpm test:integration`；
-- 一个 M1/M2/G1 browser Job：固定的 Playwright Chromium 针对隔离运行时运行 `corepack pnpm test:browser`。
+- 一个当前 text-first browser Job：固定的 Playwright Chromium 针对隔离运行时运行 `corepack pnpm test:browser`。
 
 该 workflow 不引用 repository Secrets、不持久化凭据、不上传 artifacts，也不进行部署或发布。它是受限基线，而非完整发布门禁。变更合并前三个 Job 必须全部通过。完整范围请阅读 [CI Skeleton](docs/quality/ci-skeleton.md)。
 
 ## 下一步实施工作
 
-1. 审阅、通过 CI 并合并受限的 [G1 Research Work Item](docs/implementation/work-packets/g1-research-thin-slice.md)。
-2. G1 生效后再启动 G2 Human Opinion/Research-based Mode 与 Blog；真实 Provider 调用仍需单独授权。
+1. 审阅、通过 CI 并合并受限的 [G4 text-first MVP Acceptance Record](docs/implementation/work-packets/g4-text-first-mvp-acceptance.md)。
+2. 真实 Provider、生产部署、Design/Render、复杂包、备份恢复与自动发布继续由单独批准的 post-MVP Work Item 管理。
 
 本仓库不承诺完成日期。
 
