@@ -270,8 +270,8 @@ Only after the planning PR merges, use repository entry cwd
 ```text
 git fetch --prune origin
 git rev-parse origin/main
-git show-ref --verify --quiet refs/heads/codex/m2-gov-006-exit-review-002
-git worktree add -b codex/m2-gov-006-exit-review-002 /private/tmp/contentos-m2-gov-006-exit-review-wt <REVIEWED_SHA>
+git show-ref --verify --quiet refs/heads/codex/m2-gov-006-exit-review-002-current
+git worktree add -b codex/m2-gov-006-exit-review-002-current /private/tmp/contentos-m2-gov-006-exit-review-current-wt <REVIEWED_SHA>
 ```
 
 Expected statuses are respectively `0`, `0`, `1`, and `0`. The second command
@@ -284,7 +284,7 @@ either already exists or worktree creation fails, stop red rather than delete,
 reuse, or rename anything.
 
 Then set `<EXECUTION_CWD>` in the ledger to the exact literal
-`/private/tmp/contentos-m2-gov-006-exit-review-wt` and run from that cwd:
+`/private/tmp/contentos-m2-gov-006-exit-review-current-wt` and run from that cwd:
 
 ```text
 git branch --show-current
@@ -296,7 +296,7 @@ git diff --exit-code <REVIEWED_SHA> -- docs/implementation/m2-acceptance-record-
 ```
 
 All six statuses must be `0`. Outputs must be, in order: exact branch
-`codex/m2-gov-006-exit-review-002`; exact ledgered SHA; exact ledgered SHA;
+`codex/m2-gov-006-exit-review-002-current`; exact ledgered SHA; exact ledgered SHA;
 empty; empty; empty. Substitute the SHA literally in the last command. These
 are pure-Git identity/cleanliness/Record001-zero gates; no non-Git command runs
 before all pass.
@@ -677,6 +677,16 @@ After this final wording sync, the same targeted check, repository, diff,
 exact-two, and Record001-zero commands ran independently with RC0 and no later
 edit. The Orchestrator synchronized Issue #144 body parity to that final
 planning head.
+
+Before merging planning PR #273, a read-only Gate 0 precondition check found
+the older local branch `codex/m2-gov-006-exit-review-002` already existed.
+Nothing was deleted, reused, or renamed. This planning head instead fixes the
+previously absent branch `codex/m2-gov-006-exit-review-002-current` and absent
+worktree path `/private/tmp/contentos-m2-gov-006-exit-review-current-wt`.
+Because that correction creates a new PR head, run `31576674949` remains green
+historical evidence for the earlier head but cannot authorize merge of this
+corrected head; new exact-head reviews, static checks, and first eligible CI
+are required.
 
 ## Definition of Ready
 
