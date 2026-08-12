@@ -746,6 +746,24 @@ fix GOV006/GOV008/GOV009 status, Record 002 ineffectiveness, M2 In Progress,
 M3 Not Started, and Issues #144/#274 Open. P7 and postmerge final sequences are
 fully literal rather than referring to an earlier list.
 
+### M2-GOV-010 — Native apply_patch Hunk Recovery
+
+| Work Item                                                                                                                                          | Goal                                                                                                                           | Depends on                                                                                                                                                           | Status boundary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`M2-GOV-010 — M2 Acceptance Record 002 apply_patch Hunk Recovery`](work-packets/m2-gov-010-m2-acceptance-record-002-apply-patch-hunk-recovery.md) | Recover the strict Blocked Record 002 publication with native legal `apply_patch` syntax and nine independent per-file writes. | GOV009 planning PR #277 merged as `3562b56b865d20b02f6cf50e295f062f5e4da4cd`; frozen GOV006 exact-six source; GOV009 numeric-hunk atomic first red; Issue #278 Open. | **Ready — Explicit Orchestrator same-worktree handoff recorded.** Dual DoR reviewers returned PASS/no findings/no BQ/no DEC; final exact-two planning checks and Issue parity are complete. GOV009 P0–P3 passed; its only P4 write targeted `AGENTS.md` with invalid numeric hunk `@@ -1,14 +1,34 @@`, failed verification atomically, and left writes 2–8/P5+ at zero. GOV010 fixes a 2/9/2 lifecycle. Each existing-file write must use `*** Update File` with bare literal `@@` and stable context; Record 002 uses `*** Add File` without a hunk marker. Numeric unified hunks are forbidden. Any red transfers to GOV011 without retry. Record 002 is ineffective; M2 remains In Progress, M3 Not Started, and Issues #144/#274/#276/#278 remain Open. |
+
+The successful publication shape is eight tracked modifications plus new
+Record 002. It preserves frozen GOV006 bytes for five standalone documents,
+records GOV008/GOV009 history in their Packets, adds the GOV010 Packet, and
+synchronizes Roadmap. Publication merge makes Record 002 effective Blocked;
+only a later merged tracked GOV010 Packet/Roadmap exact-two reconciliation may
+permit all four Issues to close Completed. This recovery runs no direct/local
+exit, runtime, unit, Integration, Browser, audit, or migration replay. The two
+mandatory documentation-PR three-job CI gates establish publication
+eligibility only; they are not GOV006 exit/runtime evidence and cannot
+reclassify Record 002 or M2. No code, configuration, Accepted DEC, M2/M3
+boundary, or Record 001 changes.
+
 ## 10. M3 — Research
 
 M3 introduces the first formal Agent Vertical Slice:
