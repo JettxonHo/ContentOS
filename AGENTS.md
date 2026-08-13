@@ -1,7 +1,7 @@
 # AGENTS.md
 
 **Status:** Active repository guidance
-**Current stage:** M0–M5 and G0–G4 are completed. The formal private text-first MVP and `GOAL-MVP-TEXT-001` became effective through PR #296, squash `987eb7a051a97f1522069a9673e976e0cf06b901`. Post-MVP M6 is eligible but Not Started; no post-MVP Goal is active.
+**Current stage:** M0–M5 and G0–G4 are completed. The formal private text-first MVP and `GOAL-MVP-TEXT-001` became effective through PR #296, squash `987eb7a051a97f1522069a9673e976e0cf06b901`. `GOAL-MVP-VALIDATE-001` is Proposed and remains inactive until reviewed PR, required CI, and squash merge; post-MVP M6 remains Not Started.
 **Last updated:** 2026-08-13
 
 ## 1. Project identity and current stage
@@ -9,6 +9,8 @@
 ContentOS is a single-user, desktop-first **Personal AI Content Studio**. It helps one creator turn source material into reviewable, traceable, private content assets.
 
 The repository has completed **M0–M5** and effective G0–G4 delivery through approved Research, Human Opinion/Blog, Xiaohongshu text, all three portable files, and the formal private text-first MVP acceptance. [M5 Acceptance Record 001](docs/implementation/m5-acceptance-record-001.md) is effective through PR #296, first-attempt required CI, and squash `987eb7a051a97f1522069a9673e976e0cf06b901`; Issue #295 is Closed/Completed. A real Provider, generic Agent runtime, Render, image/ZIP Export Package, automatic publishing, and deployment remain unimplemented post-MVP capabilities.
+
+[GOAL-MVP-VALIDATE-001](GOAL.md) is a proposal to validate a fixed set of 3–5 representative Content Packages with one separately authorized real Provider and explicit human value judgments through Issue #299. Every selected Package must be genuinely attempted and recorded; at least three must complete exact Research, Blog, and Xiaohongshu Approvals plus all three exports before the verdict may be `Product Value Supported` or `Product Value Mixed`. Fewer than three completions requires `Product Value Not Supported` or `Product Value Blocked`, while the Goal may still end after all fixed samples were attempted and honestly recorded. It implements no product Provider seam: calls and credentials remain outside every ContentOS process, and returned structured content is entered through existing Working Copy editors before normal Approval/Export. Sample replacement, unapproved fixes, recovery Goals, new Adapter/config, tables, migrations, queues, Workflow types, Agent Runtime, M6, deployment, and postmerge reconciliation remain forbidden.
 
 ## 2. Product goal and MVP boundary
 
@@ -20,7 +22,7 @@ Source → Research → Human Opinion or Research-based Mode
 → manual text export
 ```
 
-It is a private web application with human review. Blog and Xiaohongshu remain independent outputs from the same Content Foundation; both are required. Design, image generation, PNG Render, rich asset packages, production deployment, backup/restore, and automatic publishing are post-MVP. Read the [MVP Scope](docs/product/mvp-scope.md) and the approved execution [Goal](GOAL.md).
+It is a private web application with human review. Blog and Xiaohongshu remain independent outputs from the same Content Foundation; both are required. Design, image generation, PNG Render, rich asset packages, production deployment, backup/restore, and automatic publishing are post-MVP. Read the [MVP Scope](docs/product/mvp-scope.md) and the current [Goal or Goal proposal](GOAL.md).
 
 ## 3. Authoritative documents
 

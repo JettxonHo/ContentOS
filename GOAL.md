@@ -1,139 +1,114 @@
-# GOAL-MVP-TEXT-001 — Deliver the Text-first Private MVP
+# GOAL-MVP-VALIDATE-001 — Validate Real Product Value
 
-**Status:** Completed — G0–G4 merged; M5 Acceptance Record 001 is effective
-**Human approval:** Confirmed 2026-08-12
-**Authority:** DEC-295, current Product/Architecture/Security/Quality specifications, and `AGENTS.md`
-**Execution model:** One phase and one bounded Issue/PR at a time
+**Status:** Proposed — activation requires reviewed PR, required CI, and squash merge
+**Human direction:** Corrected 2026-08-13; `DO NOT PUBLISH OR START V0`
+**Planning baseline:** `main@28eb85ba5bd4b3f44457577bbe97e6c7204dda4e`
+**Repository:** `JettxonHo/ContentOS`
+**Single Work Item:** [Issue #299](https://github.com/JettxonHo/ContentOS/issues/299)
+**Authority:** DEC-294, DEC-295, current Product/Security/Quality specifications, and `AGENTS.md`
 
-## Active-goal authority
+## Proposal status and authority
 
-This file is the sole active execution Goal after its merge and explicit activation. The earlier thread Goal for recursively completing M2 through exact-file publication/recovery protocols is ended and must not be read as current authority. Historical `M2-GOV-008` through `M2-GOV-014` Work Packets preserve evidence only: they are not executable plans, dependencies, templates, or reasons to recreate their ceremony.
+This unmerged file is not active execution authority. Current `main` has no active post-MVP Goal. `GOAL-MVP-TEXT-001` remains completed historical evidence; it is not an executable plan.
 
-When historical Goal text, Work Packets, or thread summaries conflict with this file, use DEC-295, current Current-truth, and this Goal. G0 starts one fresh bounded current-main M2 exit review; ordinary reversible corrections stay in that Work Item.
+Only an explicitly authorized planning commit/PR, required CI, and squash merge may activate `GOAL-MVP-VALIDATE-001`. Planning, Issue #299, and later activation do not by themselves authorize a Provider call, credential use, cost, V0 execution, or publication of validation results.
+
+## Audit conclusion
+
+Latest `main` has strong deterministic Fake Provider and current-path acceptance evidence, but it has no product-integrated real-Provider execution seam. Adding that seam would conflict with this Goal's fastest validation scope because current Provider execution/Secret ownership belongs to Worker while the necessary durable execution path does not yet exist.
+
+This Goal therefore implements no Provider Adapter, configuration, Queue, Workflow, Agent Runtime, or product behavior. It validates value by making bounded real-Provider calls manually outside ContentOS, then entering the real structured content through the existing Working Copy editors before normal Version, Approval, and Export operations.
 
 ## Outcome
 
-Deliver the fastest useful ContentOS MVP without discarding its core differentiation:
+Produce one evidence-backed answer to this question:
 
-```text
-Approved Sources
-→ reviewed Research
-→ optional confirmed Human Opinion or explicit Research-based Mode
-→ approved Blog Markdown
-+ approved Xiaohongshu text/carousel content
-→ manual text export
-```
+> With one separately authorized real Provider, can a human use the existing private text-first product across 3–5 representative Content Packages to turn real structured outputs into trustworthy, editable, useful, and meaningfully different approved Blog and Xiaohongshu exports at an explicitly bounded cost?
 
-One user must be able to complete this flow in the private Workspace, understand where claims/opinions came from, edit both outputs, approve exact Versions, and export portable text.
+The evidence validates the existing editing, review, Approval, and Export product loop with real model content. It does **not** prove product-integrated Provider execution, background Agent behavior, adoption, retention, market demand, production readiness, deployment, or M6.
 
 ## In scope
 
-- complete the existing M2 Source/Workflow foundation through one bounded exit review;
-- Research Candidate, evidence review/edit, and exact Research Approval;
-- minimum focused Human Opinion confirmation plus Research-based Mode;
-- Blog generation, Markdown edit/preview, checkpoint Version, Approval, and `article.md` export;
-- independent Xiaohongshu title/page/caption generation, direct editing/order, checkpoint Version, Approval, and Markdown/JSON export;
-- one Fake Provider and one real Provider Adapter when credentials/cost are separately authorized;
-- only security, tests, recovery, and documentation attached to the active flow; and
-- one current-main end-to-end text-first MVP Acceptance Record.
+- one separately approved real Provider, model, and manual invocation method used outside all ContentOS processes;
+- 3–5 representative non-sensitive Content Packages spanning supported Source types and both Creator-led and Research-based modes across the set;
+- bounded manual Provider requests for the Research, Blog, and Xiaohongshu fields that the current Working Copy editors can accept, based only on approved non-sensitive Package material;
+- manual entry of the real structured outputs through existing Research, Blog, and Xiaohongshu Working Copy editing capabilities;
+- existing checkpoint Version, validation, exact human Approval, provenance/references review, and `article.md` / `post.md` / `pages.json` export behavior;
+- per-Package records of manual intervention, edit amount, content value, errors, latency, usage, and cost;
+- explicit human judgments for task completion, trust, editing value, reuse value, output usefulness, and acceptable effort; and
+- one concise validation report plus one independent review of the evidence and documentation diff.
+
+## Existing-product scaffold
+
+If the current UI requires its deterministic Fake Provider to initialize an editable Working Copy, that output may be used only as product scaffolding. Real Provider content is mapped only into fields the current editors expose: Research summary/item text/open questions; Blog title/summary/Markdown; and Xiaohongshu cover copy/page headings/page content/Caption/CTA/hashtags, plus selection among existing platform-title candidates where applicable.
+
+Non-editable IDs, item kinds, evidence bindings, dependencies, public references/provenance, page purpose/emphasis/density/visual brief, and platform-title candidate sets remain existing product state. The human must verify that entered content remains supported by those bindings. These scaffold fields and any untouched Fake content are excluded from real-model quality judgment and cannot count as real-Provider evidence.
+
+An optional Fake-only walkthrough may verify local setup and the observation template before any paid call. It is not a counted Package and cannot complete this Goal.
 
 ## Out of scope
 
-- Design Specification, Visual Agent, image generation, Assets, PNG Renderer, and pixel regression;
-- ZIP/asset packages, checksum manifests, automated PersonalBlog/Xiaohongshu publishing, and platform credentials;
-- production deployment, backup/restore, high availability, public sharing, and production operations;
-- PDF/Office/OCR/audio/video/email/cloud-drive inputs;
-- multi-user/organization features, Analytics, Workflow Builder, Marketplace, Plugin Platform, and Template Marketplace;
-- autonomous web search, unrestricted tools, Agent-created sub-agents, and automatic Approval; and
-- speculative security or infrastructure for any deferred capability.
+- a product-integrated Provider Adapter, Provider configuration, Provider SDK, Provider tests, API/Worker composition change, or application-process access to Provider credentials;
+- new tables, columns, migrations, domain objects, persistent evaluation models, queues, Jobs, Workflow types, Agent Runtime, or generic Agent infrastructure;
+- autonomous tools, multi-agent/provider platforms, generalized routing, Prompt-management infrastructure, or production telemetry;
+- M6, Design, image generation, Renderer, rich export, deployment, publishing, backup/restore, or production operations;
+- more than one real Provider or automatic model comparison;
+- private credentials or sensitive participant/source content in Git, ContentOS processes, Issues, reports, screenshots, logs, prompts retained as evidence, or exports;
+- an unapproved product fix discovered during validation; and
+- any postmerge reconciliation Goal, Issue, Work Packet, or Acceptance Record.
 
-## Activation gates
+## Activation and execution gates
 
-Implementation starts only after:
+1. This proposed Goal and Issue #299 receive one independent planning review.
+2. The planning diff receives only documentation static checks, then waits for explicit commit/PR authorization. Required CI and squash merge activate the Goal; before merge it remains Proposed.
+3. After activation, the user separately approves the exact Provider, model, manual client or invocation method, credential custody, per-call/request limits, maximum total spend, and exact 3–5 non-sensitive Package set.
+4. Credentials remain solely in the separately authorized user-controlled Provider client/session outside the repository and every ContentOS process. They are never pasted into Codex, shell commands recorded as evidence, Issues, reports, exports, or application configuration.
+5. The executor revalidates latest main, a clean isolated worktree, local product configuration with no Provider credential, input classification, and the approved call/cost ceiling.
+6. The user explicitly sends `START V0`; until then no Provider call, credential access, Docker, Browser, or product validation run begins.
+7. Any need for a product Adapter, new table, migration, Queue, Workflow type, Agent Runtime, M6 capability, deployment action, or broader Provider platform stops the Work Item for direction.
 
-1. DEC-295, the simplified governance documents, affected-path CI, MVP Scope, Roadmap, and this Goal are reviewed and merged to latest `main`.
-2. The execution agent verifies latest-main identity, a clean owned worktree, and no conflicting active owner for its allowed files.
-3. The first phase has one concise Ready Issue/Work Item with outcome, allowed modules, Acceptance Criteria, and affected verification.
-4. The user or Orchestrator sends `START GOAL-MVP-TEXT-001` or `START G0` after merge.
-5. Real Provider credentials, paid calls, or external side effects remain separately authorized even after Goal activation.
+## Manual real-Provider protocol
 
-Goal approval authorizes planning and bounded repository implementation after these gates. It does not authorize production deployment, paid Provider use, automatic Issue closure, or merge without review/CI.
+- The human copies only the minimum approved non-sensitive Source/Research/Opinion context into the authorized external Provider interface.
+- Each request asks only for the existing editor-visible fields listed above; it does not ask the Provider to invent immutable IDs/bindings or to approve, mutate, or operate ContentOS.
+- The human records model identity, start/end time, reported usage, cost, and redacted error category without retaining credentials or unnecessary raw request/response transcripts in repository evidence.
+- The human enters the returned structured content into the corresponding existing Working Copy, then reviews and edits it inside ContentOS.
+- ContentOS remains authoritative only for the manually entered Working Copy, immutable Version, human Approval, dependencies, provenance/references, and exported files. The external call has no product execution authority.
 
-## Phases
+## Evidence contract
 
-### G0 — M2 baseline acceptance
+For every one of the 3–5 counted Packages, the report records:
 
-**Current status:** Completed. [M2 Acceptance Record 002](docs/implementation/m2-acceptance-record-002.md) records the fresh current-main Passed decision. M2 is Completed; that decision made G1 eligible.
+- source/content-mode classification without reproducing sensitive material;
+- exact product build plus Provider/model identity, invocation count, elapsed time, reported usage, and cost;
+- completion or failure at every product stage and every manual intervention;
+- which editable fields received real content, which remained product scaffold, which were materially edited, approximate edit amount, and editing time;
+- human judgments for trust, content value, editing value, reuse value, output usefulness, and acceptable effort, clearly labeled as judgments;
+- whether both approved exports are useful and non-identical expressions of the same Content Foundation; and
+- product defects, manual-process errors, Provider errors, content-quality concerns, and limitations as separate categories.
 
-- Start from latest merged `main`.
-- Reuse the merged M2 implementation and existing acceptance harness; do not reconstruct historical failed publication protocols.
-- Run one bounded current M2 exit review using only still-relevant M2 evidence.
-- If an actual product/runtime defect appears, fix it in one ordinary bounded defect Work Item and rerun the affected evidence.
-- Complete when one concise M2 Acceptance Record is reviewed and merged, with M2 Completed and M3 eligible to start.
+The separately authorized 3–5 Package set is fixed before `START V0`. Every selected Package must receive at least one bounded real-Provider attempt and have the attempt, stage outcomes, and human judgments recorded honestly. A failed or incomplete selected Package remains in the denominator; it cannot be removed or replaced with another sample.
 
-### G1 — Research thin slice
+A **complete dual-output Package** reaches exact Research, Blog, and Xiaohongshu Approvals and produces all three exports. Goal completion and the product-value verdict are separate:
 
-**Current status:** Completed through PR #290, squash `1c70866099d1dcc421f0fc3470889cfd288fd4fc`. G2–G4 are also effective and this Goal is Completed.
+- the Goal may complete after all selected Packages have been genuinely attempted and recorded, even when fewer than three Packages complete the dual-output path;
+- `Product Value Supported` or `Product Value Mixed` is permitted only when at least three selected Packages complete that full path; and
+- when fewer than three selected Packages complete it, the verdict must be `Product Value Not Supported` or `Product Value Blocked`.
 
-- Consume exact owner-scoped Approved Source Versions.
-- Produce structured Research with Summary, Facts/Claims, Evidence, Open Questions, and Needs Verification.
-- Support direct review/correction and exact Research Version Approval.
-- Prove deterministic contracts with a Fake Provider; use one real Provider Adapter only after separate authorization.
-- Complete when a user can move from Approved Sources to Approved Research in the Workspace.
+Fake output cannot fill missing evidence. The executor must not swap samples, apply an unapproved product fix, or create a recovery Goal or reconciliation path to pursue a favorable verdict. No adoption claim or generalized quality claim is inferred beyond the observed fixed sample.
 
-### G2 — Human Opinion and Blog
+## Completion
 
-**Current status:** Completed through PR #292, squash `7ddc4f1de1130f0edd345e623ee6722e6cab3259`. G3–G4 are also effective and this Goal is Completed.
+This Goal completes only after:
 
-- Ask the minimum focused question needed for creator-led content.
-- Preserve Raw Response → AI Interpretation → user-confirmed Opinion.
-- Allow explicit Research-based Mode without fabricated first-person claims.
-- Generate, directly edit, preview, checkpoint, approve, and export Blog Markdown.
-- Complete when a user can download approved `article.md` with public References and internal Provenance.
+1. one separately authorized real Provider is manually used outside ContentOS for all 3–5 approved Packages within the approved cost ceiling;
+2. every selected Package has a real attempt and records stage outcomes, intervention, edit amount, errors, latency, usage, cost, and explicit human value judgments, including failures and incomplete paths;
+3. the report records how many Packages reached exact Research, Blog, and Xiaohongshu Approvals plus all three exports;
+4. the report applies the threshold above: at least three complete Packages are required for `Product Value Supported` or `Product Value Mixed`; fewer than three requires `Product Value Not Supported` or `Product Value Blocked`;
+5. the report explicitly states that product-integrated Provider execution was not tested;
+6. documentation checks, one independent evidence review, required report PR CI, and squash merge pass; and
+7. Issue #299 is closed based on that same merged validation work.
 
-### G3 — Xiaohongshu text branch
+The activation PR and later validation-report PR remain within this one Goal and one Issue. The report PR is the Goal's planned evidence delivery, not a postmerge reconciliation Goal. No reconciliation Goal or Issue is created.
 
-**Current status:** Completed through PR #294, squash `dfdc84027e0c3d7ece2b155069d828f215309396`. G4 is also effective and this Goal is Completed.
-
-- Generate independently from the Approved Content Foundation, never by shortening Blog.
-- Support Platform/Cover titles, ordered text pages, Caption, CTA, Hashtags, References, editing, and ordering.
-- Checkpoint, validate, approve, and export portable Markdown/JSON text.
-- Complete when both text branches are independently approved and exportable.
-
-### G4 — MVP acceptance
-
-**Current status:** Completed through PR #296, squash `987eb7a051a97f1522069a9673e976e0cf06b901`. Current-main acceptance passed; the first independent review's Blog validation, Research Eval, and README findings were corrected with affected gates passing; final targeted review and first eligible quality, Integration, and Browser CI passed. [M5 Acceptance Record 001](docs/implementation/m5-acceptance-record-001.md) is effective and Issue #295 is Closed/Completed.
-
-- Run one current-main end-to-end acceptance across Source, Research, Opinion/Research-based Mode, Blog, Xiaohongshu text, Approval, and export.
-- Cover only credible active-flow failures: refresh/resume, duplicate command/delivery, Provider/task failure, Worker interruption, upstream Version change, cancellation/retry, and late result where applicable.
-- Record Demo Result, affected checks, security results, limitations, Provider cost, and the final decision.
-- Complete when the reviewed Acceptance Record marks the text-first private MVP Passed.
-
-## Execution rules
-
-- One phase uses one primary Issue, branch, and Pull Request. Split only when one independently reviewable vertical slice cannot fit safely.
-- Under DEC-295's procedural amendment, the same agent may refine and implement an ordinary reversible Work Item; one independent reviewer approves the real diff. Controlled-path triggers still separate planning and implementation.
-- Use affected-layer tests. Documentation-only changes do not run Integration/Browser unless they change commands, harnesses, runtime configuration, or acceptance/release evidence.
-- Diagnose and correct ordinary formatting, deterministic test, review, CI, or tool failures on the same branch. Do not create recursive recovery Work Items for reversible failures.
-- Do not use exact-N file-shape protocols, literal command ledgers, byte-for-byte Markdown reconstruction, or repeated evidence synchronization unless an immutable/destructive boundary genuinely requires it.
-- Do not add a second abstraction, Provider, Agent, data model, queue, API, or security mechanism merely for hypothetical future scale.
-- Keep Roadmap status concise; use the Issue, Pull Request, CI, and Acceptance Record for evidence.
-- Close completed sub-agents promptly; no sub-agent is required by this Goal.
-
-## Blocking boundaries
-
-Stop and request direction when:
-
-- implementation conflicts with a later Accepted DEC or Current-truth specification;
-- a new product scope, public/production boundary, destructive action, migration strategy, or high-risk security model is required;
-- real Provider credentials/cost or another external side effect lacks authorization;
-- an Acceptance Criterion can be met only by lowering an accepted owner, input, Secret, Approval, Version, Provenance, or failure-handling invariant; or
-- the phase cannot remain within one bounded vertical slice.
-
-Ordinary design choices, formatting, test fixes, and reversible implementation corrections are not escalation conditions.
-
-## Goal completion
-
-This Goal completed through PR #296: G0–G4 are merged, the current-main text-first Acceptance Record is Passed, both approved text exports are demonstrated, no active-flow Blocking Defect remains, and Current-truth documentation matches the implementation.
-
-Completion does not claim visual production, production deployment, public availability, automatic publishing, backup/restore, or any deferred post-MVP capability.
+An incomplete selected Package does not by itself prevent Goal completion after all fixed samples were genuinely attempted and recorded; it lowers the completion count and constrains the verdict. An unattempted selected Package keeps the Goal incomplete. Neither outcome authorizes sample replacement, an unapproved fix, M6, data-model work, a recovery Goal, or a reconciliation path.
