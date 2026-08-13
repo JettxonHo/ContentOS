@@ -212,7 +212,7 @@ Agent tools, external Model Providers, active Renderer execution, Export deliver
 
 ### Next step
 
-The formal private text-first MVP is Completed through G0–G4 and effective PR #296. Real Provider credentials, paid calls, production deployment, Design/Render, or other post-MVP effects remain separately authorized; no post-MVP Goal is active.
+The formal private text-first MVP is Completed through G0–G4 and effective PR #296. `GOAL-MVP-VALIDATE-001` is Proposed through Issue #299 and remains inactive until reviewed PR, required CI, and squash merge. Its fastest validation path uses one separately authorized real Provider manually outside ContentOS for a fixed set of 3–5 representative Packages, enters returned structured content through existing Working Copy editors, then measures human value through normal Approval/Export. Every fixed sample must be genuinely attempted and recorded. `Product Value Supported` or `Product Value Mixed` requires at least three Packages to complete exact Research, Blog, and Xiaohongshu Approvals plus all three exports; fewer completions requires `Product Value Not Supported` or `Product Value Blocked`, although the Goal may end after every fixed sample was attempted and recorded. It does not implement or prove product-integrated Provider execution. Credentials remain outside the repository and application processes; sample replacement, unapproved fixes, recovery Goals, new Adapter/config, tables, migrations, queues, Workflow types, Agent Runtime, M6, deployment, and postmerge reconciliation remain forbidden.
 
 ### Superseded M2 publication-recovery chain
 
