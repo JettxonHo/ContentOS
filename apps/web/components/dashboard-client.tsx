@@ -7,14 +7,15 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { ContentPackageModeDto, ContentPackageOutputDto, ContentPackageResource } from '@contentos/contracts';
 
 import { ContentOsApiClient, WebApiError } from '../lib/api-client';
+import { CONTENT_MODE_LABEL, OUTPUT_LABEL, UI_COPY } from '../lib/ui-copy';
 import { AppShell, StatusMessage } from './app-shell';
 
 type View = 'active' | 'archived';
 
 function safeMessage(error: unknown): string {
   return error instanceof WebApiError && error.code === 'NETWORK_ERROR'
-    ? 'The private API is unavailable. Check the local services and try again.'
-    : 'Content Packages could not be loaded. Try again.';
+    ? '私有 API 暂时不可用。请检查本地服务后重试。'
+    : '内容项目读取失败，请重试。';
 }
 
 export function DashboardClient({ apiOrigin, initialView }: { apiOrigin: string; initialView: View }) {
@@ -66,7 +67,7 @@ export function DashboardClient({ apiOrigin, initialView }: { apiOrigin: string;
       if (cause instanceof WebApiError && cause.status === 401) {
         router.replace('/login');
       } else {
-        setLoadError('ContentOS could not end the session. Try again.');
+        setLoadError('ContentOS 无法结束当前会话，请重试。');
       }
     }
   }
@@ -99,9 +100,7 @@ export function DashboardClient({ apiOrigin, initialView }: { apiOrigin: string;
       router.push(`/packages/${result.data.contentPackage.id}`);
     } catch (error) {
       setCreateError(
-        error instanceof WebApiError && error.status === 422
-          ? 'Review the package details and try again.'
-          : 'The package could not be created. Try again.',
+        error instanceof WebApiError && error.status === 422 ? '请检查项目信息后重试。' : '内容项目创建失败，请重试。',
       );
       submitting.current = false;
       setCreating(false);
@@ -112,21 +111,21 @@ export function DashboardClient({ apiOrigin, initialView }: { apiOrigin: string;
     <AppShell active="dashboard" onLogout={() => void logout()}>
       <header className="page-header">
         <div>
-          <p className="eyebrow">Content foundation</p>
-          <h1>Dashboard</h1>
-          <p className="lede">Create and reopen private content projects. Source and workflow stages come later.</p>
+          <p className="eyebrow">个人内容工作室</p>
+          <h1>{UI_COPY.shell.dashboard}</h1>
+          <p className="lede">创建、继续和管理你的私有内容项目，让资料、研究与双输出保持清晰可追溯。</p>
         </div>
-        <button className="primary-button" type="button" onClick={() => setShowCreate(true)}>
-          <span aria-hidden="true">＋</span> New package
+        <button aria-label="新建内容项目" className="primary-button" type="button" onClick={() => setShowCreate(true)}>
+          <span aria-hidden="true">＋</span> 新建内容项目
         </button>
       </header>
 
-      <div className="view-tabs" role="group" aria-label="Package status">
+      <div className="view-tabs" role="group" aria-label="内容项目状态">
         <button type="button" className={view === 'active' ? 'is-active' : ''} onClick={() => changeView('active')}>
-          Active
+          进行中
         </button>
         <button type="button" className={view === 'archived' ? 'is-active' : ''} onClick={() => changeView('archived')}>
-          Archived
+          已归档
         </button>
       </div>
 
@@ -134,13 +133,13 @@ export function DashboardClient({ apiOrigin, initialView }: { apiOrigin: string;
         <section className="create-panel" aria-labelledby="create-title">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">New project</p>
-              <h2 id="create-title">Create Content Package</h2>
+              <p className="eyebrow">新项目</p>
+              <h2 id="create-title">创建内容项目</h2>
             </div>
             <button
               className="icon-button"
               type="button"
-              aria-label="Close new package form"
+              aria-label="关闭新项目表单"
               onClick={() => setShowCreate(false)}
             >
               ×
@@ -148,9 +147,10 @@ export function DashboardClient({ apiOrigin, initialView }: { apiOrigin: string;
           </div>
           <form className="form-grid" onSubmit={create}>
             <div className="field full-span">
-              <label htmlFor="package-title">Title</label>
+              <label htmlFor="package-title">项目标题</label>
               <input
                 id="package-title"
+                aria-label="项目标题"
                 value={title}
                 maxLength={200}
                 onChange={(event) => setTitle(event.target.value)}
@@ -159,10 +159,11 @@ export function DashboardClient({ apiOrigin, initialView }: { apiOrigin: string;
             </div>
             <div className="field full-span">
               <label htmlFor="package-description">
-                Description <span>Optional</span>
+                项目说明 <span>可选</span>
               </label>
               <textarea
                 id="package-description"
+                aria-label="项目说明"
                 value={description}
                 maxLength={2000}
                 rows={3}
@@ -170,21 +171,23 @@ export function DashboardClient({ apiOrigin, initialView }: { apiOrigin: string;
               />
             </div>
             <div className="field">
-              <label htmlFor="content-mode">Content mode</label>
+              <label htmlFor="content-mode">内容模式</label>
               <select
                 id="content-mode"
+                aria-label="内容模式"
                 value={contentMode}
                 onChange={(event) => setContentMode(event.target.value as ContentPackageModeDto)}
               >
-                <option value="deferred">Decide later</option>
-                <option value="creator_led">Creator-led</option>
-                <option value="research_based">Research-based</option>
+                <option value="deferred">{CONTENT_MODE_LABEL.deferred}</option>
+                <option value="creator_led">{CONTENT_MODE_LABEL.creator_led}</option>
+                <option value="research_based">{CONTENT_MODE_LABEL.research_based}</option>
               </select>
             </div>
             <fieldset className="field output-field">
-              <legend>Requested outputs</legend>
+              <legend>目标输出</legend>
               <label className="check-label">
-                <input type="checkbox" checked={outputs.includes('blog')} onChange={() => toggleOutput('blog')} /> Blog
+                <input type="checkbox" checked={outputs.includes('blog')} onChange={() => toggleOutput('blog')} />{' '}
+                {OUTPUT_LABEL.blog}
               </label>
               <label className="check-label">
                 <input
@@ -192,12 +195,12 @@ export function DashboardClient({ apiOrigin, initialView }: { apiOrigin: string;
                   checked={outputs.includes('xiaohongshu')}
                   onChange={() => toggleOutput('xiaohongshu')}
                 />{' '}
-                Xiaohongshu
+                {OUTPUT_LABEL.xiaohongshu}
               </label>
             </fieldset>
             {outputs.length === 0 ? (
               <p className="field-error full-span" role="alert">
-                Choose at least one output.
+                请至少选择一种输出。
               </p>
             ) : null}
             {createError ? (
@@ -207,14 +210,15 @@ export function DashboardClient({ apiOrigin, initialView }: { apiOrigin: string;
             ) : null}
             <div className="form-actions full-span">
               <button className="secondary-button" type="button" onClick={() => setShowCreate(false)}>
-                Cancel
+                取消
               </button>
               <button
                 className="primary-button"
                 type="submit"
+                aria-label="创建内容项目"
                 disabled={creating || title.trim() === '' || outputs.length === 0}
               >
-                {creating ? 'Creating…' : 'Create package'}
+                {creating ? '正在创建…' : '创建内容项目'}
               </button>
             </div>
           </form>
@@ -223,7 +227,7 @@ export function DashboardClient({ apiOrigin, initialView }: { apiOrigin: string;
 
       {loading ? (
         <div className="loading-state" role="status">
-          <span /> Loading packages…
+          <span className="skeleton-line" /> 正在读取内容项目…
         </div>
       ) : null}
       {loadError ? <StatusMessage>{loadError}</StatusMessage> : null}
@@ -232,36 +236,38 @@ export function DashboardClient({ apiOrigin, initialView }: { apiOrigin: string;
           <div className="empty-icon" aria-hidden="true">
             ◇
           </div>
-          <h2>{view === 'active' ? 'Start your first content project' : 'No archived packages'}</h2>
+          <h2>{view === 'active' ? '开始第一个内容项目' : '暂无已归档项目'}</h2>
           <p>
             {view === 'active'
-              ? 'A Content Package keeps one idea and its future outputs together.'
-              : 'Archived work stays preserved and will appear here.'}
+              ? '一个内容项目把同一主题的资料、研究和输出整理在一起。'
+              : '归档项目会被完整保留，并显示在这里。'}
           </p>
           {view === 'active' ? (
             <button className="primary-button" type="button" onClick={() => setShowCreate(true)}>
-              Create Content Package
+              创建内容项目
             </button>
           ) : null}
         </section>
       ) : null}
       {!loading && items.length > 0 ? (
-        <section className="package-grid" aria-label={`${view} Content Packages`}>
+        <section className="package-grid" aria-label={view === 'active' ? '进行中的内容项目' : '已归档的内容项目'}>
           {items.map((item) => (
             <Link className="package-card" href={`/packages/${item.id}`} key={item.id}>
               <div className="card-top">
-                <span className={`lifecycle ${item.lifecycle}`}>{item.lifecycle}</span>
-                <span>r{item.revision}</span>
+                <span className={`lifecycle ${item.lifecycle}`}>
+                  {item.lifecycle === 'active' ? '进行中' : '已归档'}
+                </span>
+                <span>版本 {item.revision}</span>
               </div>
               <h2>{item.title}</h2>
-              <p>{item.description ?? 'No description yet.'}</p>
+              <p>{item.description ?? '尚未添加项目说明。'}</p>
               <div className="output-list">
                 {item.requestedOutputs.map((output) => (
-                  <span key={output}>{output === 'xiaohongshu' ? 'Xiaohongshu' : 'Blog'}</span>
+                  <span key={output}>{OUTPUT_LABEL[output]}</span>
                 ))}
               </div>
               <span className="open-link">
-                Open workspace <span aria-hidden="true">→</span>
+                打开创作工作台 <span aria-hidden="true">→</span>
               </span>
             </Link>
           ))}

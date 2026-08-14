@@ -93,16 +93,16 @@ async function waitFor<T>(read: () => Promise<T | undefined>, predicate: (value:
 
 async function createPackage(page: Page, value: SmokeState): Promise<string> {
   await page.goto(value.webOrigin);
-  await page.getByLabel('Owner password').fill(password(value));
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByLabel('所有者密码').fill(password(value));
+  await page.getByRole('button', { name: '登录' }).click();
   await expect(page).toHaveURL(value.webOrigin + '/');
   await page
-    .getByRole('button', { name: /Create Content Package|New package/ })
+    .getByRole('button', { name: /新建内容项目/ })
     .first()
     .click();
-  await page.getByLabel('Title').fill('M2 acceptance browser package');
-  await page.getByLabel('Content mode').selectOption('creator_led');
-  await page.getByRole('button', { name: 'Create package' }).click();
+  await page.getByLabel('项目标题').fill('M2 acceptance browser package');
+  await page.getByLabel('内容模式').selectOption('creator_led');
+  await page.locator('.create-panel').getByRole('button', { name: '创建内容项目' }).click();
   await expect(page).toHaveURL(/\/packages\/[0-9a-f-]+$/);
   const packageId = page.url().split('/').at(-1);
   if (!packageId) throw new Error('workspace route is missing its opaque identity');
@@ -129,12 +129,13 @@ test('M2 acceptance: browser recovery journey keeps URL failure, fallback, revie
     });
     await createPackage(page, value);
     await expect.poll(() => streamAborts).toBeGreaterThan(0);
-    await page.getByRole('button', { name: 'Public URL' }).click();
-    await page.getByLabel('Public URL').fill('https://example.test/m2-browser-visible-failure');
+    await page.getByRole('button', { name: '+ 添加资料' }).click();
+    await page.getByRole('button', { name: '网页链接', exact: true }).click();
+    await page.getByRole('textbox', { name: '公开 URL' }).fill('https://example.test/m2-browser-visible-failure');
     const requested = page.waitForResponse(
       (response) => response.url().endsWith('/url-capture-requests') && response.request().method() === 'POST',
     );
-    await page.getByRole('button', { name: 'Capture URL' }).click();
+    await page.getByRole('button', { name: '添加资料', exact: true }).click();
     const taskId = ((await (await requested).json()) as { data: { urlCaptureRequest: { taskId: string } } }).data
       .urlCaptureRequest.taskId;
     worker = startWorker(value);
@@ -170,61 +171,62 @@ test('M2 acceptance: browser recovery journey keeps URL failure, fallback, revie
       }),
     });
     expect(failed.status).toBe(200);
-    await expect(page.locator('.source-intake-panel').getByText('Capture failed', { exact: true })).toBeVisible({
+    await expect(page.locator('.source-intake-panel').getByText('抓取失败', { exact: true })).toBeVisible({
       timeout: 12_000,
     });
     await expect.poll(() => workflowEventReads).toBeGreaterThan(workflowEventReadsBeforeFailure);
-    await page.getByRole('button', { name: 'Use pasted text instead' }).click();
-    await page.getByLabel('Label Optional').fill('M2 fallback source');
-    await page.getByLabel('Pasted text').fill('M2 browser authoritative fallback');
-    await page.getByRole('button', { name: 'Add Source' }).click();
-    await expect(page.getByText('Primary 1/1 · Supporting 0/5')).toBeVisible();
+    await page.getByRole('button', { name: '改用粘贴文本' }).click();
+    await page.getByLabel('资料名称（可选）').fill('M2 fallback source');
+    await page.getByRole('textbox', { name: '资料正文', exact: true }).fill('M2 browser authoritative fallback');
+    await page.getByRole('button', { name: '添加资料', exact: true }).click();
+    await expect(page.getByText('主资料 1/1 · 补充资料 0/5')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Upload file' }).click();
-    await page.getByRole('radio', { name: /Supporting/ }).check();
-    await page.getByLabel('Label Optional').fill('M2 markdown support');
-    await page.getByLabel('Upload a Markdown or text file').setInputFiles({
+    await page.getByRole('button', { name: '+ 添加资料' }).click();
+    await page.getByRole('button', { name: '上传文件', exact: true }).click();
+    await page.getByRole('radio', { name: /补充资料/ }).check();
+    await page.getByLabel('资料名称（可选）').fill('M2 markdown support');
+    await page.getByLabel('上传 Markdown 或文本文件').setInputFiles({
       name: 'm2-support.md',
       mimeType: 'text/markdown',
       buffer: Buffer.from('# M2 markdown support'),
     });
-    await page.getByRole('button', { name: 'Add Source' }).click();
-    await page.getByRole('button', { name: 'Upload file' }).click();
-    await page.getByLabel('Label Optional').fill('M2 text support');
-    await page.getByLabel('Upload a Markdown or text file').setInputFiles({
+    await page.getByRole('button', { name: '添加资料', exact: true }).click();
+    await page.getByRole('button', { name: '+ 添加资料' }).click();
+    await page.getByRole('button', { name: '上传文件', exact: true }).click();
+    await page.getByLabel('资料名称（可选）').fill('M2 text support');
+    await page.getByLabel('上传 Markdown 或文本文件').setInputFiles({
       name: 'm2-support.txt',
       mimeType: 'text/plain',
       buffer: Buffer.from('M2 text support'),
     });
-    await page.getByRole('button', { name: 'Add Source' }).click();
-    await expect(page.getByText('Primary 1/1 · Supporting 2/5')).toBeVisible();
+    await page.getByRole('button', { name: '添加资料', exact: true }).click();
+    await expect(page.getByText('主资料 1/1 · 补充资料 2/5')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Review Source M2 fallback source' }).click();
-    const editor = page.getByLabel(/Normalized Working Copy/);
+    await page.getByRole('button', { name: '审核资料 M2 fallback source' }).click();
+    const editor = page.getByLabel(/当前草稿修订/);
     await editor.fill('M2 browser saved working copy');
-    await page.getByRole('button', { name: 'Save Working Copy' }).click();
-    await page.getByRole('button', { name: 'Create Version' }).click();
-    await page.getByRole('button', { name: 'Approve Version 1', exact: true }).click();
-    await page
-      .getByRole('dialog', { name: 'Approve Version 1?' })
-      .getByRole('button', { name: 'Confirm approval' })
-      .click();
-    await expect(page.getByText('Version 1 is now the current approved Version.')).toBeVisible();
+    await page.getByRole('button', { name: '保存当前草稿' }).click();
+    await page.getByRole('button', { name: '保存为版本' }).click();
+    await page.getByRole('button', { name: '批准版本 1', exact: true }).click();
+    await page.getByRole('dialog', { name: '批准版本 1？' }).getByRole('button', { name: '确认批准' }).click();
+    await expect(page.getByText('版本 1 已成为当前批准版本。')).toBeVisible();
     await page.reload();
     await expect(page.getByText('M2 fallback source')).toBeVisible();
-    await page.getByRole('button', { name: 'Review Source M2 fallback source' }).click();
+    await page.getByRole('button', { name: '审核资料 M2 fallback source' }).click();
     await page
       .locator('.version-list')
-      .getByRole('button', { name: /^Version 1\b/ })
+      .getByRole('button', { name: /^版本 \b/ })
       .click();
-    await expect(page.getByLabel('Version 1 immutable review')).toContainText('M2 browser saved working copy');
-    await expect(page.getByLabel('Version 1 immutable review')).toContainText('Current approved');
-    await page.getByRole('button', { name: 'Close review' }).click();
+    await expect(page.getByLabel('版本 1 不可变审核')).toContainText('M2 browser saved working copy');
+    await expect(page.getByLabel('版本 1 不可变审核')).toContainText('当前批准');
+    await page.getByRole('button', { name: '关闭审核' }).click();
+    await page.getByRole('button', { name: '运行记录', exact: true }).click();
     const timeline = page.locator('.workflow-timeline-panel');
     await expect(timeline.getByText('URL capture requested', { exact: true })).toBeVisible({ timeout: 12_000 });
     await expect(timeline.getByText('URL capture was blocked safely', { exact: true })).toBeVisible({
       timeout: 12_000,
     });
+    await page.getByRole('button', { name: '关闭运行记录' }).click();
   } finally {
     await runCleanup([
       ['worker', () => stopWorker(worker)],

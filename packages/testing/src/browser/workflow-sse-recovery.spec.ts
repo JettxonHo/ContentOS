@@ -36,8 +36,8 @@ test('M2-WF-004B: native credentialed EventSource receives and closes an exact n
   if (!password) throw new Error('temporary browser fixture is missing');
 
   await page.goto(state.webOrigin);
-  await page.getByLabel('Owner password').fill(password);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByLabel('所有者密码').fill(password);
+  await page.getByRole('button', { name: '登录' }).click();
   await expect(page).toHaveURL(state.webOrigin + '/');
 
   const packageId = await page.evaluate(async (apiOrigin) => {

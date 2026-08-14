@@ -21,12 +21,16 @@ import { ContentOsApiClient, WebApiError } from '../lib/api-client';
 import { SourceRefreshCoordinator } from '../lib/source-intake-view';
 import { WorkflowRecoveryController } from '../lib/workflow-recovery';
 import { deriveWorkspaceStageProjection, type WorkspaceStageId } from '../lib/workspace-stage-view';
+import { CONTENT_MODE_LABEL, OUTPUT_LABEL, UI_COPY } from '../lib/ui-copy';
 import { AppShell, StatusMessage } from './app-shell';
+import { NextActionCard } from './next-action-card';
 import { SourceIntakePanel } from './source-intake-panel';
 import { SourceReviewPanel } from './source-review-panel';
 import { ResearchReviewPanel } from './research-review-panel';
 import { OpinionBlogPanel } from './opinion-blog-panel';
 import { XiaohongshuPanel } from './xiaohongshu-panel';
+import { WorkspaceActionRegistrationContext, type WorkspacePrimaryAction } from './workspace-action-context';
+import { WorkspaceDrawer } from './workspace-drawer';
 import { WorkflowTimelinePanel } from './workflow-timeline-panel';
 
 export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: string; contentPackageId: string }) {
@@ -43,6 +47,8 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
+  const [primaryAction, setPrimaryAction] = useState<WorkspacePrimaryAction | null>(null);
   const [section, setSection] = useState<'sources' | 'research' | 'opinion-blog' | 'xiaohongshu' | 'details'>(
     'sources',
   );
@@ -107,7 +113,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
       blog: null,
       xiaohongshu: null,
     });
-    setError('This Content Package is unavailable.');
+    setError('此内容项目不可用。');
   }, []);
 
   const refreshStageOverview = useCallback(async (): Promise<void> => {
@@ -176,7 +182,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
         if (background) {
           setSourceStale(true);
         } else {
-          setSourceError('Source status could not be loaded. Reload the authoritative status.');
+          setSourceError('无法读取资料状态，请重新加载权威状态。');
         }
       } finally {
         if (!background) setSourceLoading(false);
@@ -197,9 +203,9 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
       if (cause instanceof WebApiError && cause.status === 401) {
         router.replace('/login');
       } else if (cause instanceof WebApiError && cause.status === 404) {
-        setError('This Content Package is unavailable.');
+        setError('此内容项目不可用。');
       } else {
-        setError('The workspace could not be loaded. Try again.');
+        setError('无法加载工作区，请重试。');
       }
     } finally {
       setLoading(false);
@@ -218,8 +224,8 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
       .catch((cause: unknown) => {
         if (!current) return;
         if (cause instanceof WebApiError && cause.status === 401) router.replace('/login');
-        else if (cause instanceof WebApiError && cause.status === 404) setError('This Content Package is unavailable.');
-        else setError('The workspace could not be loaded. Try again.');
+        else if (cause instanceof WebApiError && cause.status === 404) setError('此内容项目不可用。');
+        else setError('无法加载工作区，请重试。');
       })
       .finally(() => current && setLoading(false));
     return () => {
@@ -251,7 +257,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
           setSelectedSourceId(null);
           setReviewDirty(false);
           setReviewBusy(false);
-          setSourceNotice('This Source is unavailable. The Source collection was refreshed.');
+          setSourceNotice('该资料不可用，资料列表已刷新。');
         } else {
           setSourceError('');
         }
@@ -268,43 +274,37 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
       } catch (cause) {
         if (!active) return;
         if (!handleSourceTerminal(cause)) {
-          setSourceError('Source status could not be loaded. Reload the authoritative status.');
+          setSourceError('无法读取资料状态，请重新加载权威状态。');
         }
       } finally {
         if (active) setSourceLoading(false);
       }
     });
-    const recovery = contentPackage.lifecycle === 'active' ? new WorkflowRecoveryController(api, apiOrigin) : null;
-    const unsubscribe = recovery?.subscribe(contentPackageId, (notice) => {
-      if (notice.kind === 'projection') {
-        setWorkflowLatestSequence(notice.response.data.workflow?.latestSequence ?? 0);
-        setReviewRefreshSignal((current) => current + 1);
-        void refreshSources(true);
-      }
-      if (notice.kind === 'terminal' && notice.status === 401) router.replace('/login');
-      if (notice.kind === 'terminal' && notice.status === 404) showPackageUnavailable();
-    });
     return () => {
       active = false;
-      unsubscribe?.();
       sourceRefresh.dispose();
       if (sourceRefreshRef.current === sourceRefresh) sourceRefreshRef.current = null;
     };
-  }, [
-    api,
-    apiOrigin,
-    contentPackage,
-    contentPackageId,
-    handleSourceTerminal,
-    refreshSources,
-    router,
-    section,
-    showPackageUnavailable,
-  ]);
+  }, [api, contentPackage, contentPackageId, handleSourceTerminal, section]);
+
+  useEffect(() => {
+    if (!contentPackage || contentPackage.lifecycle !== 'active') return;
+    const recovery = new WorkflowRecoveryController(api, apiOrigin);
+    const unsubscribe = recovery.subscribe(contentPackageId, (event) => {
+      if (event.kind === 'projection') {
+        setWorkflowLatestSequence(event.response.data.workflow?.latestSequence ?? 0);
+        setReviewRefreshSignal((current) => current + 1);
+        void refreshSources(true);
+      }
+      if (event.kind === 'terminal' && event.status === 401) router.replace('/login');
+      if (event.kind === 'terminal' && event.status === 404) showPackageUnavailable();
+    });
+    return unsubscribe;
+  }, [api, apiOrigin, contentPackage, contentPackageId, refreshSources, router, showPackageUnavailable]);
 
   async function logout(): Promise<void> {
     if (reviewDirty) {
-      setSourceError('Save or discard the unsaved Source draft before leaving this workspace.');
+      setSourceError('离开工作区前，请先保存或放弃未保存的资料草稿。');
       return;
     }
     try {
@@ -314,7 +314,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
       if (cause instanceof WebApiError && cause.status === 401) {
         router.replace('/login');
       } else {
-        setError('ContentOS could not end the session. Try again.');
+        setError('ContentOS 无法结束当前会话，请重试。');
       }
     }
   }
@@ -327,9 +327,10 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
 
   function chooseSection(next: 'sources' | 'research' | 'opinion-blog' | 'xiaohongshu' | 'details'): void {
     if ((reviewDirty || reviewBusy) && next !== section) {
-      setSourceError('Save or discard the unsaved review draft before changing Workspace sections.');
+      setSourceError('切换阶段前，请先保存或放弃未保存的审核草稿。');
       return;
     }
+    setPrimaryAction(null);
     setSection(next);
   }
 
@@ -352,14 +353,14 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
           })
         ).data.contentPackage,
       );
-      setNotice('Changes saved to the authoritative workspace.');
+      setNotice('项目信息已保存到权威工作区。');
     } catch (cause) {
       if (cause instanceof WebApiError && cause.code === 'REVISION_CONFLICT') {
         setConflict(true);
       } else if (cause instanceof WebApiError && cause.status === 401) {
         router.replace('/login');
       } else {
-        setError('Changes were not saved. Review the form and try again.');
+        setError('未能保存更改，请检查表单后重试。');
       }
     } finally {
       setSaving(false);
@@ -376,7 +377,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     } catch (cause) {
       if (cause instanceof WebApiError && cause.code === 'REVISION_CONFLICT') setConflict(true);
       else if (cause instanceof WebApiError && cause.status === 401) router.replace('/login');
-      else setError('The package was not archived. Try again.');
+      else setError('未能归档项目，请重试。');
     } finally {
       setSaving(false);
       setConfirmArchive(false);
@@ -392,14 +393,14 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     if (href !== '/' && href?.startsWith('/?') !== true) return;
     event.preventDefault();
     event.stopPropagation();
-    setSourceError('Save or discard the unsaved Source draft before leaving this workspace.');
+    setSourceError('离开工作区前，请先保存或放弃未保存的资料草稿。');
   };
 
   const closeUnavailableSource = (): void => {
     setSelectedSourceId(null);
     setReviewDirty(false);
     setReviewBusy(false);
-    setSourceNotice('This Source is unavailable. The Source collection was refreshed.');
+    setSourceNotice('该资料不可用，资料列表已刷新。');
     void refreshSources(true);
     void refreshStageOverview();
   };
@@ -414,297 +415,361 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     : null;
 
   const stageRows: readonly { readonly id: WorkspaceStageId; readonly number: string; readonly title: string }[] = [
-    { id: 'details', number: '01', title: 'Package metadata' },
-    { id: 'sources', number: '02', title: 'Sources' },
-    { id: 'research', number: '03', title: 'Research' },
-    { id: 'opinion-blog', number: '04', title: 'Opinion & Blog' },
-    { id: 'xiaohongshu', number: '05', title: 'Xiaohongshu' },
+    { id: 'details', number: '01', title: UI_COPY.stage.details },
+    { id: 'sources', number: '02', title: UI_COPY.stage.sources },
+    { id: 'research', number: '03', title: UI_COPY.stage.research },
+    { id: 'opinion-blog', number: '04', title: UI_COPY.stage.opinionBlog },
+    { id: 'xiaohongshu', number: '05', title: UI_COPY.stage.xiaohongshu },
   ];
+
+  const metadataDirty = Boolean(
+    contentPackage &&
+    (title !== contentPackage.title ||
+      description !== (contentPackage.description ?? '') ||
+      contentMode !== contentPackage.contentMode ||
+      JSON.stringify([...outputs].sort()) !== JSON.stringify([...contentPackage.requestedOutputs].sort())),
+  );
+  const detailsAction: WorkspacePrimaryAction | null = contentPackage
+    ? {
+        label: '保存项目信息',
+        reason: metadataDirty ? '保存标题、描述、创作模式和输出选择。' : '项目信息与权威版本一致。',
+        disabled:
+          contentPackage.lifecycle !== 'active' ||
+          saving ||
+          !metadataDirty ||
+          title.trim() === '' ||
+          outputs.length === 0,
+        busy: saving,
+        onAction: () => document.querySelector<HTMLFormElement>('#package-metadata-form')?.requestSubmit(),
+      }
+    : null;
+  const contextAction = section === 'details' ? detailsAction : primaryAction;
+  const currentStage = stageProjection?.[section];
+  const contextFacts = contentPackage
+    ? [
+        { label: '项目版本', value: String(contentPackage.revision) },
+        {
+          label: '依赖与版本',
+          value:
+            section === 'sources'
+              ? `${sources?.length ?? 0} 份资料`
+              : section === 'research'
+                ? stageState.research
+                  ? `当前草稿 r${stageState.research.workingCopy.revision}`
+                  : '尚未生成研究'
+                : section === 'opinion-blog'
+                  ? stageState.blog
+                    ? `文章草稿 r${stageState.blog.workingCopy.revision}`
+                    : '尚未生成文章'
+                  : section === 'xiaohongshu'
+                    ? stageState.xiaohongshu
+                      ? `小红书草稿 r${stageState.xiaohongshu.workingCopy.revision}`
+                      : '尚未生成小红书候选'
+                    : `创作模式：${CONTENT_MODE_LABEL[contentMode]}`,
+        },
+      ]
+    : [];
 
   return (
     <div onClickCapture={blockDirtyLinkNavigation}>
       <AppShell active="workspace" onLogout={() => void logout()}>
         <header className="workspace-header">
           <div>
-            <Link className="back-link" href="/">
-              ← Dashboard
-            </Link>
-            <p className="eyebrow">Content Package workspace</p>
-            <h1>{contentPackage?.title ?? 'Workspace'}</h1>
+            <p className="workspace-breadcrumb">
+              <Link href="/">工作台</Link> <span>/</span> {contentPackage?.title ?? '内容项目'}
+            </p>
+            <p className="eyebrow">内容项目工作区</p>
+            <h1>{contentPackage?.title ?? '内容项目'}</h1>
           </div>
-          {contentPackage ? <div className="revision-badge">Revision {contentPackage.revision}</div> : null}
+          {contentPackage ? <div className="revision-badge">版本 {contentPackage.revision}</div> : null}
         </header>
+
+        {contentPackage && stageProjection ? (
+          <nav className="project-stage-nav" aria-label="项目阶段">
+            {stageRows.map((row) => {
+              const stage = stageProjection[row.id];
+              const archivedDisabled =
+                contentPackage.lifecycle === 'archived' && row.id !== 'details' && row.id !== 'sources';
+              return (
+                <button
+                  key={row.id}
+                  className={`project-stage-tab stage-${stage.status}`}
+                  type="button"
+                  aria-current={section === row.id ? 'page' : undefined}
+                  aria-label={`${row.title}：${stage.label}。${stage.reason}`}
+                  onClick={() => chooseSection(row.id)}
+                  disabled={archivedDisabled || ((reviewDirty || reviewBusy) && section !== row.id)}
+                >
+                  <span>{row.number}</span>
+                  <strong>{row.title}</strong>
+                  <small>{stage.label}</small>
+                </button>
+              );
+            })}
+          </nav>
+        ) : null}
 
         {loading ? (
           <div className="loading-state" role="status">
-            <span /> Loading workspace…
+            <span className="skeleton-line" /> 正在加载工作区…
           </div>
         ) : null}
         {error ? <StatusMessage>{error}</StatusMessage> : null}
         {conflict ? (
           <StatusMessage>
-            <strong>Revision conflict.</strong> A newer authoritative revision exists. Your changes were not applied.{' '}
+            <strong>版本冲突。</strong> 已存在更新的权威版本，本次更改没有应用。{' '}
             <button className="inline-button" type="button" onClick={() => void load()}>
-              Reload latest
+              重新加载最新版本
             </button>
           </StatusMessage>
         ) : null}
 
         {contentPackage && !loading ? (
-          <div className="workspace-layout">
-            <section
-              className="workspace-main"
-              aria-labelledby={
-                section === 'sources'
-                  ? 'sources-title'
-                  : section === 'research'
-                    ? 'research-title'
-                    : section === 'opinion-blog'
-                      ? 'opinion-blog-title'
-                      : section === 'xiaohongshu'
-                        ? 'xiaohongshu-title'
-                        : 'metadata-title'
-              }
-            >
-              {section === 'sources' ? (
-                <>
-                  {sourceError ? (
-                    <StatusMessage>
-                      {sourceError}{' '}
-                      <button className="inline-button" type="button" onClick={() => void refreshSources()}>
-                        Reload Source status
-                      </button>
-                    </StatusMessage>
-                  ) : null}
-                  {sourceNotice ? <StatusMessage>{sourceNotice}</StatusMessage> : null}
-                  <SourceIntakePanel
-                    api={api}
-                    contentPackage={contentPackage}
-                    sources={sources}
-                    intakes={intakes}
-                    busy={sourceLoading}
-                    stale={sourceStale}
-                    onRefresh={() => refreshSources()}
-                    onTerminal={handleSourceTerminal}
-                    onReview={(sourceId) => {
-                      setSourceError('');
-                      setSourceNotice('');
-                      setSelectedSourceId(sourceId);
-                    }}
-                    reviewNavigationBlocked={reviewDirty || reviewBusy}
-                  />
-                  {contentPackage.lifecycle === 'active' && selectedSourceId ? (
-                    <SourceReviewPanel
-                      key={selectedSourceId}
-                      api={api}
-                      contentPackageId={contentPackage.id}
-                      sourceId={selectedSourceId}
-                      refreshSignal={reviewRefreshSignal}
-                      onClose={() => setSelectedSourceId(null)}
-                      onDirtyChange={setReviewDirty}
-                      onBusyChange={setReviewBusy}
-                      onUnavailable={handleSourceTerminal}
-                      onSourceUnavailable={closeUnavailableSource}
-                      onStatusChange={() => void refreshStageOverview()}
-                    />
-                  ) : null}
-                  {contentPackage.lifecycle === 'active' ? (
-                    <WorkflowTimelinePanel
-                      api={api}
-                      contentPackageId={contentPackage.id}
-                      latestSequence={workflowLatestSequence}
-                      onTerminal={handleSourceTerminal}
-                    />
-                  ) : null}
-                </>
-              ) : section === 'research' ? (
-                <ResearchReviewPanel
-                  api={api}
-                  contentPackageId={contentPackage.id}
-                  active={contentPackage.lifecycle === 'active'}
-                  onDirtyChange={setReviewDirty}
-                  onBusyChange={setReviewBusy}
-                  onUnauthenticated={() => router.replace('/login')}
-                  onStatusChange={() => void refreshStageOverview()}
-                />
-              ) : section === 'opinion-blog' ? (
-                <OpinionBlogPanel
-                  api={api}
-                  contentPackageId={contentPackage.id}
-                  configuredMode={contentPackage.contentMode}
-                  active={contentPackage.lifecycle === 'active'}
-                  onDirtyChange={setReviewDirty}
-                  onBusyChange={setReviewBusy}
-                  onUnauthenticated={() => router.replace('/login')}
-                  onStatusChange={() => void refreshStageOverview()}
-                />
-              ) : section === 'xiaohongshu' ? (
-                <XiaohongshuPanel
-                  api={api}
-                  contentPackageId={contentPackage.id}
-                  configuredMode={contentPackage.contentMode}
-                  active={contentPackage.lifecycle === 'active'}
-                  onDirtyChange={setReviewDirty}
-                  onBusyChange={setReviewBusy}
-                  onUnauthenticated={() => router.replace('/login')}
-                  onStatusChange={() => void refreshStageOverview()}
-                />
-              ) : (
-                <>
-                  <div className="section-heading">
-                    <div>
-                      <p className="eyebrow">Current foundation</p>
-                      <h2 id="metadata-title">Package metadata</h2>
-                    </div>
-                    <span className={`lifecycle ${contentPackage.lifecycle}`}>{contentPackage.lifecycle}</span>
-                  </div>
-                  <form className="form-grid" onSubmit={save}>
-                    <div className="field full-span">
-                      <label htmlFor="workspace-title">Title</label>
-                      <input
-                        id="workspace-title"
-                        maxLength={200}
-                        value={title}
-                        onChange={(event) => setTitle(event.target.value)}
-                        disabled={contentPackage.lifecycle === 'archived'}
-                        required
-                      />
-                    </div>
-                    <div className="field full-span">
-                      <label htmlFor="workspace-description">
-                        Description <span>Optional</span>
-                      </label>
-                      <textarea
-                        id="workspace-description"
-                        maxLength={2000}
-                        rows={4}
-                        value={description}
-                        onChange={(event) => setDescription(event.target.value)}
-                        disabled={contentPackage.lifecycle === 'archived'}
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="workspace-mode">Content mode</label>
-                      <select
-                        id="workspace-mode"
-                        value={contentMode}
-                        onChange={(event) => setContentMode(event.target.value as ContentPackageModeDto)}
-                        disabled={contentPackage.lifecycle === 'archived'}
-                      >
-                        <option value="deferred">Decide later</option>
-                        <option value="creator_led">Creator-led</option>
-                        <option value="research_based">Research-based</option>
-                      </select>
-                    </div>
-                    <fieldset className="field output-field" disabled={contentPackage.lifecycle === 'archived'}>
-                      <legend>Requested outputs</legend>
-                      <label className="check-label">
-                        <input
-                          type="checkbox"
-                          checked={outputs.includes('blog')}
-                          onChange={() => toggleOutput('blog')}
-                        />{' '}
-                        Blog
-                      </label>
-                      <label className="check-label">
-                        <input
-                          type="checkbox"
-                          checked={outputs.includes('xiaohongshu')}
-                          onChange={() => toggleOutput('xiaohongshu')}
-                        />{' '}
-                        Xiaohongshu
-                      </label>
-                    </fieldset>
-                    {outputs.length === 0 ? (
-                      <p className="field-error full-span" role="alert">
-                        Choose at least one output.
-                      </p>
-                    ) : null}
-                    {notice ? (
-                      <p className="save-notice full-span" role="status">
-                        {notice}
-                      </p>
-                    ) : null}
-                    {contentPackage.lifecycle === 'active' ? (
-                      <div className="form-actions full-span">
-                        <button
-                          className="primary-button"
-                          type="submit"
-                          disabled={saving || title.trim() === '' || outputs.length === 0}
-                        >
-                          {saving ? 'Saving…' : 'Save changes'}
+          <WorkspaceActionRegistrationContext.Provider value={setPrimaryAction}>
+            <div className="workspace-layout">
+              <section
+                className="workspace-main"
+                aria-labelledby={
+                  section === 'sources'
+                    ? 'sources-title'
+                    : section === 'research'
+                      ? 'research-title'
+                      : section === 'opinion-blog'
+                        ? 'opinion-blog-title'
+                        : section === 'xiaohongshu'
+                          ? 'xiaohongshu-title'
+                          : 'metadata-title'
+                }
+              >
+                {section === 'sources' ? (
+                  <>
+                    {sourceError ? (
+                      <StatusMessage>
+                        {sourceError}{' '}
+                        <button className="inline-button" type="button" onClick={() => void refreshSources()}>
+                          重新加载资料状态
                         </button>
-                      </div>
+                      </StatusMessage>
                     ) : null}
-                  </form>
-                </>
-              )}
-            </section>
+                    {sourceNotice ? <StatusMessage>{sourceNotice}</StatusMessage> : null}
+                    <SourceIntakePanel
+                      api={api}
+                      contentPackage={contentPackage}
+                      sources={sources}
+                      sourceDetails={stageState.sources}
+                      intakes={intakes}
+                      busy={sourceLoading}
+                      stale={sourceStale}
+                      onRefresh={() => refreshSources()}
+                      onTerminal={handleSourceTerminal}
+                      onReview={(sourceId) => {
+                        setSourceError('');
+                        setSourceNotice('');
+                        setSelectedSourceId(sourceId);
+                      }}
+                      reviewNavigationBlocked={reviewDirty || reviewBusy}
+                      primaryActionEnabled={selectedSourceId === null}
+                    />
+                    {contentPackage.lifecycle === 'active' && selectedSourceId ? (
+                      <SourceReviewPanel
+                        key={selectedSourceId}
+                        api={api}
+                        contentPackageId={contentPackage.id}
+                        sourceId={selectedSourceId}
+                        refreshSignal={reviewRefreshSignal}
+                        onClose={() => setSelectedSourceId(null)}
+                        onDirtyChange={setReviewDirty}
+                        onBusyChange={setReviewBusy}
+                        onUnavailable={handleSourceTerminal}
+                        onSourceUnavailable={closeUnavailableSource}
+                        onStatusChange={() => void refreshStageOverview()}
+                      />
+                    ) : null}
+                  </>
+                ) : section === 'research' ? (
+                  <ResearchReviewPanel
+                    api={api}
+                    contentPackageId={contentPackage.id}
+                    active={contentPackage.lifecycle === 'active'}
+                    onDirtyChange={setReviewDirty}
+                    onBusyChange={setReviewBusy}
+                    onUnauthenticated={() => router.replace('/login')}
+                    onStatusChange={() => void refreshStageOverview()}
+                  />
+                ) : section === 'opinion-blog' ? (
+                  <OpinionBlogPanel
+                    api={api}
+                    contentPackageId={contentPackage.id}
+                    configuredMode={contentPackage.contentMode}
+                    active={contentPackage.lifecycle === 'active'}
+                    onDirtyChange={setReviewDirty}
+                    onBusyChange={setReviewBusy}
+                    onUnauthenticated={() => router.replace('/login')}
+                    onStatusChange={() => void refreshStageOverview()}
+                  />
+                ) : section === 'xiaohongshu' ? (
+                  <XiaohongshuPanel
+                    api={api}
+                    contentPackageId={contentPackage.id}
+                    configuredMode={contentPackage.contentMode}
+                    active={contentPackage.lifecycle === 'active'}
+                    onDirtyChange={setReviewDirty}
+                    onBusyChange={setReviewBusy}
+                    onUnauthenticated={() => router.replace('/login')}
+                    onStatusChange={() => void refreshStageOverview()}
+                  />
+                ) : (
+                  <>
+                    <div className="section-heading">
+                      <div>
+                        <p className="eyebrow">项目基础信息</p>
+                        <h2 id="metadata-title">项目信息</h2>
+                      </div>
+                      <span className={`lifecycle ${contentPackage.lifecycle}`}>
+                        {contentPackage.lifecycle === 'active' ? '进行中' : '已归档'}
+                      </span>
+                    </div>
+                    <form id="package-metadata-form" className="form-grid" onSubmit={save}>
+                      <div className="field full-span">
+                        <label htmlFor="workspace-title">项目标题</label>
+                        <input
+                          id="workspace-title"
+                          maxLength={200}
+                          value={title}
+                          onChange={(event) => setTitle(event.target.value)}
+                          disabled={contentPackage.lifecycle === 'archived'}
+                          required
+                        />
+                      </div>
+                      <div className="field full-span">
+                        <label htmlFor="workspace-description">
+                          项目描述 <span>可选</span>
+                        </label>
+                        <textarea
+                          id="workspace-description"
+                          maxLength={2000}
+                          rows={4}
+                          value={description}
+                          onChange={(event) => setDescription(event.target.value)}
+                          disabled={contentPackage.lifecycle === 'archived'}
+                        />
+                      </div>
+                      <div className="field">
+                        <label htmlFor="workspace-mode">创作模式</label>
+                        <select
+                          id="workspace-mode"
+                          value={contentMode}
+                          onChange={(event) => setContentMode(event.target.value as ContentPackageModeDto)}
+                          disabled={contentPackage.lifecycle === 'archived'}
+                        >
+                          <option value="deferred">稍后决定</option>
+                          <option value="creator_led">创作者主导</option>
+                          <option value="research_based">研究驱动</option>
+                        </select>
+                      </div>
+                      <fieldset className="field output-field" disabled={contentPackage.lifecycle === 'archived'}>
+                        <legend>目标输出</legend>
+                        <label className="check-label">
+                          <input
+                            type="checkbox"
+                            checked={outputs.includes('blog')}
+                            onChange={() => toggleOutput('blog')}
+                          />{' '}
+                          {OUTPUT_LABEL.blog}
+                        </label>
+                        <label className="check-label">
+                          <input
+                            type="checkbox"
+                            checked={outputs.includes('xiaohongshu')}
+                            onChange={() => toggleOutput('xiaohongshu')}
+                          />{' '}
+                          {OUTPUT_LABEL.xiaohongshu}
+                        </label>
+                      </fieldset>
+                      {outputs.length === 0 ? (
+                        <p className="field-error full-span" role="alert">
+                          至少选择一种输出。
+                        </p>
+                      ) : null}
+                      {notice ? (
+                        <p className="save-notice full-span" role="status">
+                          {notice}
+                        </p>
+                      ) : null}
+                    </form>
+                  </>
+                )}
+              </section>
 
-            <aside className="stage-panel" aria-labelledby="stage-title">
-              <p className="eyebrow">Workspace</p>
-              <h2 id="stage-title">Foundation</h2>
-              {stageProjection
-                ? stageRows.map((row) => {
-                    const stage = stageProjection[row.id];
-                    const archivedDisabled =
-                      contentPackage.lifecycle === 'archived' && row.id !== 'details' && row.id !== 'sources';
-                    return (
-                      <button
-                        key={row.id}
-                        className={`${section === row.id ? 'stage-current' : 'stage-future'} stage-button stage-${stage.status}`}
-                        type="button"
-                        aria-pressed={section === row.id}
-                        aria-label={`${row.title}: ${stage.label}. Next action: ${stage.nextAction}. ${stage.reason}`}
-                        onClick={() => chooseSection(row.id)}
-                        disabled={archivedDisabled || ((reviewDirty || reviewBusy) && section !== row.id)}
-                      >
-                        <span>{row.number}</span>
-                        <div>
-                          <strong>{row.title}</strong>
-                          <small>{stage.label}</small>
-                          <span className="stage-next">{stage.nextAction}</span>
-                        </div>
-                      </button>
-                    );
-                  })
-                : null}
-              <p className="stage-note">
-                Research and Blog generation use deterministic Fake Providers. Real Provider calls remain unavailable.
-              </p>
-              {contentPackage.lifecycle === 'active' ? (
-                <button
-                  className="danger-text-button"
-                  type="button"
-                  onClick={() => {
-                    if (reviewDirty || reviewBusy) {
-                      setSourceError('Save or discard the unsaved Source draft before archiving this package.');
-                      return;
-                    }
-                    setConfirmArchive(true);
-                  }}
-                >
-                  Archive package
+              <aside className="workspace-context-panel" aria-labelledby="context-title">
+                <p className="eyebrow">当前阶段</p>
+                <h2 id="context-title">{stageRows.find((row) => row.id === section)?.title}</h2>
+                {currentStage ? (
+                  <NextActionCard
+                    status={currentStage.status}
+                    label={currentStage.label}
+                    actionLabel={contextAction?.label ?? currentStage.nextAction}
+                    reason={contextAction?.reason ?? currentStage.reason}
+                    disabled={contextAction?.disabled ?? true}
+                    disabledReason={contextAction?.reason ?? currentStage.reason}
+                    busy={contextAction?.busy ?? false}
+                    {...(contextAction && !contextAction.disabled ? { onAction: contextAction.onAction } : {})}
+                    meta={contextFacts}
+                  />
+                ) : null}
+                <button className="secondary-button activity-entry" type="button" onClick={() => setShowActivity(true)}>
+                  运行记录
                 </button>
-              ) : (
-                <p className="archived-note">This package is preserved as archived and is read-only.</p>
-              )}
-            </aside>
-          </div>
+                <p className="stage-note">当前生成仍使用确定性 Fake Provider，不代表产品已接入真实 Provider。</p>
+                {contentPackage.lifecycle === 'active' ? (
+                  <button
+                    className="danger-text-button"
+                    type="button"
+                    onClick={() => {
+                      if (reviewDirty || reviewBusy) {
+                        setSourceError('归档项目前，请先保存或放弃未保存的资料草稿。');
+                        return;
+                      }
+                      setConfirmArchive(true);
+                    }}
+                  >
+                    归档项目
+                  </button>
+                ) : (
+                  <p className="archived-note">该项目已归档并以只读方式保留。</p>
+                )}
+              </aside>
+            </div>
+          </WorkspaceActionRegistrationContext.Provider>
+        ) : null}
+
+        {contentPackage ? (
+          <WorkspaceDrawer open={showActivity} keepMounted title="运行记录" onClose={() => setShowActivity(false)}>
+            {contentPackage.lifecycle === 'active' ? (
+              <WorkflowTimelinePanel
+                api={api}
+                contentPackageId={contentPackage.id}
+                latestSequence={workflowLatestSequence}
+                onTerminal={handleSourceTerminal}
+              />
+            ) : (
+              <p className="archived-note">已归档项目不会继续产生运行记录。</p>
+            )}
+          </WorkspaceDrawer>
         ) : null}
 
         {confirmArchive ? (
           <div className="dialog-backdrop" role="presentation">
             <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="archive-title">
-              <p className="eyebrow">Preserve, don’t delete</p>
-              <h2 id="archive-title">Archive this package?</h2>
-              <p>It will leave the active Dashboard but remain available in Archived.</p>
+              <p className="eyebrow">保留历史，而非删除</p>
+              <h2 id="archive-title">归档这个项目？</h2>
+              <p>它将离开进行中的工作台，但仍可在已归档项目中查看。</p>
               <div className="form-actions">
                 <button className="secondary-button" type="button" onClick={() => setConfirmArchive(false)} autoFocus>
-                  Cancel
+                  取消
                 </button>
                 <button className="danger-button" type="button" onClick={() => void archive()} disabled={saving}>
-                  {saving ? 'Archiving…' : 'Archive package'}
+                  {saving ? '正在归档…' : '归档项目'}
                 </button>
               </div>
             </section>

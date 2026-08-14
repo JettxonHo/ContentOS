@@ -1,32 +1,34 @@
 'use client';
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  ContentPackageResource,
+  SourceListItemResource,
+  SourceResource,
+  UrlCaptureIntakeResource,
+} from '@contentos/contracts';
 
-import type { ContentPackageResource, SourceListItemResource, UrlCaptureIntakeResource } from '@contentos/contracts';
-
-import { WebApiError } from '../lib/api-client';
-import type { ContentOsApiClient } from '../lib/api-client';
+import { WebApiError, type ContentOsApiClient } from '../lib/api-client';
 import {
   intakeFailureCopy,
   reconcileUrlSubmission,
   sourceIntakeView,
-  sourceTypeLabel,
+  sourceTablePresentation,
   type SourceIntakeRole,
   type UrlSubmissionConfirmation,
 } from '../lib/source-intake-view';
+import { formatZhDate, SOURCE_ROLE_LABEL, SOURCE_TYPE_LABEL } from '../lib/ui-copy';
+import { useWorkspacePrimaryAction } from './workspace-action-context';
+import { WorkspaceDrawer } from './workspace-drawer';
 
 type IntakeMode = 'paste' | 'upload' | 'url';
 type UrlConfirmationWarning = 'ambiguous' | 'refresh_failed';
-
-interface UrlConfirmationState {
-  readonly status: UrlSubmissionConfirmation;
-  readonly warning: UrlConfirmationWarning | null;
-}
 
 interface Props {
   readonly api: ContentOsApiClient;
   readonly contentPackage: ContentPackageResource;
   readonly sources: readonly SourceListItemResource[] | null;
+  readonly sourceDetails: readonly SourceResource[] | null;
   readonly intakes: readonly UrlCaptureIntakeResource[] | null;
   readonly busy: boolean;
   readonly stale: boolean;
@@ -34,6 +36,7 @@ interface Props {
   readonly onTerminal: (cause: unknown) => boolean;
   readonly onReview: (sourceId: string) => void;
   readonly reviewNavigationBlocked: boolean;
+  readonly primaryActionEnabled: boolean;
 }
 
 function defaultRole(view: ReturnType<typeof sourceIntakeView>): SourceIntakeRole {
@@ -44,6 +47,7 @@ export function SourceIntakePanel({
   api,
   contentPackage,
   sources,
+  sourceDetails,
   intakes,
   busy,
   stale,
@@ -51,9 +55,11 @@ export function SourceIntakePanel({
   onTerminal,
   onReview,
   reviewNavigationBlocked,
+  primaryActionEnabled,
 }: Props) {
   const archived = contentPackage.lifecycle === 'archived';
   const view = useMemo(() => sourceIntakeView(archived ? null : sources, intakes ?? []), [archived, sources, intakes]);
+  const [composerOpen, setComposerOpen] = useState(false);
   const [mode, setMode] = useState<IntakeMode>('paste');
   const [role, setRole] = useState<SourceIntakeRole>(() => defaultRole(view));
   const [label, setLabel] = useState('');
@@ -63,15 +69,29 @@ export function SourceIntakePanel({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [urlConfirmation, setUrlConfirmation] = useState<UrlConfirmationState>({ status: 'idle', warning: null });
+  const [urlConfirmation, setUrlConfirmation] = useState<{
+    readonly status: UrlSubmissionConfirmation;
+    readonly warning: UrlConfirmationWarning | null;
+  }>({ status: 'idle', warning: null });
   const textInput = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
-  const confirmationWarningRef = useRef<HTMLParagraphElement>(null);
-  const sourceRefs = useRef(new Map<string, HTMLElement>());
+  const sourceRefs = useRef(new Map<string, HTMLTableRowElement>());
 
   const hasIntake = view.intake !== null || urlConfirmation.status !== 'idle';
   const roleAvailable = role === 'primary' ? view.primary.available : view.supporting.available;
+
+  useWorkspacePrimaryAction(
+    primaryActionEnabled
+      ? {
+          label: '+ 添加资料',
+          reason: archived ? '已归档项目不能添加资料。' : '添加粘贴文本、Markdown 文件或公开网页链接。',
+          disabled: archived || busy || submitting,
+          busy: submitting,
+          onAction: () => setComposerOpen(true),
+        }
+      : null,
+  );
 
   useEffect(() => {
     if (intakes === null) return;
@@ -84,14 +104,9 @@ export function SourceIntakePanel({
       active = false;
     };
   }, [intakes]);
-
   useEffect(() => {
-    if (error) errorRef.current?.focus();
-  }, [error]);
-
-  useEffect(() => {
-    if (urlConfirmation.warning) confirmationWarningRef.current?.focus();
-  }, [urlConfirmation.warning]);
+    if (error || urlConfirmation.warning) errorRef.current?.focus();
+  }, [error, urlConfirmation.warning]);
 
   function chooseMode(next: IntakeMode): void {
     setMode(next);
@@ -101,9 +116,10 @@ export function SourceIntakePanel({
 
   function selectFallback(next: 'paste' | 'upload'): void {
     if (view.intake?.status !== 'failed') return;
-    const fallbackRole = view.intake.role === 'primary' ? view.primary.available : view.supporting.available;
-    if (fallbackRole) setRole(view.intake.role);
+    const available = view.intake.role === 'primary' ? view.primary.available : view.supporting.available;
+    if (available) setRole(view.intake.role);
     chooseMode(next);
+    setComposerOpen(true);
     setTimeout(() => (next === 'paste' ? textInput.current?.focus() : fileInput.current?.focus()), 0);
   }
 
@@ -116,27 +132,21 @@ export function SourceIntakePanel({
     try {
       let createdSourceId: string | null = null;
       if (mode === 'paste') {
-        if (text.trim() === '') {
-          textInput.current?.focus();
-          return;
-        }
+        if (text.trim() === '') return void textInput.current?.focus();
         const response = await api.createSource(contentPackage.id, {
           sourceType: 'pasted_text',
           role,
           text,
-          ...(label.trim() === '' ? {} : { label: label.trim() }),
+          ...(label.trim() ? { label: label.trim() } : {}),
         });
         createdSourceId = response.data.source.id;
         setText('');
       } else if (mode === 'upload') {
-        if (!file) {
-          fileInput.current?.focus();
-          return;
-        }
+        if (!file) return void fileInput.current?.focus();
         const form = new FormData();
         form.append('file', file);
         form.append('role', role);
-        if (label.trim() !== '') form.append('label', label.trim());
+        if (label.trim()) form.append('label', label.trim());
         const response = await api.uploadSource(contentPackage.id, form);
         createdSourceId = response.data.source.id;
         setFile(null);
@@ -158,37 +168,66 @@ export function SourceIntakePanel({
           setUrlConfirmation((current) => ({ ...current, warning: 'refresh_failed' }));
           return;
         }
-        setUrlConfirmation((current) => ({
-          status: reconcileUrlSubmission(current.status, refreshed),
-          warning: null,
-        }));
+        setUrlConfirmation((current) => ({ status: reconcileUrlSubmission(current.status, refreshed), warning: null }));
       }
-      setNotice(mode === 'url' ? 'URL capture is waiting to begin.' : 'Source added to this package.');
+      setNotice(mode === 'url' ? '网页资料已提交，正在等待抓取。' : '资料已添加到当前项目。');
+      setComposerOpen(false);
       if (createdSourceId) setTimeout(() => sourceRefs.current.get(createdSourceId)?.focus(), 0);
     } catch (cause) {
       if (onTerminal(cause)) return;
       if (cause instanceof WebApiError && cause.code === 'SOURCE_ROLE_LIMIT_EXCEEDED') {
-        setError('That Source role is full. Refresh the latest Source status and choose an available role.');
+        setError('该资料用途已达到容量上限，请刷新状态并选择仍有余量的用途。');
       } else if (mode === 'url' && cause instanceof WebApiError && cause.code === 'NETWORK_ERROR') {
         setUrlConfirmation((current) => ({ ...current, status: 'confirming', warning: 'ambiguous' }));
-      } else {
-        setError('This Source could not be added. Review the input and try again.');
-      }
+      } else setError('无法添加该资料，请检查输入后重试。');
     } finally {
       setSubmitting(false);
     }
   }
+
+  const feedback = (
+    <>
+      {stale ? (
+        <p className="field-error" role="status">
+          无法确认最新资料状态，当前显示上次已知结果。{' '}
+          <button className="inline-button" type="button" onClick={() => void onRefresh()}>
+            重新加载
+          </button>
+        </p>
+      ) : null}
+      {error ? (
+        <p className="field-error" role="alert" ref={errorRef} tabIndex={-1}>
+          {error}
+        </p>
+      ) : null}
+      {urlConfirmation.warning ? (
+        <p className="field-error" role="alert" ref={errorRef} tabIndex={-1}>
+          {urlConfirmation.warning === 'ambiguous'
+            ? '无法确认网页资料是否提交成功，请先刷新权威状态。'
+            : '网页资料提交仍待确认，请刷新后再操作。'}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="save-notice" role="status">
+          {notice}
+        </p>
+      ) : null}
+    </>
+  );
 
   if ((!archived && sources === null) || intakes === null) {
     return (
       <section className="source-intake-panel" aria-labelledby="sources-title" aria-busy="true">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Stage 02</p>
-            <h2 id="sources-title">Sources</h2>
+            <p className="eyebrow">阶段 02</p>
+            <h2 id="sources-title">资料</h2>
           </div>
         </div>
-        <p role="status">Loading authoritative Source status…</p>
+        <div className="resource-table-skeleton" role="status">
+          <span className="skeleton-line" />
+          正在读取资料状态…
+        </div>
       </section>
     );
   }
@@ -197,244 +236,298 @@ export function SourceIntakePanel({
     <section className="source-intake-panel" aria-labelledby="sources-title" aria-busy={busy || submitting}>
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Stage 02</p>
-          <h2 id="sources-title">Sources</h2>
+          <p className="eyebrow">阶段 02</p>
+          <h2 id="sources-title">资料</h2>
         </div>
-        {archived ? <span className="lifecycle archived">archived</span> : null}
+        {archived ? <span className="lifecycle archived">已归档</span> : null}
       </div>
       {view.formalSourcesAvailable ? (
         <p className="source-capacity">
-          Primary {view.primary.used}/1 · Supporting {view.supporting.used}/5
+          主资料 {view.primary.used}/1 · 补充资料 {view.supporting.used}/5
         </p>
       ) : null}
-      {stale ? (
-        <div className="field-error" role="status">
-          Latest Source status could not be confirmed. Showing the last known state.{' '}
-          <button className="inline-button" type="button" onClick={() => void onRefresh()}>
-            Reload Source status
-          </button>
-        </div>
-      ) : null}
-      {error ? (
-        <p className="field-error" role="alert" ref={errorRef} tabIndex={-1}>
-          {error}
-        </p>
-      ) : null}
-      {urlConfirmation.warning ? (
-        <p className="field-error" role="alert" ref={confirmationWarningRef} tabIndex={-1}>
-          {urlConfirmation.warning === 'ambiguous'
-            ? 'The URL submission could not be confirmed. Refresh the latest intake status before trying anything else.'
-            : 'URL submission needs confirmation. Reload Source status before another attempt.'}
-        </p>
-      ) : null}
-      {notice ? (
-        <p className="save-notice" role="status">
-          {notice}
-        </p>
-      ) : null}
+      {!composerOpen ? feedback : null}
 
-      <div className="source-card-list" aria-label="Formal Sources">
-        {view.formalSourcesAvailable && view.visibleSources.length === 0 && !view.intake ? (
-          <p>No formal Sources yet. Add a Source to begin.</p>
-        ) : null}
-        {view.visibleSources.map((source) => (
-          <article
-            className="source-card"
-            key={source.id}
-            tabIndex={-1}
-            ref={(element) => {
-              if (element) sourceRefs.current.set(source.id, element);
-              else sourceRefs.current.delete(source.id);
-            }}
-          >
-            <div>
-              <strong>{source.label ?? sourceTypeLabel(source)}</strong>
-              <small>
-                {sourceTypeLabel(source)} · {source.role}
-              </small>
-            </div>
-            <time dateTime={source.createdAt}>{new Date(source.createdAt).toLocaleString()}</time>
-            {!archived ? (
-              <button
-                className="secondary-button source-review-button"
-                type="button"
-                aria-label={`Review Source ${source.label ?? sourceTypeLabel(source)}`}
-                disabled={reviewNavigationBlocked}
-                onClick={() => onReview(source.id)}
-              >
-                Review Source
-              </button>
+      <div className="resource-table-wrap">
+        <table className="resource-table">
+          <thead>
+            <tr>
+              <th>资料名称</th>
+              <th>方式</th>
+              <th>用途</th>
+              <th>状态</th>
+              <th>更新时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {view.visibleSources.length === 0 && !view.intake ? (
+              <tr>
+                <td colSpan={6} className="empty-table-cell">
+                  暂无资料。使用“+ 添加资料”开始。
+                </td>
+              </tr>
             ) : null}
-          </article>
-        ))}
-        {view.showIntakeActivity ? (
-          <IntakeActivity intake={view.intake} archived={archived} onFallback={selectFallback} />
-        ) : null}
+            {view.visibleSources.map((source) => {
+              const state = sourceTablePresentation(
+                source,
+                sourceDetails?.find((item) => item.id === source.id),
+              );
+              return (
+                <tr
+                  key={source.id}
+                  ref={(element) => {
+                    if (element) sourceRefs.current.set(source.id, element);
+                    else sourceRefs.current.delete(source.id);
+                  }}
+                  tabIndex={-1}
+                >
+                  <td>
+                    <strong>{source.label ?? SOURCE_TYPE_LABEL[source.sourceType]}</strong>
+                  </td>
+                  <td>{SOURCE_TYPE_LABEL[source.sourceType]}</td>
+                  <td>{SOURCE_ROLE_LABEL[source.role]}</td>
+                  <td>
+                    <span className="resource-state">{state.label}</span>
+                  </td>
+                  <td>
+                    <time dateTime={state.updatedAt}>{formatZhDate(state.updatedAt)}</time>
+                  </td>
+                  <td>
+                    <button
+                      className="table-action"
+                      type="button"
+                      aria-label={`审核资料 ${source.label ?? SOURCE_TYPE_LABEL[source.sourceType]}`}
+                      disabled={reviewNavigationBlocked}
+                      onClick={() => onReview(source.id)}
+                    >
+                      {state.action}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+            {view.showIntakeActivity && view.intake ? (
+              <IntakeRow intake={view.intake} archived={archived} onFallback={selectFallback} />
+            ) : null}
+          </tbody>
+        </table>
       </div>
 
-      {!archived ? (
-        <form className="source-composer" onSubmit={(event) => void submit(event)}>
-          <fieldset disabled={submitting}>
-            <legend>Add a Source</legend>
-            <div className="source-mode-actions">
-              {(['paste', 'upload', 'url'] as const).map((candidate) => (
-                <button
-                  key={candidate}
-                  className="secondary-button"
-                  type="button"
-                  aria-pressed={mode === candidate}
-                  onClick={() => chooseMode(candidate)}
-                  disabled={candidate === 'url' && hasIntake}
-                >
-                  {candidate === 'paste' ? 'Paste text' : candidate === 'upload' ? 'Upload file' : 'Public URL'}
-                </button>
-              ))}
-            </div>
-            {hasIntake ? (
-              <p className="help-text">
-                This package already has a URL capture record. URL replacement and retry are not available here.
-              </p>
-            ) : null}
-            {urlConfirmation.status === 'confirming' ? (
+      <WorkspaceDrawer
+        open={composerOpen}
+        title="添加资料"
+        eyebrow="资料录入"
+        onClose={() => !submitting && setComposerOpen(false)}
+        footer={
+          <>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={submitting}
+              onClick={() => setComposerOpen(false)}
+            >
+              取消
+            </button>
+            <button
+              className="primary-button"
+              type="submit"
+              form="source-composer-form"
+              aria-label="添加资料"
+              disabled={submitting || !roleAvailable || (mode === 'url' && hasIntake)}
+            >
+              {submitting ? '正在添加…' : '添加资料'}
+            </button>
+          </>
+        }
+      >
+        {composerOpen ? feedback : null}
+        <form id="source-composer-form" className="source-composer" onSubmit={(event) => void submit(event)}>
+          <div className="segmented-control" role="group" aria-label="资料录入方式">
+            {(['paste', 'upload', 'url'] as const).map((candidate) => (
               <button
-                className="inline-button"
+                key={candidate}
                 type="button"
-                onClick={() => {
-                  void onRefresh().then((refreshed) => {
-                    if (refreshed !== undefined) {
-                      setUrlConfirmation((current) => ({
-                        status: reconcileUrlSubmission(current.status, refreshed),
-                        warning: null,
-                      }));
-                    }
-                  });
-                }}
+                aria-label={candidate === 'paste' ? '粘贴文本' : candidate === 'upload' ? '上传文件' : '网页链接'}
+                aria-pressed={mode === candidate}
+                onClick={() => chooseMode(candidate)}
+                disabled={candidate === 'url' && hasIntake}
               >
-                Reload Source status
+                {candidate === 'paste' ? '粘贴文本' : candidate === 'upload' ? '上传文件' : '网页链接'}
               </button>
-            ) : null}
-            <fieldset className="role-fieldset">
-              <legend>Source role</legend>
-              <label>
-                <input
-                  type="radio"
-                  name="source-role"
-                  checked={role === 'primary'}
-                  onChange={() => setRole('primary')}
-                  disabled={!view.primary.available}
-                />{' '}
-                Primary ({view.primary.used}/1)
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="source-role"
-                  checked={role === 'supporting'}
-                  onChange={() => setRole('supporting')}
-                  disabled={!view.supporting.available}
-                />{' '}
-                Supporting ({view.supporting.used}/5)
-              </label>
-            </fieldset>
-            {!roleAvailable ? <p className="help-text">Choose a role with available capacity.</p> : null}
-            {mode !== 'url' ? (
-              <label className="field">
-                Label <span>Optional</span>
-                <input value={label} maxLength={200} onChange={(event) => setLabel(event.target.value)} />
-              </label>
-            ) : null}
-            {mode === 'paste' ? (
-              <label className="field">
-                Pasted text
-                <textarea
-                  ref={textInput}
-                  value={text}
-                  maxLength={100000}
-                  rows={7}
-                  onChange={(event) => setText(event.target.value)}
-                  required
-                />
-              </label>
-            ) : null}
-            {mode === 'upload' ? (
-              <label className="field">
-                Upload a Markdown or text file
-                <input
-                  ref={fileInput}
-                  type="file"
-                  accept=".md,.txt,text/markdown,text/plain"
-                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                  required
-                />
-                <span>.md and .txt files only</span>
-              </label>
-            ) : null}
-            {mode === 'url' ? (
-              <label className="field">
-                Public URL
-                <input
-                  type="url"
-                  value={url}
-                  maxLength={2048}
-                  onChange={(event) => setUrl(event.target.value)}
-                  required
-                />
-                <span>The URL stays private to this owner.</span>
-              </label>
-            ) : null}
-            <div className="form-actions">
-              <button
-                className="primary-button"
-                type="submit"
-                disabled={submitting || !roleAvailable || (mode === 'url' && hasIntake)}
-              >
-                {submitting ? 'Adding…' : mode === 'url' ? 'Capture URL' : 'Add Source'}
-              </button>
-            </div>
+            ))}
+          </div>
+          {hasIntake ? <p className="help-text">当前项目已有网页抓取记录，不能在此替换或重试。</p> : null}
+          {urlConfirmation.status === 'confirming' ? (
+            <button
+              className="inline-button"
+              type="button"
+              aria-label="重新加载资料状态"
+              onClick={() => {
+                void onRefresh().then((refreshed) => {
+                  if (refreshed !== undefined) {
+                    setUrlConfirmation((current) => ({
+                      status: reconcileUrlSubmission(current.status, refreshed),
+                      warning: null,
+                    }));
+                  }
+                });
+              }}
+            >
+              重新加载资料状态
+            </button>
+          ) : null}
+          <fieldset className="role-fieldset">
+            <legend>资料用途</legend>
+            <label className="role-option">
+              <input
+                type="radio"
+                name="source-role"
+                aria-label={`主资料（${view.primary.used}/1）`}
+                checked={role === 'primary'}
+                onChange={() => setRole('primary')}
+                disabled={!view.primary.available}
+              />
+              <span>
+                <strong>主资料</strong>
+                <small>项目的核心事实依据，最多 1 份。</small>
+                <em>
+                  {view.primary.used}/1{!view.primary.available ? ' · 已达上限' : ''}
+                </em>
+              </span>
+            </label>
+            <label className="role-option">
+              <input
+                type="radio"
+                name="source-role"
+                aria-label={`补充资料（${view.supporting.used}/5）`}
+                checked={role === 'supporting'}
+                onChange={() => setRole('supporting')}
+                disabled={!view.supporting.available}
+              />
+              <span>
+                <strong>补充资料</strong>
+                <small>用于背景、对比或佐证，最多 5 份。</small>
+                <em>
+                  {view.supporting.used}/5{!view.supporting.available ? ' · 已达上限' : ''}
+                </em>
+              </span>
+            </label>
           </fieldset>
+          {!roleAvailable ? <p className="help-text">请选择仍有容量的资料用途。</p> : null}
+          {mode !== 'url' ? (
+            <label className="field">
+              资料名称 <span>可选</span>
+              <input
+                aria-label="资料名称（可选）"
+                value={label}
+                maxLength={200}
+                onChange={(event) => setLabel(event.target.value)}
+              />
+            </label>
+          ) : null}
+          {mode === 'paste' ? (
+            <label className="field">
+              资料正文
+              <textarea
+                ref={textInput}
+                aria-label="资料正文"
+                value={text}
+                maxLength={100000}
+                rows={10}
+                onChange={(event) => setText(event.target.value)}
+                required
+              />
+            </label>
+          ) : null}
+          {mode === 'upload' ? (
+            <label className="field">
+              上传 Markdown 或文本文件
+              <input
+                ref={fileInput}
+                type="file"
+                aria-label="上传 Markdown 或文本文件"
+                accept=".md,.txt,text/markdown,text/plain"
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                required
+              />
+              <span>仅支持 .md 与 .txt</span>
+            </label>
+          ) : null}
+          {mode === 'url' ? (
+            <label className="field">
+              公开 URL
+              <input
+                type="url"
+                aria-label="公开 URL"
+                value={url}
+                maxLength={2048}
+                onChange={(event) => setUrl(event.target.value)}
+                required
+              />
+              <span>URL 仅对当前所有者可见。</span>
+            </label>
+          ) : null}
         </form>
-      ) : (
-        <p className="archived-note">This package is archived. Source intake is unavailable.</p>
-      )}
+      </WorkspaceDrawer>
+      {archived ? <p className="archived-note">该项目已归档，不能继续添加资料。</p> : null}
     </section>
   );
 }
 
-function IntakeActivity({
+function IntakeRow({
   intake,
   archived,
   onFallback,
 }: {
-  readonly intake: UrlCaptureIntakeResource | null;
+  readonly intake: UrlCaptureIntakeResource;
   readonly archived: boolean;
   readonly onFallback: (mode: 'paste' | 'upload') => void;
 }) {
-  if (!intake) return null;
   const status =
     intake.status === 'queued'
-      ? 'Waiting to capture'
+      ? '等待抓取'
       : intake.status === 'running'
-        ? 'Capturing'
+        ? '抓取中'
         : intake.status === 'succeeded'
-          ? 'Captured'
-          : 'Capture failed';
+          ? '已抓取'
+          : '抓取失败';
   return (
-    <article className="source-card intake-activity" role="status" aria-live="polite">
-      <div>
-        <strong>{status}</strong>
-        <small>{intake.submittedUrl}</small>
-        {intake.status === 'failed' ? <p>{intakeFailureCopy(intake)}</p> : null}
-      </div>
-      {intake.status === 'failed' && !archived ? (
-        <div className="fallback-actions">
-          <button className="secondary-button" type="button" onClick={() => onFallback('paste')}>
-            Use pasted text instead
-          </button>
-          <button className="secondary-button" type="button" onClick={() => onFallback('upload')}>
-            Upload a file instead
-          </button>
-        </div>
-      ) : null}
-    </article>
+    <tr className="intake-row">
+      <td>
+        <strong>{intake.submittedUrl}</strong>
+        {intake.status === 'failed' ? <small>{intakeFailureCopy(intake)}</small> : null}
+      </td>
+      <td>网页链接</td>
+      <td>{SOURCE_ROLE_LABEL[intake.role]}</td>
+      <td>
+        <span className="resource-state">{status}</span>
+      </td>
+      <td>—</td>
+      <td>
+        {intake.status === 'failed' && !archived ? (
+          <div className="table-fallback-actions">
+            <button
+              aria-label="改用粘贴文本"
+              className="table-action"
+              type="button"
+              onClick={() => onFallback('paste')}
+            >
+              改用粘贴
+            </button>
+            <button
+              aria-label="改用上传文件"
+              className="table-action"
+              type="button"
+              onClick={() => onFallback('upload')}
+            >
+              改用上传
+            </button>
+          </div>
+        ) : (
+          <span>查看进度</span>
+        )}
+      </td>
+    </tr>
   );
 }

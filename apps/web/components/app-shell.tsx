@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
+
+import { UI_COPY } from '../lib/ui-copy';
 
 export function AppShell({
   children,
@@ -12,28 +14,41 @@ export function AppShell({
   onLogout: () => void;
   active: 'dashboard' | 'workspace';
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   return (
-    <div className="app-frame">
+    <div className={collapsed ? 'app-frame rail-collapsed' : 'app-frame'}>
       <aside className="sidebar">
-        <Link className="brand" href="/" aria-label="ContentOS dashboard">
-          <span className="brand-mark">C</span>
-          <span>ContentOS</span>
-        </Link>
-        <nav className="primary-nav" aria-label="Primary navigation">
-          <Link className={active === 'dashboard' ? 'nav-item is-active' : 'nav-item'} href="/">
-            <span aria-hidden="true">⌂</span> Dashboard
+        <div className="brand-row">
+          <Link className="brand" href="/" aria-label="ContentOS 工作台">
+            <span className="brand-mark">C</span>
+            <span className="rail-label">ContentOS</span>
           </Link>
-          <span className="nav-item is-disabled" aria-disabled="true" title="Settings are not available in M1">
-            <span aria-hidden="true">⚙</span> Settings <small>Later</small>
+          <button
+            className="rail-toggle"
+            type="button"
+            aria-label={collapsed ? '展开全局导航' : '收起全局导航'}
+            aria-expanded={!collapsed}
+            onClick={() => setCollapsed((value) => !value)}
+          >
+            {collapsed ? '›' : '‹'}
+          </button>
+        </div>
+        <nav className="primary-nav" aria-label="全局导航">
+          <Link className="nav-item is-active" href="/" aria-current={active === 'dashboard' ? 'page' : undefined}>
+            <span aria-hidden="true">⌂</span> <span className="rail-label">{UI_COPY.shell.dashboard}</span>
+          </Link>
+          <span className="nav-item is-disabled" aria-disabled="true" title="设置暂未开放">
+            <span aria-hidden="true">⚙</span> <span className="rail-label">{UI_COPY.shell.settings}</span>{' '}
+            <small className="rail-label">{UI_COPY.shell.unavailable}</small>
           </span>
         </nav>
         <div className="sidebar-foot">
           <div className="owner-chip">
             <span className="owner-dot" aria-hidden="true" />
-            Private owner workspace
+            <span className="rail-label">{UI_COPY.shell.owner}</span>
           </div>
           <button className="text-button" type="button" onClick={onLogout}>
-            Log out
+            <span className="rail-label">{UI_COPY.shell.logout}</span>
           </button>
         </div>
       </aside>

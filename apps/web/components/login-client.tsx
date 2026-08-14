@@ -36,8 +36,8 @@ export function LoginClient({ apiOrigin }: { apiOrigin: string }) {
       setPassword('');
       setError(
         cause instanceof WebApiError && cause.code === 'INVALID_CREDENTIALS'
-          ? 'The password was not accepted. Try again.'
-          : 'ContentOS could not sign you in. Try again.',
+          ? '密码不正确，请重试。'
+          : 'ContentOS 登录失败，请重试。',
       );
       requestAnimationFrame(() => passwordInput.current?.focus());
     } finally {
@@ -51,16 +51,17 @@ export function LoginClient({ apiOrigin }: { apiOrigin: string }) {
         <div className="login-brand">
           <span className="brand-mark">C</span> ContentOS
         </div>
-        <p className="eyebrow">Private content studio</p>
-        <h1 id="login-title">Welcome back</h1>
-        <p className="lede">Sign in to continue to your private creator workspace.</p>
+        <p className="eyebrow">私有内容工作室</p>
+        <h1 id="login-title">欢迎回来</h1>
+        <p className="lede">登录后继续使用你的个人创作工作台。</p>
         <form onSubmit={submit} noValidate>
-          <label htmlFor="owner-password">Owner password</label>
+          <label htmlFor="owner-password">所有者密码</label>
           <input
             ref={passwordInput}
             id="owner-password"
             name="password"
             type="password"
+            aria-label="所有者密码"
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -69,19 +70,24 @@ export function LoginClient({ apiOrigin }: { apiOrigin: string }) {
             required
           />
           <p className="field-help" id="password-help">
-            Your password is sent only to the private ContentOS API.
+            密码只会发送到本机私有 ContentOS API。
           </p>
           {error ? (
             <p className="field-error" id="login-error" role="alert">
               {error}
             </p>
           ) : null}
-          <button className="primary-button full" type="submit" disabled={pending || password.length === 0}>
-            {pending ? 'Signing in…' : 'Sign in'}
+          <button
+            aria-label="登录"
+            className="primary-button full"
+            type="submit"
+            disabled={pending || password.length === 0}
+          >
+            {pending ? '正在登录…' : '登录'}
           </button>
         </form>
         <p className="privacy-note">
-          <span aria-hidden="true">●</span> Single-user · local-first · private by default
+          <span aria-hidden="true">●</span> 单用户 · 本地优先 · 默认私有
         </p>
       </section>
     </main>

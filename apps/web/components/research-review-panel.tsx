@@ -11,7 +11,8 @@ import {
   workspaceStageStatusLabel,
 } from '../lib/workspace-stage-view';
 import { StatusMessage } from './app-shell';
-import { NextActionCard } from './next-action-card';
+import { RESEARCH_REVIEW_LABEL } from '../lib/ui-copy';
+import { useWorkspacePrimaryAction } from './workspace-action-context';
 
 interface Props {
   readonly api: ContentOsApiClient;
@@ -28,18 +29,18 @@ function cloneBody(body: ResearchBodyDto): ResearchBodyDto {
 }
 
 function message(cause: unknown): string {
-  if (!(cause instanceof WebApiError)) return 'Research could not be updated. Try again.';
+  if (!(cause instanceof WebApiError)) return '无法更新研究，请重试。';
   switch (cause.code) {
     case 'APPROVED_SOURCE_REQUIRED':
-      return 'Approve one Primary Source before generating Research.';
+      return '生成研究前，请先批准一份主资料。';
     case 'RESEARCH_REVISION_CONFLICT':
-      return 'A newer Research Working Copy exists. Reload before saving.';
+      return '已有更新的研究草稿，请重新加载后再保存。';
     case 'RESEARCH_VERSION_NOT_ELIGIBLE':
-      return 'Review every item, keep at least one evidence-backed usable item, and checkpoint the current Sources.';
+      return '请审核每个条目，至少保留一条有证据的可用内容，并确保资料版本已固定。';
     case 'RESEARCH_PROVIDER_OUTPUT_INVALID':
-      return 'The generated Research failed deterministic validation. No Research Version was created.';
+      return '生成的研究未通过确定性校验，未创建研究版本。';
     default:
-      return 'Research could not be updated. Try again.';
+      return '无法更新研究，请重试。';
   }
 }
 
@@ -82,7 +83,7 @@ export function ResearchReviewPanel({
       else if (cause instanceof WebApiError && cause.code === 'RESEARCH_NOT_FOUND') {
         setState(null);
         setDraft(null);
-      } else setError('Research status could not be loaded.');
+      } else setError('无法加载研究状态。');
     } finally {
       setLoading(false);
     }
@@ -134,9 +135,7 @@ export function ResearchReviewPanel({
     if (action.id === 'generate' || action.id === 'refresh') {
       void command(
         async () => (await api.generateResearch(contentPackageId, { requestId: crypto.randomUUID() })).data.research,
-        action.id === 'refresh'
-          ? 'Fresh Research Candidate generated from the current Approved Sources.'
-          : 'Research Candidate generated. Review every item before Approval.',
+        action.id === 'refresh' ? '已根据当前已批准资料生成新版研究候选。' : '研究候选已生成，请在批准前审核每个条目。',
       );
       return;
     }
@@ -150,31 +149,43 @@ export function ResearchReviewPanel({
               body: draft,
             })
           ).data.research,
-        'Research Working Copy saved.',
+        '研究草稿已保存。',
       );
     } else if (action.id === 'checkpoint') {
       void command(
         async () =>
           (await api.checkpointResearch(contentPackageId, { expectedRevision: state.workingCopy.revision })).data
             .research,
-        'Immutable Research Version checkpointed.',
+        '已保存不可变研究版本。',
       );
     } else if (action.id === 'approve') {
       void command(
         async () => (await api.approveResearch(contentPackageId, { versionId: state.latestVersion.id })).data.research,
-        'Exact Research Version approved.',
+        '已批准精确研究版本。',
       );
     }
   };
 
-  if (loading) return <p role="status">Loading Research…</p>;
+  useWorkspacePrimaryAction(
+    loading
+      ? null
+      : {
+          label: action.label,
+          reason: action.reason,
+          disabled: action.disabled || action.id === 'complete',
+          busy,
+          onAction: runNextAction,
+        },
+  );
+
+  if (loading) return <p role="status">正在加载研究…</p>;
 
   return (
     <section className="research-panel" aria-labelledby="research-title">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">G1 Research</p>
-          <h2 id="research-title">Review evidence-backed Research</h2>
+          <p className="eyebrow">阶段 03</p>
+          <h2 id="research-title">审核有证据支撑的研究</h2>
         </div>
         <span className={`lifecycle ${presentationStatus === 'approved' ? 'active' : 'archived'}`}>
           {workspaceStageStatusLabel(presentationStatus)}
@@ -185,34 +196,22 @@ export function ResearchReviewPanel({
       {state?.outdated ? (
         <StatusMessage>
           {state.reviewCandidateOutdated
-            ? 'Approved Sources changed. The current Research Candidate is Outdated; generate a new candidate.'
-            : 'Approved Research is Outdated. Review and approve the current candidate.'}
+            ? '已批准资料发生变化，当前研究候选需更新；请生成新版候选。'
+            : '旧的已批准研究需更新，请审核并批准当前候选。'}
         </StatusMessage>
       ) : null}
       {state?.approvedVersionId && dirty ? (
-        <StatusMessage>
-          The Approved Version remains immutable. Your new Working Copy changes are not saved yet.
-        </StatusMessage>
+        <StatusMessage>已批准版本保持不可变；当前草稿的新修改尚未保存。</StatusMessage>
       ) : null}
-      <NextActionCard
-        status={presentationStatus}
-        label={workspaceStageStatusLabel(presentationStatus)}
-        actionLabel={action.label}
-        reason={action.reason}
-        disabled={action.disabled}
-        disabledReason={action.reason}
-        busy={busy}
-        onAction={action.id === 'complete' ? undefined : runNextAction}
-      />
       {!state || !draft ? (
         <div className="empty-state">
-          <h3>No Research yet</h3>
-          <p>Generate a deterministic candidate from the exact currently Approved Sources.</p>
+          <h3>暂无研究</h3>
+          <p>根据当前精确的已批准资料生成确定性候选。</p>
         </div>
       ) : (
         <div className="form-grid">
           <div className="field full-span">
-            <label htmlFor="research-summary">Summary</label>
+            <label htmlFor="research-summary">研究摘要</label>
             <textarea
               id="research-summary"
               rows={5}
@@ -227,20 +226,22 @@ export function ResearchReviewPanel({
               <div className="section-heading">
                 <strong>{item.kind}</strong>
                 <select
-                  aria-label={`Review state for ${item.id}`}
+                  aria-label={`${item.id} 的审核状态`}
                   value={item.reviewState}
                   disabled={!active || busy}
                   onChange={(event) => setItem(index, { reviewState: event.target.value as ResearchReviewStateDto })}
                 >
-                  <option value="unreviewed">Unreviewed</option>
-                  <option value="accepted">Accepted</option>
-                  <option value="corrected">Corrected</option>
-                  <option value="excluded">Excluded</option>
-                  <option value="needs_verification">Needs verification</option>
+                  {(Object.entries(RESEARCH_REVIEW_LABEL) as [ResearchReviewStateDto, string][]).map(
+                    ([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ),
+                  )}
                 </select>
               </div>
               <textarea
-                aria-label={`Research text for ${item.id}`}
+                aria-label={`${item.id} 的研究内容`}
                 rows={3}
                 maxLength={5_000}
                 value={item.text}
@@ -248,12 +249,12 @@ export function ResearchReviewPanel({
                 onChange={(event) => setItem(index, { text: event.target.value })}
               />
               <details>
-                <summary>Evidence ({item.evidence.length})</summary>
+                <summary>证据（{item.evidence.length}）</summary>
                 {item.evidence.map((evidence) => (
                   <blockquote key={`${evidence.sourceVersionId}-${evidence.paragraphIndex}`}>
                     {evidence.snippet}
                     <footer>
-                      Source Version {evidence.sourceVersionId} · paragraph {evidence.paragraphIndex + 1}
+                      资料版本 {evidence.sourceVersionId} · 第 {evidence.paragraphIndex + 1} 段
                     </footer>
                   </blockquote>
                 ))}
@@ -261,7 +262,7 @@ export function ResearchReviewPanel({
             </article>
           ))}
           <div className="field full-span">
-            <label htmlFor="research-questions">Open questions</label>
+            <label htmlFor="research-questions">待确认问题</label>
             <textarea
               id="research-questions"
               rows={4}

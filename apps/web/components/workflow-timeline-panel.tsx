@@ -6,6 +6,7 @@ import type { WorkflowTimelineItemResource, WorkflowTimelinePageResponse } from 
 
 import { WebApiError, type ContentOsApiClient } from '../lib/api-client';
 import { TimelineRefreshCoordinator, appendTimelinePage, timelineItemView } from '../lib/workflow-timeline-view';
+import { formatZhDate } from '../lib/ui-copy';
 
 interface Props {
   readonly api: ContentOsApiClient;
@@ -43,11 +44,7 @@ export function WorkflowTimelinePanel({ api, contentPackageId, latestSequence, o
       onFailure: (cause) => {
         if (onTerminal(cause)) return;
         setStale(true);
-        setError(
-          cause instanceof WebApiError
-            ? 'Activity could not be refreshed. Showing the last confirmed activity.'
-            : 'Activity could not be loaded.',
-        );
+        setError(cause instanceof WebApiError ? '无法刷新运行记录，当前显示上次确认的结果。' : '无法加载运行记录。');
       },
       onLoading: setLoading,
     });
@@ -80,8 +77,8 @@ export function WorkflowTimelinePanel({ api, contentPackageId, latestSequence, o
     <section className="workflow-timeline-panel" aria-labelledby="workflow-timeline-title" aria-busy={loading}>
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Workflow</p>
-          <h2 id="workflow-timeline-title">Activity</h2>
+          <p className="eyebrow">工作流</p>
+          <h2 id="workflow-timeline-title">运行记录</h2>
         </div>
       </div>
       {stale ? (
@@ -92,7 +89,7 @@ export function WorkflowTimelinePanel({ api, contentPackageId, latestSequence, o
             type="button"
             onClick={() => coordinatorRef.current?.request(() => highestRef.current)}
           >
-            Retry activity
+            重试加载
           </button>
         </p>
       ) : null}
@@ -102,16 +99,16 @@ export function WorkflowTimelinePanel({ api, contentPackageId, latestSequence, o
         </p>
       ) : null}
       {latestSequence !== null && latestSequence > highest ? (
-        <p className="help-text">More authoritative activity is available.</p>
+        <p className="help-text">已有更新的权威运行记录。</p>
       ) : null}
-      {items.length === 0 && !loading ? <p>No Workflow activity yet.</p> : null}
+      {items.length === 0 && !loading ? <p className="compact-empty">暂无运行记录</p> : null}
       <ol className="timeline-list">
         {items.map((item) => {
           const view = timelineItemView(item);
           return (
             <li key={view.sequence}>
               <strong>{view.label}</strong>
-              <time dateTime={view.occurredAt}>{new Date(view.occurredAt).toLocaleString()}</time>
+              <time dateTime={view.occurredAt}>{formatZhDate(view.occurredAt)}</time>
             </li>
           );
         })}
@@ -123,7 +120,7 @@ export function WorkflowTimelinePanel({ api, contentPackageId, latestSequence, o
           disabled={loading}
           onClick={() => coordinatorRef.current?.request(() => nextAfter)}
         >
-          Load more activity
+          加载更多
         </button>
       ) : null}
     </section>
