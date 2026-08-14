@@ -5,7 +5,13 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ResearchBodyDto, ResearchResource, ResearchReviewStateDto } from '@contentos/contracts';
 
 import { WebApiError, type ContentOsApiClient } from '../lib/api-client';
+import {
+  candidatePresentationStatus,
+  deriveCandidateAction,
+  workspaceStageStatusLabel,
+} from '../lib/workspace-stage-view';
 import { StatusMessage } from './app-shell';
+import { NextActionCard } from './next-action-card';
 
 interface Props {
   readonly api: ContentOsApiClient;
@@ -14,6 +20,7 @@ interface Props {
   readonly onDirtyChange: (dirty: boolean) => void;
   readonly onBusyChange: (busy: boolean) => void;
   readonly onUnauthenticated: () => void;
+  readonly onStatusChange: () => void;
 }
 
 function cloneBody(body: ResearchBodyDto): ResearchBodyDto {
@@ -43,6 +50,7 @@ export function ResearchReviewPanel({
   onDirtyChange,
   onBusyChange,
   onUnauthenticated,
+  onStatusChange,
 }: Props) {
   const [state, setState] = useState<ResearchResource | null>(null);
   const [draft, setDraft] = useState<ResearchBodyDto | null>(null);
@@ -102,6 +110,7 @@ export function ResearchReviewPanel({
     try {
       apply(await run());
       setNotice(success);
+      onStatusChange();
     } catch (cause) {
       if (cause instanceof WebApiError && cause.status === 401) onUnauthenticated();
       else setError(message(cause));
@@ -118,6 +127,46 @@ export function ResearchReviewPanel({
     });
   };
 
+  const action = deriveCandidateAction({ resource: state, dirty, active, busy, noun: 'Research' });
+  const presentationStatus = candidatePresentationStatus(state, dirty);
+  const runNextAction = (): void => {
+    if (action.disabled || action.id === 'complete') return;
+    if (action.id === 'generate' || action.id === 'refresh') {
+      void command(
+        async () => (await api.generateResearch(contentPackageId, { requestId: crypto.randomUUID() })).data.research,
+        action.id === 'refresh'
+          ? 'Fresh Research Candidate generated from the current Approved Sources.'
+          : 'Research Candidate generated. Review every item before Approval.',
+      );
+      return;
+    }
+    if (!state || !draft) return;
+    if (action.id === 'save') {
+      void command(
+        async () =>
+          (
+            await api.editResearch(contentPackageId, {
+              expectedRevision: state.workingCopy.revision,
+              body: draft,
+            })
+          ).data.research,
+        'Research Working Copy saved.',
+      );
+    } else if (action.id === 'checkpoint') {
+      void command(
+        async () =>
+          (await api.checkpointResearch(contentPackageId, { expectedRevision: state.workingCopy.revision })).data
+            .research,
+        'Immutable Research Version checkpointed.',
+      );
+    } else if (action.id === 'approve') {
+      void command(
+        async () => (await api.approveResearch(contentPackageId, { versionId: state.latestVersion.id })).data.research,
+        'Exact Research Version approved.',
+      );
+    }
+  };
+
   if (loading) return <p role="status">Loading Research…</p>;
 
   return (
@@ -127,7 +176,9 @@ export function ResearchReviewPanel({
           <p className="eyebrow">G1 Research</p>
           <h2 id="research-title">Review evidence-backed Research</h2>
         </div>
-        {state?.approvedVersionId ? <span className="lifecycle active">Approved</span> : null}
+        <span className={`lifecycle ${presentationStatus === 'approved' ? 'active' : 'archived'}`}>
+          {workspaceStageStatusLabel(presentationStatus)}
+        </span>
       </div>
       {error ? <StatusMessage>{error}</StatusMessage> : null}
       {notice ? <StatusMessage>{notice}</StatusMessage> : null}
@@ -138,24 +189,25 @@ export function ResearchReviewPanel({
             : 'Approved Research is Outdated. Review and approve the current candidate.'}
         </StatusMessage>
       ) : null}
+      {state?.approvedVersionId && dirty ? (
+        <StatusMessage>
+          The Approved Version remains immutable. Your new Working Copy changes are not saved yet.
+        </StatusMessage>
+      ) : null}
+      <NextActionCard
+        status={presentationStatus}
+        label={workspaceStageStatusLabel(presentationStatus)}
+        actionLabel={action.label}
+        reason={action.reason}
+        disabled={action.disabled}
+        disabledReason={action.reason}
+        busy={busy}
+        onAction={action.id === 'complete' ? undefined : runNextAction}
+      />
       {!state || !draft ? (
         <div className="empty-state">
           <h3>No Research yet</h3>
           <p>Generate a deterministic candidate from the exact currently Approved Sources.</p>
-          <button
-            className="primary-button"
-            type="button"
-            disabled={!active || busy}
-            onClick={() =>
-              void command(
-                async () =>
-                  (await api.generateResearch(contentPackageId, { requestId: crypto.randomUUID() })).data.research,
-                'Research Candidate generated. Review every item before Approval.',
-              )
-            }
-          >
-            Generate Research
-          </button>
         </div>
       ) : (
         <div className="form-grid">
@@ -226,87 +278,6 @@ export function ResearchReviewPanel({
                 })
               }
             />
-          </div>
-          <div className="form-actions full-span">
-            {state.reviewCandidateOutdated ? (
-              <button
-                className="secondary-button"
-                type="button"
-                disabled={!active || busy || dirty}
-                onClick={() =>
-                  void command(
-                    async () =>
-                      (await api.generateResearch(contentPackageId, { requestId: crypto.randomUUID() })).data.research,
-                    'Fresh Research Candidate generated from the current Approved Sources.',
-                  )
-                }
-              >
-                Generate new Research
-              </button>
-            ) : null}
-            <button
-              className="secondary-button"
-              type="button"
-              disabled={!active || busy || !dirty}
-              onClick={() =>
-                void command(
-                  async () =>
-                    (
-                      await api.editResearch(contentPackageId, {
-                        expectedRevision: state.workingCopy.revision,
-                        body: draft,
-                      })
-                    ).data.research,
-                  'Research Working Copy saved.',
-                )
-              }
-            >
-              Save review
-            </button>
-            <button
-              className="secondary-button"
-              type="button"
-              disabled={
-                !active || busy || dirty || state.workingCopy.checkpointedRevision === state.workingCopy.revision
-              }
-              onClick={() =>
-                void command(
-                  async () =>
-                    (
-                      await api.checkpointResearch(contentPackageId, {
-                        expectedRevision: state.workingCopy.revision,
-                      })
-                    ).data.research,
-                  'Immutable Research Version checkpointed.',
-                )
-              }
-            >
-              Checkpoint Version
-            </button>
-            <button
-              className="primary-button"
-              type="button"
-              disabled={
-                !active ||
-                busy ||
-                dirty ||
-                state.reviewCandidateOutdated ||
-                state.approvedVersionId === state.latestVersion.id
-              }
-              onClick={() =>
-                void command(
-                  async () =>
-                    (
-                      await api.approveResearch(contentPackageId, {
-                        versionId: state.latestVersion.id,
-                      })
-                    ).data.research,
-                  'Exact Research Version approved.',
-                )
-              }
-            >
-              Approve exact Version
-            </button>
           </div>
         </div>
       )}

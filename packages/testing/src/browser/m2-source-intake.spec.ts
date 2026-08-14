@@ -269,7 +269,7 @@ test('M2 Source intake: archived package shows owned intake history but disables
   await page.getByRole('dialog').getByRole('button', { name: 'Archive package' }).click();
   await expect(page).toHaveURL(/\?view=archived$/);
   await page.getByRole('link', { name: /M2 intake browser package/ }).click();
-  await page.getByRole('button', { name: /Sources/ }).click();
+  await page.getByRole('button', { name: /^Sources:/ }).click();
   await expect(page.getByText('This package is archived. Source intake is unavailable.')).toBeVisible();
   await expect(page.getByText('Captured', { exact: true })).toBeVisible();
   await expect(page.getByText(/Primary \d\/1/)).toHaveCount(0);

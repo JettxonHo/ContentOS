@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "contentos-publishing-manual-eval/v0.1",
+  "purpose": "External manual Provider validation contract; no current Fake Provider or product integration effect.",
+  "foundationSufficiency": ["fact_or_claim", "why_it_matters", "limit_or_tradeoff", "actionable_judgment"],
+  "blog": {
+    "prompt": "blog-external-prompt-v1.md",
+    "editableFields": ["title", "summary", "markdown"],
+    "bodySectionRange": [4, 6],
+    "requiredFinalHeading": "## References",
+    "distinctFunctionsRequired": true,
+    "researchBasedEnglishFirstPerson": ["I", "me", "my", "mine", "myself", "we", "us", "our", "ours", "ourselves"],
+    "researchBasedChineseFirstPerson": ["我", "我们", "咱们", "本人"]
+  },
+  "xiaohongshu": {
+    "prompt": "xiaohongshu-external-prompt-v1.md",
+    "editableFields": ["selectedPlatformTitle", "coverTitle", "coverSubtitle", "pages", "caption", "cta", "hashtags"],
+    "pageCount": 8,
+    "preservePageOrder": true,
+    "requiredNarrativeRoles": [
+      "promise",
+      "context",
+      "mechanism",
+      "evidence",
+      "consequence",
+      "limit_or_tradeoff",
+      "practical_action",
+      "closing_judgment"
+    ],
+    "researchBasedEnglishFirstPerson": ["I", "me", "my", "mine", "myself", "we", "us", "our", "ours", "ourselves"],
+    "researchBasedChineseFirstPerson": ["我", "我们"]
+  },
+  "criticalFailures": [
+    "insufficient_foundation_padded",
+    "invented_immutable_field",
+    "generic_or_repeated_sections",
+    "blog_missing_exact_references_heading",
+    "xiaohongshu_page_id_or_order_changed",
+    "xiaohongshu_blog_sliced_into_cards",
+    "research_based_first_person",
+    "creator_led_opinion_violation"
+  ],
+  "humanRubric": [
+    {
+      "id": "foundation",
+      "question": "Does every material claim trace to sufficient foundation evidence?",
+      "scale": "pass_fail"
+    },
+    { "id": "specificity", "question": "Is the output recognizably specific to this sample?", "scale": "1_to_5" },
+    {
+      "id": "functional_depth",
+      "question": "Do sections or pages perform distinct reader functions?",
+      "scale": "1_to_5"
+    },
+    {
+      "id": "judgment",
+      "question": "Does the output surface a useful limit or tradeoff and an actionable judgment?",
+      "scale": "1_to_5"
+    },
+    { "id": "publishability", "question": "Would the reviewer publish after bounded human editing?", "scale": "yes_no" }
+  ]
+}

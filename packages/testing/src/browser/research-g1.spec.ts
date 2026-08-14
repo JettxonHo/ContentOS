@@ -46,9 +46,9 @@ test('G1 Research: owner reviews evidence, checkpoints a Version, and approves i
   await page.getByRole('dialog').getByRole('button', { name: 'Confirm approval' }).click();
   await expect(page.getByText('Version 1 is now the current approved Version.')).toBeVisible();
 
-  await page.getByRole('button', { name: /Research/ }).click();
+  await page.getByRole('button', { name: /^Research:/ }).click();
   await expect(page.getByRole('heading', { name: 'Review evidence-backed Research' })).toBeVisible();
-  await page.getByRole('button', { name: 'Generate Research' }).click();
+  await page.getByRole('button', { name: 'Generate Research Candidate', exact: true }).click();
   await expect(page.getByText('Research Candidate generated.')).toBeVisible();
   await expect(page.getByLabel('Research text for item-1')).toHaveValue('Research evidence must remain traceable.');
   await page.getByText('Evidence (1)').click();
@@ -57,21 +57,21 @@ test('G1 Research: owner reviews evidence, checkpoints a Version, and approves i
   await page.getByLabel('Review state for item-1').selectOption('corrected');
   await page.getByLabel('Research text for item-1').fill('Owner-corrected evidence-backed conclusion.');
   await page.getByLabel('Summary').fill('Owner-reviewed Research summary.');
-  await page.getByRole('button', { name: 'Save review' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByText('Research Working Copy saved.')).toBeVisible();
-  await page.getByRole('button', { name: 'Checkpoint Version' }).click();
+  await page.getByRole('button', { name: 'Create immutable Version' }).click();
   await expect(page.getByText('Immutable Research Version checkpointed.')).toBeVisible();
   await page.getByRole('button', { name: 'Approve exact Version' }).click();
   await expect(page.getByText('Exact Research Version approved.')).toBeVisible();
-  await expect(page.getByText('Approved', { exact: true })).toBeVisible();
+  await expect(page.locator('.section-heading .lifecycle')).toHaveText('Approved');
 
   await page.reload();
-  await page.getByRole('button', { name: /Research/ }).click();
+  await page.getByRole('button', { name: /^Research:/ }).click();
   await expect(page.getByLabel('Summary')).toHaveValue('Owner-reviewed Research summary.');
   await expect(page.getByLabel('Research text for item-1')).toHaveValue('Owner-corrected evidence-backed conclusion.');
-  await expect(page.getByText('Approved', { exact: true })).toBeVisible();
+  await expect(page.locator('.section-heading .lifecycle')).toHaveText('Approved');
 
-  await page.getByRole('button', { name: /Sources Available/ }).click();
+  await page.getByRole('button', { name: /^Sources: Approved/ }).click();
   await page.getByRole('button', { name: /Review Source Approved primary evidence/ }).click();
   await page.getByLabel(/Normalized Working Copy/).fill('Fresh approved evidence after the Research approval.');
   await page.getByRole('button', { name: 'Save Working Copy' }).click();
@@ -80,15 +80,15 @@ test('G1 Research: owner reviews evidence, checkpoints a Version, and approves i
   await page.getByRole('dialog').getByRole('button', { name: 'Confirm approval' }).click();
   await expect(page.getByText('Version 2 is now the current approved Version.')).toBeVisible();
 
-  await page.getByRole('button', { name: /Research/ }).click();
+  await page.getByRole('button', { name: /^Research:/ }).click();
   await expect(page.getByText('The current Research Candidate is Outdated')).toBeVisible();
-  await page.getByRole('button', { name: 'Generate new Research' }).click();
+  await page.getByRole('button', { name: 'Generate fresh Research Candidate', exact: true }).click();
   await expect(page.getByText('Fresh Research Candidate generated')).toBeVisible();
   await expect(page.getByText('Approved Research is Outdated')).toBeVisible();
   await page.getByLabel('Review state for item-1').selectOption('accepted');
   await page.getByLabel('Summary').fill('Research reviewed against the refreshed Source.');
-  await page.getByRole('button', { name: 'Save review' }).click();
-  await page.getByRole('button', { name: 'Checkpoint Version' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.getByRole('button', { name: 'Create immutable Version' }).click();
   await page.getByRole('button', { name: 'Approve exact Version' }).click();
   await expect(page.getByText('Exact Research Version approved.')).toBeVisible();
   await expect(page.getByText('Approved Research is Outdated')).toHaveCount(0);

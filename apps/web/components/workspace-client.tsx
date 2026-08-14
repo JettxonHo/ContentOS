@@ -5,16 +5,22 @@ import { useRouter } from 'next/navigation';
 import { type FormEvent, type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type {
+  BlogResource,
   ContentPackageModeDto,
   ContentPackageOutputDto,
   ContentPackageResource,
+  OpinionResource,
+  ResearchResource,
   SourceListItemResource,
+  SourceResource,
   UrlCaptureIntakeResource,
+  XiaohongshuResource,
 } from '@contentos/contracts';
 
 import { ContentOsApiClient, WebApiError } from '../lib/api-client';
 import { SourceRefreshCoordinator } from '../lib/source-intake-view';
 import { WorkflowRecoveryController } from '../lib/workflow-recovery';
+import { deriveWorkspaceStageProjection, type WorkspaceStageId } from '../lib/workspace-stage-view';
 import { AppShell, StatusMessage } from './app-shell';
 import { SourceIntakePanel } from './source-intake-panel';
 import { SourceReviewPanel } from './source-review-panel';
@@ -50,6 +56,15 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
   const [reviewDirty, setReviewDirty] = useState(false);
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewRefreshSignal, setReviewRefreshSignal] = useState(0);
+  const [stageState, setStageState] = useState<{
+    readonly loading: boolean;
+    readonly readError: boolean;
+    readonly sources: readonly SourceResource[] | null;
+    readonly research: ResearchResource | null;
+    readonly opinion: OpinionResource | null;
+    readonly blog: BlogResource | null;
+    readonly xiaohongshu: XiaohongshuResource | null;
+  }>({ loading: true, readError: false, sources: null, research: null, opinion: null, blog: null, xiaohongshu: null });
   const [workflowLatestSequence, setWorkflowLatestSequence] = useState<number | null>(null);
   const sourceRefreshRef = useRef<
     SourceRefreshCoordinator<{
@@ -83,8 +98,55 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     setSelectedSourceId(null);
     setReviewDirty(false);
     setReviewBusy(false);
+    setStageState({
+      loading: false,
+      readError: true,
+      sources: null,
+      research: null,
+      opinion: null,
+      blog: null,
+      xiaohongshu: null,
+    });
     setError('This Content Package is unavailable.');
   }, []);
+
+  const refreshStageOverview = useCallback(async (): Promise<void> => {
+    setStageState((current) => ({ ...current, loading: true, readError: false }));
+    try {
+      const sourceItems = (await api.listSources(contentPackageId)).data.items;
+      const sourceResources = await Promise.all(
+        sourceItems.map(async (source) => (await api.getSource(contentPackageId, source.id)).data.source),
+      );
+      const optional = async <T,>(run: () => Promise<T>, missingCode: string): Promise<T | null> => {
+        try {
+          return await run();
+        } catch (cause) {
+          if (cause instanceof WebApiError && cause.code === missingCode) return null;
+          throw cause;
+        }
+      };
+      const [research, opinionResponse, blog, xiaohongshu] = await Promise.all([
+        optional(async () => (await api.getResearch(contentPackageId)).data.research, 'RESEARCH_NOT_FOUND'),
+        api.getOpinion(contentPackageId),
+        optional(async () => (await api.getBlog(contentPackageId)).data.blog, 'BLOG_NOT_FOUND'),
+        optional(async () => (await api.getXiaohongshu(contentPackageId)).data.xiaohongshu, 'BLOG_NOT_FOUND'),
+      ]);
+      setStageState({
+        loading: false,
+        readError: false,
+        sources: sourceResources,
+        research,
+        opinion: opinionResponse.data.opinion,
+        blog,
+        xiaohongshu,
+      });
+    } catch (cause) {
+      if (cause instanceof WebApiError && cause.status === 401) router.replace('/login');
+      else if (cause instanceof WebApiError && cause.status === 404 && cause.code === 'CONTENT_PACKAGE_NOT_FOUND')
+        showPackageUnavailable();
+      else setStageState((current) => ({ ...current, loading: false, readError: true }));
+    }
+  }, [api, contentPackageId, router, showPackageUnavailable]);
 
   const handleSourceTerminal = useCallback(
     (cause: unknown): boolean => {
@@ -164,6 +226,11 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
       current = false;
     };
   }, [api, contentPackageId, router]);
+
+  useEffect(() => {
+    if (!contentPackage || contentPackage.lifecycle === 'archived') return;
+    void Promise.resolve().then(refreshStageOverview);
+  }, [contentPackage, refreshStageOverview]);
 
   useEffect(() => {
     if (!contentPackage || section !== 'sources') return;
@@ -334,7 +401,25 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
     setReviewBusy(false);
     setSourceNotice('This Source is unavailable. The Source collection was refreshed.');
     void refreshSources(true);
+    void refreshStageOverview();
   };
+
+  const stageProjection = contentPackage
+    ? deriveWorkspaceStageProjection({
+        lifecycle: contentPackage.lifecycle,
+        configuredMode: contentPackage.contentMode,
+        requestedOutputs: contentPackage.requestedOutputs,
+        ...stageState,
+      })
+    : null;
+
+  const stageRows: readonly { readonly id: WorkspaceStageId; readonly number: string; readonly title: string }[] = [
+    { id: 'details', number: '01', title: 'Package metadata' },
+    { id: 'sources', number: '02', title: 'Sources' },
+    { id: 'research', number: '03', title: 'Research' },
+    { id: 'opinion-blog', number: '04', title: 'Opinion & Blog' },
+    { id: 'xiaohongshu', number: '05', title: 'Xiaohongshu' },
+  ];
 
   return (
     <div onClickCapture={blockDirtyLinkNavigation}>
@@ -420,6 +505,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
                       onBusyChange={setReviewBusy}
                       onUnavailable={handleSourceTerminal}
                       onSourceUnavailable={closeUnavailableSource}
+                      onStatusChange={() => void refreshStageOverview()}
                     />
                   ) : null}
                   {contentPackage.lifecycle === 'active' ? (
@@ -439,6 +525,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
                   onDirtyChange={setReviewDirty}
                   onBusyChange={setReviewBusy}
                   onUnauthenticated={() => router.replace('/login')}
+                  onStatusChange={() => void refreshStageOverview()}
                 />
               ) : section === 'opinion-blog' ? (
                 <OpinionBlogPanel
@@ -449,6 +536,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
                   onDirtyChange={setReviewDirty}
                   onBusyChange={setReviewBusy}
                   onUnauthenticated={() => router.replace('/login')}
+                  onStatusChange={() => void refreshStageOverview()}
                 />
               ) : section === 'xiaohongshu' ? (
                 <XiaohongshuPanel
@@ -459,6 +547,7 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
                   onDirtyChange={setReviewDirty}
                   onBusyChange={setReviewBusy}
                   onUnauthenticated={() => router.replace('/login')}
+                  onStatusChange={() => void refreshStageOverview()}
                 />
               ) : (
                 <>
@@ -555,77 +644,31 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
             <aside className="stage-panel" aria-labelledby="stage-title">
               <p className="eyebrow">Workspace</p>
               <h2 id="stage-title">Foundation</h2>
-              <button
-                className={section === 'details' ? 'stage-current stage-button' : 'stage-future stage-button'}
-                type="button"
-                aria-pressed={section === 'details'}
-                onClick={() => chooseSection('details')}
-                disabled={(reviewDirty || reviewBusy) && section !== 'details'}
-              >
-                <span>01</span>
-                <div>
-                  <strong>Package metadata</strong>
-                  <small>Available</small>
-                </div>
-              </button>
-              <button
-                className={section === 'sources' ? 'stage-current stage-button' : 'stage-future stage-button'}
-                type="button"
-                aria-pressed={section === 'sources'}
-                onClick={() => chooseSection('sources')}
-                disabled={(reviewDirty || reviewBusy) && section !== 'sources'}
-              >
-                <span>02</span>
-                <div>
-                  <strong>Sources</strong>
-                  <small>{contentPackage.lifecycle === 'archived' ? 'History only' : 'Available'}</small>
-                </div>
-              </button>
-              <button
-                className={section === 'research' ? 'stage-current stage-button' : 'stage-future stage-button'}
-                type="button"
-                aria-pressed={section === 'research'}
-                onClick={() => chooseSection('research')}
-                disabled={
-                  contentPackage.lifecycle === 'archived' || ((reviewDirty || reviewBusy) && section !== 'research')
-                }
-              >
-                <span>03</span>
-                <div>
-                  <strong>Research</strong>
-                  <small>{contentPackage.lifecycle === 'archived' ? 'Unavailable while archived' : 'Available'}</small>
-                </div>
-              </button>
-              <button
-                className={section === 'opinion-blog' ? 'stage-current stage-button' : 'stage-future stage-button'}
-                type="button"
-                aria-pressed={section === 'opinion-blog'}
-                onClick={() => chooseSection('opinion-blog')}
-                disabled={
-                  contentPackage.lifecycle === 'archived' || ((reviewDirty || reviewBusy) && section !== 'opinion-blog')
-                }
-              >
-                <span>04</span>
-                <div>
-                  <strong>Opinion & creation</strong>
-                  <small>{contentPackage.lifecycle === 'archived' ? 'Unavailable while archived' : 'Available'}</small>
-                </div>
-              </button>
-              <button
-                className={section === 'xiaohongshu' ? 'stage-current stage-button' : 'stage-future stage-button'}
-                type="button"
-                aria-pressed={section === 'xiaohongshu'}
-                onClick={() => chooseSection('xiaohongshu')}
-                disabled={
-                  contentPackage.lifecycle === 'archived' || ((reviewDirty || reviewBusy) && section !== 'xiaohongshu')
-                }
-              >
-                <span>05</span>
-                <div>
-                  <strong>Xiaohongshu</strong>
-                  <small>{contentPackage.lifecycle === 'archived' ? 'Unavailable while archived' : 'Available'}</small>
-                </div>
-              </button>
+              {stageProjection
+                ? stageRows.map((row) => {
+                    const stage = stageProjection[row.id];
+                    const archivedDisabled =
+                      contentPackage.lifecycle === 'archived' && row.id !== 'details' && row.id !== 'sources';
+                    return (
+                      <button
+                        key={row.id}
+                        className={`${section === row.id ? 'stage-current' : 'stage-future'} stage-button stage-${stage.status}`}
+                        type="button"
+                        aria-pressed={section === row.id}
+                        aria-label={`${row.title}: ${stage.label}. Next action: ${stage.nextAction}. ${stage.reason}`}
+                        onClick={() => chooseSection(row.id)}
+                        disabled={archivedDisabled || ((reviewDirty || reviewBusy) && section !== row.id)}
+                      >
+                        <span>{row.number}</span>
+                        <div>
+                          <strong>{row.title}</strong>
+                          <small>{stage.label}</small>
+                          <span className="stage-next">{stage.nextAction}</span>
+                        </div>
+                      </button>
+                    );
+                  })
+                : null}
               <p className="stage-note">
                 Research and Blog generation use deterministic Fake Providers. Real Provider calls remain unavailable.
               </p>
