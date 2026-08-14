@@ -1,6 +1,6 @@
 # V0.1-UX-001 — Truthful Workspace Guidance and Differentiated Content Contract
 
-**Status:** Ready for Publication — independent review passed; PR/CI/merge pending
+**Status:** Completed — PR #301 squash-merged after independent review and required CI
 **Base:** `main@15a9b847db035d75da38ed94876bbbac727c477c`
 **Branch:** `codex/v0-1-ux-001`
 
@@ -75,7 +75,7 @@ Repair the two failure classes observed in bounded external V0 validation: make 
 - Updated `m1-thin-slice`, `research-g1`, and `opinion-blog-g2` Browser coverage, including stale Opinion recovery and 720px Xiaohongshu layout.
 - Node 24.18.0: focused tests during development, formatter/static checks, full Browser, repository check, and proportional Integration if the final diff exposes an integration gap.
 - Desktop and 720px visual QA before commit.
-- Code review of the final diff before commit; publication still requires the repository's normal independent review.
+- Code review of the final diff before commit; the repository's independent publication review passed before merge.
 
 ## Documentation Updates
 
@@ -99,3 +99,10 @@ No new DEC is expected. Stop for Decision Review if implementation would require
 - Visual QA: desktop and 720px screenshots showed a single focused page editor, readable 4×2 mobile navigation, normal horizontal metadata, and no horizontal overflow.
 - Review: independent publication review found three bounded correctness issues across its initial and first corrected-head passes: confirmed Opinion displayed the pre-correction interpretation after reload, deferred mode was implicitly coerced to Research-based, and re-interpreting an updated response could redisplay the older confirmed statement. All three are corrected with focused Browser and projection regressions; final corrected-head independent re-review passed with no blocking findings.
 - Provider attempts/cost: zero / ¥0.
+
+## Publication Evidence
+
+- PR [#301](https://github.com/JettxonHo/ContentOS/pull/301) was squash-merged.
+- Required CI run [31765862087](https://github.com/JettxonHo/ContentOS/actions/runs/31765862087) completed with `Change scope`, `Docker-independent quality`, `Integration smoke (Docker)`, and `M1/M2 browser smoke (Chromium)` all successful.
+- The effective PR #301 squash merge commit on `main` is `db32025f58c3ea977a3a04084435deba1c14caf2`.
+- GitHub records `mergedAt=2026-08-14T03:11:50Z`.
