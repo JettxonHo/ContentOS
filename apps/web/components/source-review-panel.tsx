@@ -38,6 +38,7 @@ interface Props {
   readonly onBusyChange: (busy: boolean) => void;
   readonly onUnavailable: (cause: unknown) => boolean;
   readonly onSourceUnavailable: () => void;
+  readonly onStatusChange: () => void;
 }
 
 function safeError(cause: unknown): string {
@@ -67,6 +68,7 @@ export function SourceReviewPanel({
   onBusyChange,
   onUnavailable,
   onSourceUnavailable,
+  onStatusChange,
 }: Props) {
   const [state, setState] = useState<ReviewState | null>(null);
   const [draft, setDraft] = useState('');
@@ -310,6 +312,7 @@ export function SourceReviewPanel({
       setDraft(workingCopy.body.text);
       setRevisionConflict(false);
       setNotice(`Working Copy revision ${workingCopy.revision} saved.`);
+      onStatusChange();
     } catch (cause) {
       if (!requestFence.current.isCurrent(token) || onUnavailable(cause)) return;
       if (cause instanceof WebApiError && cause.code === 'SOURCE_NOT_FOUND') {
@@ -367,6 +370,7 @@ export function SourceReviewPanel({
       if (!requestFence.current.isCurrent(token)) return;
       setSelectedVersion(detail.data.version);
       setNotice(`Version ${created.data.version.versionNumber} created from the saved Working Copy.`);
+      onStatusChange();
     } catch (cause) {
       if (!requestFence.current.isCurrent(token) || onUnavailable(cause)) return;
       if (cause instanceof WebApiError && cause.code === 'SOURCE_NOT_FOUND') {
@@ -408,6 +412,7 @@ export function SourceReviewPanel({
       if (!requestFence.current.commitMutation(token) || !(await load())) return;
       setNotice(`Version ${versionToApprove.versionNumber} is now the current approved Version.`);
       setConfirmingVersion(null);
+      onStatusChange();
     } catch (cause) {
       if (!requestFence.current.isCurrent(token) || onUnavailable(cause)) return;
       if (cause instanceof WebApiError && cause.code === 'SOURCE_NOT_FOUND') {
