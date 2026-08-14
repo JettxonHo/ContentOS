@@ -5,6 +5,7 @@ import {
   reconcileUrlSubmission,
   SourceRefreshCoordinator,
   sourceIntakeView,
+  sourceTablePresentation,
   sourceTypeLabel,
 } from './source-intake-view.js';
 
@@ -55,8 +56,27 @@ describe('source intake view', () => {
       sourceId: null,
     };
     expect(sourceIntakeView([], [intake]).supporting.available).toBe(true);
-    expect(intakeFailureCopy(intake)).toBe('This URL did not finish capturing in time.');
-    expect(sourceTypeLabel(source('source', 'primary', 'uploaded_text'))).toBe('Uploaded text');
+    expect(intakeFailureCopy(intake)).toBe('该 URL 未能在规定时间内完成抓取。');
+    expect(sourceTypeLabel(source('source', 'primary', 'uploaded_text'))).toBe('上传文件');
+  });
+
+  it('shows a fresh review candidate ahead of an older Approval and uses Working Copy update time', () => {
+    const item = source('source', 'primary', 'pasted_text');
+    expect(
+      sourceTablePresentation(item, {
+        ...item,
+        workingCopy: { revision: 3, schemaVersion: 'source/v1', updatedAt: '2026-08-14T10:30:00.000Z' },
+        rawSnapshot: {
+          sha256: 'a'.repeat(64),
+          byteSize: 1,
+          contentType: 'text/plain',
+          capturedAt: item.createdAt,
+        },
+        latestVersionId: 'source-v2',
+        reviewCandidateVersionId: 'source-v2',
+        approvedVersionId: 'source-v1',
+      }),
+    ).toEqual({ label: '待审核', action: '审核', updatedAt: '2026-08-14T10:30:00.000Z' });
   });
 
   it('deduplicates success only when the exact formal Source is available', () => {

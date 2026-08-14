@@ -10,27 +10,27 @@ import {
   workspaceStageStatusLabel,
 } from '../lib/workspace-stage-view';
 import { StatusMessage } from './app-shell';
-import { NextActionCard } from './next-action-card';
+import { useWorkspacePrimaryAction } from './workspace-action-context';
 
 const clone = (body: XiaohongshuBodyDto): XiaohongshuBodyDto => JSON.parse(JSON.stringify(body)) as XiaohongshuBodyDto;
 
 function errorMessage(error: unknown): string {
-  if (!(error instanceof WebApiError)) return 'The command could not be completed. Try again.';
+  if (!(error instanceof WebApiError)) return '无法完成该操作，请重试。';
   switch (error.code) {
     case 'APPROVED_RESEARCH_REQUIRED':
-      return 'Approve the current Research Version before generating Xiaohongshu content.';
+      return '生成小红书内容前，请先批准当前研究版本。';
     case 'CONFIRMED_OPINION_REQUIRED':
-      return 'Creator-led generation requires a Human Opinion confirmed against current Research.';
+      return '创作者主导生成需要绑定当前研究的已确认人工观点。';
     case 'BLOG_REVISION_CONFLICT':
-      return 'A newer Xiaohongshu Working Copy exists. Reload before saving.';
+      return '已有更新的小红书草稿，请重新加载后再保存。';
     case 'BLOG_VERSION_NOT_ELIGIBLE':
-      return 'The exact Xiaohongshu Version is not eligible. Review all eight pages and current dependencies.';
+      return '当前小红书版本尚不符合条件，请审核全部 8 页及其当前依赖。';
     case 'BLOG_PROVIDER_OUTPUT_INVALID':
-      return 'The generated candidate failed the deterministic eight-page content contract.';
+      return '生成的候选未通过确定性的八页内容合同。';
     case 'BLOG_EXPORT_NOT_ELIGIBLE':
-      return 'Export requires a current exact Approved Xiaohongshu Version.';
+      return '导出需要当前精确且已批准的小红书版本。';
     default:
-      return 'The command could not be completed. Try again.';
+      return '无法完成该操作，请重试。';
   }
 }
 
@@ -84,7 +84,7 @@ export function XiaohongshuPanel({
       else if (cause instanceof WebApiError && cause.code === 'BLOG_NOT_FOUND') {
         setState(null);
         setDraft(null);
-      } else setError('Xiaohongshu status could not be loaded. Reload authoritative status.');
+      } else setError('无法加载小红书状态，请重新加载权威状态。');
     } finally {
       setLoading(false);
     }
@@ -132,7 +132,7 @@ export function XiaohongshuPanel({
       anchor.download = kind === 'post' ? 'post.md' : 'pages.json';
       anchor.click();
       URL.revokeObjectURL(url);
-      setNotice(`Approved ${anchor.download} exported.`);
+      setNotice(`已导出批准的 ${anchor.download}。`);
     } catch (cause) {
       if (cause instanceof WebApiError && cause.status === 401) onUnauthenticated();
       else setError(errorMessage(cause));
@@ -147,7 +147,7 @@ export function XiaohongshuPanel({
     active,
     busy,
     noun: 'Xiaohongshu',
-    exportLabel: 'Export post.md',
+    exportLabel: '导出 post.md',
   });
   const presentationStatus = candidatePresentationStatus(state, dirty);
   const generate = (fresh: boolean): void => {
@@ -156,9 +156,7 @@ export function XiaohongshuPanel({
       async () =>
         (await api.generateXiaohongshu(contentPackageId, { requestId: crypto.randomUUID(), contentMode: mode })).data
           .xiaohongshu,
-      fresh
-        ? 'Fresh Xiaohongshu Candidate created. Existing Versions and Approval history remain immutable.'
-        : 'Eight-page Xiaohongshu Candidate generated.',
+      fresh ? '新版小红书候选已创建，历史版本与批准记录保持不可变。' : '八页小红书候选已生成。',
     );
   };
   const runNextAction = (): void => {
@@ -170,32 +168,44 @@ export function XiaohongshuPanel({
         async () =>
           (await api.editXiaohongshu(contentPackageId, { expectedRevision: state.workingCopy.revision, body: draft }))
             .data.xiaohongshu,
-        'Xiaohongshu Working Copy saved.',
+        '小红书草稿已保存。',
       );
     } else if (action.id === 'checkpoint') {
       void command(
         async () =>
           (await api.checkpointXiaohongshu(contentPackageId, { expectedRevision: state.workingCopy.revision })).data
             .xiaohongshu,
-        'Immutable Xiaohongshu Version checkpointed.',
+        '已保存不可变小红书版本。',
       );
     } else if (action.id === 'approve') {
       void command(
         async () =>
           (await api.approveXiaohongshu(contentPackageId, { versionId: state.latestVersion.id })).data.xiaohongshu,
-        'Exact Xiaohongshu Version approved.',
+        '已批准精确小红书版本。',
       );
     } else if (action.id === 'export') void download('post');
   };
 
-  if (loading) return <p role="status">Loading Xiaohongshu…</p>;
+  useWorkspacePrimaryAction(
+    loading
+      ? null
+      : {
+          label: action.label,
+          reason: mode === null ? '请先选择创作者主导或研究驱动模式。' : action.reason,
+          disabled: action.disabled || action.id === 'complete' || (action.id === 'generate' && mode === null),
+          busy,
+          onAction: runNextAction,
+        },
+  );
+
+  if (loading) return <p role="status">正在加载小红书…</p>;
   const page = draft?.pages[selectedPage];
   return (
     <section className="xiaohongshu-panel" aria-labelledby="xiaohongshu-title">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Independent output branch</p>
-          <h2 id="xiaohongshu-title">Xiaohongshu content</h2>
+          <p className="eyebrow">阶段 05 · 独立输出</p>
+          <h2 id="xiaohongshu-title">小红书内容</h2>
         </div>
         <span className={`lifecycle ${presentationStatus === 'approved' ? 'active' : 'archived'}`}>
           {workspaceStageStatusLabel(presentationStatus)}
@@ -206,40 +216,29 @@ export function XiaohongshuPanel({
       {state?.outdated ? (
         <StatusMessage>
           {state.reviewCandidateOutdated
-            ? 'The current candidate uses older dependencies. Generate a fresh Candidate before review.'
-            : 'An older Approved Version is Outdated. The fresh current Candidate remains In review.'}
+            ? '当前候选仍使用旧依赖，请在审核前生成新版候选。'
+            : '旧的已批准版本需更新；新的当前候选仍处于待审核。'}
         </StatusMessage>
       ) : null}
-      <NextActionCard
-        status={presentationStatus}
-        label={workspaceStageStatusLabel(presentationStatus)}
-        actionLabel={action.label}
-        reason={action.reason}
-        disabled={action.disabled || (action.id === 'generate' && mode === null)}
-        disabledReason={mode === null ? 'Choose Creator-led or Research-based mode first.' : action.reason}
-        busy={busy}
-        onAction={action.id === 'complete' ? undefined : runNextAction}
-      />
-
       {!state ? (
         <div className="xhs-mode-picker">
-          <label htmlFor="xiaohongshu-mode">Xiaohongshu mode</label>
+          <label htmlFor="xiaohongshu-mode">小红书创作模式</label>
           <select
             id="xiaohongshu-mode"
             value={mode ?? ''}
             disabled={!active || busy}
             onChange={(event) => setMode((event.target.value || null) as ContentModeDto | null)}
           >
-            <option value="">Choose a mode</option>
-            <option value="creator_led">Creator-led</option>
-            <option value="research_based">Research-based</option>
+            <option value="">选择模式</option>
+            <option value="creator_led">创作者主导</option>
+            <option value="research_based">研究驱动</option>
           </select>
         </div>
       ) : draft && page ? (
         <div className="xhs-editor-shell">
-          <section className="xhs-editor-header" aria-label="Xiaohongshu packaging settings">
+          <section className="xhs-editor-header" aria-label="小红书包装设置">
             <div className="field">
-              <label htmlFor="platform-title">Platform title</label>
+              <label htmlFor="platform-title">平台标题</label>
               <select
                 id="platform-title"
                 value={draft.selectedPlatformTitle}
@@ -253,7 +252,7 @@ export function XiaohongshuPanel({
               </select>
             </div>
             <div className="field">
-              <label htmlFor="cover-title">Cover title</label>
+              <label htmlFor="cover-title">封面标题</label>
               <input
                 id="cover-title"
                 value={draft.coverTitle}
@@ -261,7 +260,7 @@ export function XiaohongshuPanel({
               />
             </div>
             <div className="field">
-              <label htmlFor="cover-subtitle">Cover subtitle</label>
+              <label htmlFor="cover-subtitle">封面副标题</label>
               <input
                 id="cover-subtitle"
                 value={draft.coverSubtitle ?? ''}
@@ -270,7 +269,7 @@ export function XiaohongshuPanel({
             </div>
           </section>
 
-          <nav className="xhs-page-nav" aria-label="Xiaohongshu pages">
+          <nav className="xhs-page-nav" aria-label="小红书页面">
             {draft.pages.map((entry, index) => (
               <button
                 key={entry.id}
@@ -288,7 +287,7 @@ export function XiaohongshuPanel({
           <article className="xhs-page-editor" aria-labelledby="xhs-page-heading">
             <div className="xhs-page-editor-title">
               <div>
-                <p className="eyebrow">Page {selectedPage + 1} of 8</p>
+                <p className="eyebrow">第 {selectedPage + 1} / 8 页</p>
                 <h3 id="xhs-page-heading">{page.purpose}</h3>
               </div>
               <span className="xhs-density">
@@ -296,7 +295,7 @@ export function XiaohongshuPanel({
               </span>
             </div>
             <div className="field">
-              <label htmlFor="page-heading">Page heading</label>
+              <label htmlFor="page-heading">页面标题</label>
               <input
                 id="page-heading"
                 value={page.heading}
@@ -311,7 +310,7 @@ export function XiaohongshuPanel({
               />
             </div>
             <div className="field">
-              <label htmlFor="page-content">Page content</label>
+              <label htmlFor="page-content">页面内容</label>
               <textarea
                 id="page-content"
                 rows={9}
@@ -327,31 +326,31 @@ export function XiaohongshuPanel({
               />
             </div>
             <details className="xhs-traceability">
-              <summary>Traceability</summary>
+              <summary>可追溯信息</summary>
               <dl>
                 <div>
-                  <dt>Visual brief</dt>
+                  <dt>视觉说明</dt>
                   <dd>{page.visualBrief}</dd>
                 </div>
                 <div>
-                  <dt>Research items</dt>
+                  <dt>研究条目</dt>
                   <dd>{page.researchItemIds.join(', ')}</dd>
                 </div>
                 <div>
-                  <dt>Opinion Version</dt>
-                  <dd>{page.opinionVersionId ?? 'Not used in Research-based mode'}</dd>
+                  <dt>观点版本</dt>
+                  <dd>{page.opinionVersionId ?? '研究驱动模式不使用观点'}</dd>
                 </div>
                 <div>
-                  <dt>Profile</dt>
+                  <dt>平台配置</dt>
                   <dd>{draft.platformProfileVersion}</dd>
                 </div>
               </dl>
             </details>
           </article>
 
-          <section className="xhs-finishing-grid" aria-label="Post finishing fields">
+          <section className="xhs-finishing-grid" aria-label="帖子收尾字段">
             <div className="field full-span">
-              <label htmlFor="xhs-caption">Caption</label>
+              <label htmlFor="xhs-caption">正文说明</label>
               <textarea
                 id="xhs-caption"
                 rows={5}
@@ -360,7 +359,7 @@ export function XiaohongshuPanel({
               />
             </div>
             <div className="field">
-              <label htmlFor="xhs-cta">Call to action</label>
+              <label htmlFor="xhs-cta">行动引导</label>
               <input
                 id="xhs-cta"
                 value={draft.cta}
@@ -368,7 +367,7 @@ export function XiaohongshuPanel({
               />
             </div>
             <div className="field">
-              <label htmlFor="xhs-hashtags">Hashtags</label>
+              <label htmlFor="xhs-hashtags">话题标签</label>
               <input
                 id="xhs-hashtags"
                 value={draft.hashtags.join(' ')}
@@ -378,7 +377,7 @@ export function XiaohongshuPanel({
           </section>
 
           <details className="xhs-traceability xhs-references">
-            <summary>Public references</summary>
+            <summary>公开参考资料</summary>
             <ul>
               {draft.publicReferences.map((reference) => (
                 <li key={`${reference.sourceVersionId}:${reference.label}`}>
@@ -387,14 +386,14 @@ export function XiaohongshuPanel({
               ))}
             </ul>
           </details>
-          <div className="form-actions supporting-actions" aria-label="Supporting Xiaohongshu actions">
+          <div className="form-actions supporting-actions" aria-label="小红书辅助操作">
             <button
               className="secondary-button"
               type="button"
               disabled={!active || busy || dirty}
               onClick={() => generate(true)}
             >
-              Generate fresh Candidate
+              生成新版候选
             </button>
             <button
               className="secondary-button"
@@ -402,7 +401,7 @@ export function XiaohongshuPanel({
               disabled={busy || !state.approvedVersionId || state.outdated}
               onClick={() => void download('pages')}
             >
-              Export pages.json
+              导出 pages.json
             </button>
           </div>
         </div>

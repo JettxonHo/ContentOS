@@ -16,6 +16,8 @@ import {
   sourceReviewRefreshDraft,
   sourceReviewView,
 } from '../lib/source-review-view';
+import { formatZhDate } from '../lib/ui-copy';
+import { useWorkspacePrimaryAction } from './workspace-action-context';
 
 interface ReviewState {
   readonly source: SourceResource;
@@ -42,19 +44,19 @@ interface Props {
 }
 
 function safeError(cause: unknown): string {
-  if (!(cause instanceof WebApiError)) return 'This Source could not be updated. Try again.';
+  if (!(cause instanceof WebApiError)) return '无法更新该资料，请重试。';
   switch (cause.code) {
     case 'SOURCE_REVISION_CONFLICT':
-      return 'A newer authoritative Working Copy exists. Your draft is preserved; reload it explicitly before continuing.';
+      return '已有更新的权威草稿。你的草稿已保留，请明确重新加载后再继续。';
     case 'SOURCE_VERSION_ALREADY_EXISTS':
-      return 'This exact revision was already checkpointed. The latest authoritative Version state was refreshed.';
+      return '该精确修订已保存为版本，最新权威版本状态已刷新。';
     case 'SOURCE_VERSION_NOT_ELIGIBLE':
     case 'SOURCE_ALREADY_APPROVED':
-      return 'This Version is no longer approvable. The current authoritative Head was refreshed.';
+      return '该版本已不能批准，当前权威头部已刷新。';
     case 'SOURCE_VERSION_NOT_FOUND':
-      return 'This Version is unavailable. The Version history was refreshed.';
+      return '该版本不可用，版本历史已刷新。';
     default:
-      return 'This Source could not be updated. Try again.';
+      return '无法更新该资料，请重试。';
   }
 }
 
@@ -84,7 +86,7 @@ export function SourceReviewPanel({
   const stateRef = useRef<ReviewState | null>(null);
   const draftRef = useRef('');
   const errorRef = useRef<HTMLParagraphElement>(null);
-  const approvalTriggerRef = useRef<HTMLButtonElement>(null);
+  const approvalOpenerRef = useRef<HTMLElement | null>(null);
   const approvalCancelRef = useRef<HTMLButtonElement>(null);
   const approvalConfirmRef = useRef<HTMLButtonElement>(null);
 
@@ -141,7 +143,7 @@ export function SourceReviewPanel({
         return false;
       }
       if (!state) setInitialLoadFailed(true);
-      setError('This Source could not be loaded. Reload the authoritative Source status.');
+      setError('无法加载该资料，请重新加载权威资料状态。');
       return false;
     }
   };
@@ -215,7 +217,7 @@ export function SourceReviewPanel({
       if (event.key === 'Escape' && !busy) {
         event.preventDefault();
         setConfirmingVersion(null);
-        requestAnimationFrame(() => approvalTriggerRef.current?.focus());
+        requestAnimationFrame(() => approvalOpenerRef.current?.focus());
         return;
       }
       if (event.key !== 'Tab') return;
@@ -264,7 +266,7 @@ export function SourceReviewPanel({
     setNotice('');
     try {
       const loaded = await load();
-      if (loaded && requestFence.current.isCurrent(token) && discard) setNotice('Unsaved draft discarded.');
+      if (loaded && requestFence.current.isCurrent(token) && discard) setNotice('未保存草稿已放弃。');
     } finally {
       endCommand(token);
     }
@@ -279,12 +281,12 @@ export function SourceReviewPanel({
     draftRef.current = state.workingCopy.body.text;
     setDraft(state.workingCopy.body.text);
     setError('');
-    setNotice('Unsaved draft discarded.');
+    setNotice('未保存草稿已放弃。');
   };
 
   const close = (): void => {
     if (view?.dirty) {
-      setError('Discard the unsaved draft before closing this Source review.');
+      setError('关闭资料审核前，请先放弃未保存的草稿。');
       return;
     }
     onClose();
@@ -311,7 +313,7 @@ export function SourceReviewPanel({
       setState(nextState);
       setDraft(workingCopy.body.text);
       setRevisionConflict(false);
-      setNotice(`Working Copy revision ${workingCopy.revision} saved.`);
+      setNotice(`当前草稿修订 ${workingCopy.revision} 已保存。`);
       onStatusChange();
     } catch (cause) {
       if (!requestFence.current.isCurrent(token) || onUnavailable(cause)) return;
@@ -369,7 +371,7 @@ export function SourceReviewPanel({
       const detail = await api.getVersion(contentPackageId, sourceId, created.data.version.id);
       if (!requestFence.current.isCurrent(token)) return;
       setSelectedVersion(detail.data.version);
-      setNotice(`Version ${created.data.version.versionNumber} created from the saved Working Copy.`);
+      setNotice(`已根据保存的草稿创建版本 ${created.data.version.versionNumber}。`);
       onStatusChange();
     } catch (cause) {
       if (!requestFence.current.isCurrent(token) || onUnavailable(cause)) return;
@@ -387,7 +389,12 @@ export function SourceReviewPanel({
 
   const closeConfirmation = (): void => {
     setConfirmingVersion(null);
-    requestAnimationFrame(() => approvalTriggerRef.current?.focus());
+    requestAnimationFrame(() => approvalOpenerRef.current?.focus());
+  };
+
+  const openConfirmation = (version: SourceVersionDetailResource): void => {
+    approvalOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setConfirmingVersion(version);
   };
 
   const approve = async (): Promise<void> => {
@@ -410,7 +417,7 @@ export function SourceReviewPanel({
     try {
       await api.approveVersion(contentPackageId, sourceId, { versionId: versionToApprove.id });
       if (!requestFence.current.commitMutation(token) || !(await load())) return;
-      setNotice(`Version ${versionToApprove.versionNumber} is now the current approved Version.`);
+      setNotice(`版本 ${versionToApprove.versionNumber} 已成为当前批准版本。`);
       setConfirmingVersion(null);
       onStatusChange();
     } catch (cause) {
@@ -433,52 +440,96 @@ export function SourceReviewPanel({
     }
   };
 
+  const selectedView =
+    state && selectedVersion
+      ? sourceReviewView({
+          revision: state.workingCopy.revision,
+          checkpointedRevision: state.workingCopy.checkpointedRevision,
+          text: state.workingCopy.body.text,
+          draft,
+          busy,
+          revisionConflict,
+          versionId: selectedVersion.id,
+          head: state.source,
+        })
+      : null;
+  const reviewAction =
+    !state || !view
+      ? null
+      : revisionConflict
+        ? {
+            label: '重新加载权威草稿',
+            reason: '保存时发现版本冲突；本地草稿已保留，请明确重新加载后再继续。',
+            disabled: false,
+            busy,
+            onAction: () => void reloadAuthoritative(),
+          }
+        : view.canSaveWorkingCopy
+          ? {
+              label: '保存当前草稿',
+              reason: '当前资料草稿包含尚未保存的修改。',
+              disabled: false,
+              busy,
+              onAction: () => void save(),
+            }
+          : view.canCreateVersion
+            ? {
+                label: '保存为版本',
+                reason: '当前草稿已保存，请创建精确不可变版本。',
+                disabled: false,
+                busy,
+                onAction: () => void createVersion(),
+              }
+            : selectedVersion && selectedView?.canApproveVersion
+              ? {
+                  label: `批准版本 ${selectedVersion.versionNumber}`,
+                  reason: '当前选中的不可变版本可由你精确批准。',
+                  disabled: false,
+                  busy,
+                  onAction: () => openConfirmation(selectedVersion),
+                }
+              : {
+                  label: state.source.reviewCandidateVersionId ? '选择待审核版本' : '资料审核已完成',
+                  reason: state.source.reviewCandidateVersionId
+                    ? '在版本历史中选择待审核版本，再执行批准。'
+                    : '当前资料没有待处理的草稿或版本。',
+                  disabled: true,
+                  busy,
+                  onAction: () => undefined,
+                };
+  useWorkspacePrimaryAction(reviewAction);
+
   if (!state || !view) {
     return (
-      <section className="source-review-panel" aria-busy={!initialLoadFailed} aria-label="Source review">
+      <section className="source-review-panel" aria-busy={!initialLoadFailed} aria-label="资料审核">
         {initialLoadFailed ? (
           <>
             <p className="field-error" role="alert" tabIndex={-1} ref={errorRef}>
               {error}
             </p>
             <button className="secondary-button" type="button" onClick={retryInitialLoad}>
-              Retry Source review
+              重试资料审核
             </button>
           </>
         ) : (
-          <p role="status">Loading Source review…</p>
+          <p role="status">正在加载资料审核…</p>
         )}
       </section>
     );
   }
 
-  const selectedView = selectedVersion
-    ? sourceReviewView({
-        revision: state.workingCopy.revision,
-        checkpointedRevision: state.workingCopy.checkpointedRevision,
-        text: state.workingCopy.body.text,
-        draft,
-        busy,
-        revisionConflict,
-        versionId: selectedVersion.id,
-        head: state.source,
-      })
-    : null;
-
   return (
     <section className="source-review-panel" aria-labelledby="source-review-title" aria-busy={busy}>
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Source review</p>
-          <h2 id="source-review-title">{state.source.label ?? 'Source review'}</h2>
+          <p className="eyebrow">资料审核</p>
+          <h2 id="source-review-title">{state.source.label ?? '资料审核'}</h2>
         </div>
-        <button className="text-button" type="button" onClick={close} disabled={busy}>
-          Close review
+        <button aria-label="关闭审核" className="text-button" type="button" onClick={close} disabled={busy}>
+          关闭审核
         </button>
       </div>
-      {view.dirty ? (
-        <p className="help-text">Save or discard this draft before reviewing another Source or leaving Sources.</p>
-      ) : null}
+      {view.dirty ? <p className="help-text">审核其他资料或离开此阶段前，请先保存或放弃当前草稿。</p> : null}
       {error ? (
         <p className="field-error" role="alert" tabIndex={-1} ref={errorRef}>
           {error}
@@ -490,8 +541,9 @@ export function SourceReviewPanel({
         </p>
       ) : null}
       <label className="field">
-        Normalized Working Copy · revision {state.workingCopy.revision} {view.dirty ? '(unsaved changes)' : '(saved)'}
+        规范化当前草稿 · 修订 {state.workingCopy.revision} {view.dirty ? '（有未保存更改）' : '（已保存）'}
         <textarea
+          aria-label={`当前草稿修订 ${state.workingCopy.revision}`}
           value={draft}
           rows={10}
           maxLength={100000}
@@ -504,83 +556,97 @@ export function SourceReviewPanel({
       </label>
       <div className="form-actions review-actions">
         <button
-          className="primary-button"
+          className="secondary-button"
           type="button"
+          aria-label="提交资料草稿修改"
           onClick={() => void save()}
           disabled={!view.canSaveWorkingCopy}
         >
-          Save Working Copy
+          保存当前草稿
         </button>
         <button className="secondary-button" type="button" onClick={discardDraft} disabled={busy || !view.dirty}>
-          Discard draft
+          放弃草稿
         </button>
-        <button className="secondary-button" type="button" onClick={() => void reloadAuthoritative()} disabled={busy}>
-          Reload authoritative copy
-        </button>
-      </div>
-      <div className="version-heading">
-        <h3>Immutable Versions</h3>
         <button
           className="secondary-button"
           type="button"
+          aria-label="审核区重新加载权威草稿"
+          onClick={() => void reloadAuthoritative()}
+          disabled={busy}
+        >
+          重新加载权威草稿
+        </button>
+      </div>
+      <div className="version-heading">
+        <h3>不可变版本</h3>
+        <button
+          className="secondary-button"
+          type="button"
+          aria-label="创建不可变资料版本"
           disabled={!view.canCreateVersion}
           onClick={() => void createVersion()}
         >
-          Create Version
+          保存为版本
         </button>
       </div>
       <p className="help-text">
         {state.workingCopy.revision === state.workingCopy.checkpointedRevision
-          ? 'This saved revision is already checkpointed.'
-          : 'Create a Version from this saved revision.'}
+          ? '当前保存的修订已存在对应不可变版本。'
+          : '根据已保存修订创建不可变版本。'}
       </p>
-      <div className="version-list" aria-label="Immutable Version history">
-        {state.versions.length === 0 ? <p>No immutable Versions yet.</p> : null}
+      <div className="version-list" aria-label="不可变版本历史">
+        {state.versions.length === 0 ? <p>暂无不可变版本。</p> : null}
         {state.versions.map((version) => (
           <button
             className="version-row"
             type="button"
+            aria-label={`版本 ${version.versionNumber}`}
             key={version.id}
             disabled={busy}
             aria-pressed={selectedVersion?.id === version.id}
             onClick={() => void selectVersion(version)}
           >
-            Version {version.versionNumber}
-            <time dateTime={version.createdAt}>{new Date(version.createdAt).toLocaleString()}</time>
+            版本 {version.versionNumber}
+            <time dateTime={version.createdAt}>{formatZhDate(version.createdAt)}</time>
           </button>
         ))}
       </div>
       {selectedVersion && selectedView ? (
-        <article className="version-detail" aria-label={`Version ${selectedVersion.versionNumber} immutable review`}>
+        <article className="version-detail" aria-label={`版本 ${selectedVersion.versionNumber} 不可变审核`}>
           <div className="version-heading">
-            <h3>Version {selectedVersion.versionNumber}</h3>
+            <h3>版本 {selectedVersion.versionNumber}</h3>
             <div>
               {selectedView.badges.map((badge) => (
                 <span className="head-badge" key={badge}>
-                  {badge}
+                  {badge === 'Latest' ? '最新' : badge === 'Review candidate' ? '待审核候选' : '当前批准'}
                 </span>
               ))}
             </div>
           </div>
-          <p className="help-text">Immutable plain-text body</p>
+          <p className="help-text">不可变纯文本正文</p>
           <pre>{selectedVersion.body.text}</pre>
           {selectedView.canApproveVersion ? (
             <button
-              className="primary-button"
+              className="secondary-button"
               type="button"
-              ref={approvalTriggerRef}
-              onClick={() => setConfirmingVersion(selectedVersion)}
+              aria-label={`审核区确认版本 ${selectedVersion.versionNumber}`}
+              onClick={() => openConfirmation(selectedVersion)}
             >
-              Approve Version {selectedVersion.versionNumber}
+              批准版本 {selectedVersion.versionNumber}
             </button>
           ) : null}
         </article>
       ) : null}
       {confirmingVersion ? (
         <div className="dialog-backdrop" role="presentation">
-          <section className="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="approval-title">
-            <h3 id="approval-title">Approve Version {confirmingVersion.versionNumber}?</h3>
-            <p>This exact immutable Version will become eligible for future Research.</p>
+          <section
+            className="confirmation-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`批准版本 ${confirmingVersion.versionNumber}？`}
+          >
+            <h3 id="approval-title">批准版本 {confirmingVersion.versionNumber}？</h3>
+            <p>该精确不可变版本将可用于后续研究。</p>
             <div className="form-actions">
               <button
                 className="secondary-button"
@@ -589,7 +655,7 @@ export function SourceReviewPanel({
                 ref={approvalCancelRef}
                 onClick={closeConfirmation}
               >
-                Cancel
+                取消
               </button>
               <button
                 className="primary-button"
@@ -598,7 +664,7 @@ export function SourceReviewPanel({
                 ref={approvalConfirmRef}
                 onClick={() => void approve()}
               >
-                Confirm approval
+                确认批准
               </button>
             </div>
           </section>

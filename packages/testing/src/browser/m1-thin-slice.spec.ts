@@ -67,12 +67,13 @@ test('M1 owner loop: login, create, edit, refresh, conflict, archive, and logout
   }
   expect(initialResponse.status()).toBe(401);
   await expect(page).toHaveURL(`${state.webOrigin}/login`);
-  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
+  await expect(page.getByRole('heading', { name: '欢迎回来' })).toBeVisible();
 
-  const passwordInput = page.getByLabel('Owner password');
+  const passwordInput = page.getByLabel('所有者密码');
   await passwordInput.fill('incorrect-browser-password');
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.locator('#login-error')).toContainText('password was not accepted');
+  await page.getByRole('button', { name: '登录' }).click();
+  await expect(page.locator('#login-error')).toContainText('密码不正确');
   await expect(passwordInput).toHaveValue('');
   await expect(passwordInput).toBeFocused();
 
@@ -80,42 +81,60 @@ test('M1 owner loop: login, create, edit, refresh, conflict, archive, and logout
     (response) => response.url() === `${state.apiOrigin}/v1/auth/login` && response.status() === 200,
   );
   await passwordInput.fill(password);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: '登录' }).click();
   const response = await loginResponse;
   expect(response.headers()['access-control-allow-origin']).toBe(state.webOrigin);
   await expect(page).toHaveURL(state.webOrigin + '/');
   const sessionCookie = (await context.cookies()).find((cookie) => cookie.name === 'contentos_session');
   expect(sessionCookie).toMatchObject({ httpOnly: true, sameSite: 'Strict' });
 
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-  await expect(page.getByText('Start your first content project')).toBeVisible();
-  await expect(page.getByText('Settings')).toHaveAttribute('aria-disabled', 'true');
-  await page.getByRole('button', { name: 'Create Content Package' }).click();
+  await expect(page.getByRole('heading', { name: '工作台' })).toBeVisible();
+  await expect(page.getByText('开始第一个内容项目')).toBeVisible();
+  await expect(page.getByText('设置').locator('..')).toHaveAttribute('aria-disabled', 'true');
+  await page.getByRole('button', { name: '新建内容项目' }).click();
 
-  await page.getByLabel('Title').fill('M1 browser package');
-  await page.getByLabel('Description').fill('A private package created through the first product loop.');
-  await page.getByLabel('Content mode').selectOption('creator_led');
-  const createButton = page.getByRole('button', { name: 'Create package' });
+  await page.getByLabel('项目标题').fill('M1 browser package');
+  await page.getByLabel('项目说明').fill('A private package created through the first product loop.');
+  await page.getByLabel('内容模式').selectOption('creator_led');
+  const createButton = page.locator('.create-panel').getByRole('button', { name: '创建内容项目' });
   await createButton.dblclick();
   await expect(page).toHaveURL(/\/packages\/[0-9a-f-]+$/);
   await expect(page.getByRole('heading', { name: 'M1 browser package' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Sources' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Opinion & Blog: Blocked/ })).toBeVisible();
+  await expect(page.locator('#sources-title')).toBeVisible();
+  await expect(page.getByRole('button', { name: /^观点与文章：未就绪/ })).toBeVisible();
+  const activityOpener = page.getByRole('button', { name: '运行记录', exact: true });
+  await activityOpener.click();
+  const activityDrawer = page.getByRole('dialog', { name: '运行记录' });
+  await expect(activityDrawer.getByRole('button', { name: '关闭运行记录' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(activityDrawer.getByRole('button', { name: '关闭运行记录' })).toBeFocused();
+  await expect(page.getByText('暂无运行记录')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(activityDrawer).toBeHidden();
+  await expect(activityOpener).toBeFocused();
+
+  await page.getByRole('button', { name: '+ 添加资料' }).click();
+  const drawerTitleIds = await page
+    .locator('aside.workspace-drawer')
+    .evaluateAll((drawers) => drawers.map((drawer) => drawer.getAttribute('aria-labelledby')));
+  expect(drawerTitleIds).toHaveLength(2);
+  expect(new Set(drawerTitleIds).size).toBe(2);
+  await page.getByRole('button', { name: '关闭添加资料' }).click();
 
   const id = page.url().split('/').at(-1);
   if (!id) throw new Error('workspace route is missing its opaque identity');
-  await page.getByRole('button', { name: /Package metadata/ }).click();
-  await page.getByLabel('Title').fill('M1 persisted package');
-  await page.getByLabel('Description').fill('Persisted through the authoritative API.');
-  await page.getByRole('button', { name: 'Save changes' }).click();
-  await expect(page.getByRole('status')).toContainText('Changes saved');
-  await expect(page.getByText('Revision 2')).toBeVisible();
+  await page.getByRole('button', { name: /项目信息/ }).click();
+  await page.getByLabel('项目标题').fill('M1 persisted package');
+  await page.getByLabel('项目描述').fill('Persisted through the authoritative API.');
+  await page.getByRole('button', { name: '保存项目信息' }).click();
+  await expect(page.getByRole('status')).toContainText('项目信息已保存');
+  await expect(page.getByText('版本 2')).toBeVisible();
 
   await page.reload();
-  await page.getByRole('button', { name: /Package metadata/ }).click();
-  await expect(page.getByLabel('Title')).toHaveValue('M1 persisted package');
-  await expect(page.getByLabel('Description')).toHaveValue('Persisted through the authoritative API.');
-  await expect(page.getByText('Revision 2')).toBeVisible();
+  await page.getByRole('button', { name: /项目信息/ }).click();
+  await expect(page.getByLabel('项目标题')).toHaveValue('M1 persisted package');
+  await expect(page.getByLabel('项目描述')).toHaveValue('Persisted through the authoritative API.');
+  await expect(page.getByText('版本 2')).toBeVisible();
 
   const concurrentStatus = await page.evaluate(
     async ({ apiOrigin, packageId }) => {
@@ -130,22 +149,22 @@ test('M1 owner loop: login, create, edit, refresh, conflict, archive, and logout
     { apiOrigin: state.apiOrigin, packageId: id },
   );
   expect(concurrentStatus).toBe(200);
-  await page.getByLabel('Title').fill('Stale browser title');
-  await page.getByRole('button', { name: 'Save changes' }).click();
-  await expect(page.getByText('Revision conflict.', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Reload latest' }).click();
-  await expect(page.getByLabel('Title')).toHaveValue('Concurrent authoritative title');
-  await expect(page.getByText('Revision 3')).toBeVisible();
+  await page.getByLabel('项目标题').fill('Stale browser title');
+  await page.getByRole('button', { name: '保存项目信息' }).click();
+  await expect(page.getByText('版本冲突。', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '重新加载最新版本' }).click();
+  await expect(page.getByLabel('项目标题')).toHaveValue('Concurrent authoritative title');
+  await expect(page.getByText('版本 3')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Archive package' }).click();
+  await page.getByRole('button', { name: '归档项目' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
-  await page.getByRole('dialog').getByRole('button', { name: 'Archive package' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: '归档项目' }).click();
   await expect(page).toHaveURL(`${state.webOrigin}/?view=archived`);
   await expect(page.getByRole('link', { name: /Concurrent authoritative title/ })).toBeVisible();
-  await expect(page.getByText('archived', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '已归档', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: /Concurrent authoritative title/ })).toHaveCount(1);
 
-  await page.getByRole('button', { name: 'Log out' }).click();
+  await page.getByRole('button', { name: '退出登录' }).click();
   await expect(page).toHaveURL(`${state.webOrigin}/login`);
   await page.goto(`${state.webOrigin}/packages/${id}`);
   await expect(page).toHaveURL(`${state.webOrigin}/login`);

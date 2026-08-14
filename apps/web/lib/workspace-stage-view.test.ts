@@ -57,21 +57,21 @@ describe('workspace stage projection', () => {
     expect(deriveWorkspaceStageProjection({ ...base(), loading: true }).research.status).toBe('loading');
     expect(deriveWorkspaceStageProjection({ ...base(), readError: true }).research.status).toBe('blocked');
     const missing = deriveWorkspaceStageProjection({ ...base(), sources: [], research: null });
-    expect(missing.sources).toMatchObject({ status: 'ready', nextAction: 'Add the Primary Source' });
-    expect(missing.research).toMatchObject({ status: 'blocked', nextAction: 'Approve the Primary Source' });
+    expect(missing.sources).toMatchObject({ status: 'ready', nextAction: '添加主资料' });
+    expect(missing.research).toMatchObject({ status: 'blocked', nextAction: '批准主资料' });
   });
 
   it('shows an old outdated Approval with a fresh candidate as In review', () => {
     const research = candidate({ outdated: true, reviewCandidateOutdated: false, approvedVersionId: 'old-v1' });
     const result = deriveWorkspaceStageProjection({ ...base(), research });
-    expect(result.research).toMatchObject({ status: 'in_review', label: 'In review' });
+    expect(result.research).toMatchObject({ status: 'in_review', label: '待审核' });
   });
 
   it('shows a stale current candidate as Outdated', () => {
     const research = candidate({ outdated: true, reviewCandidateOutdated: true, approvedVersionId: 'old-v1' });
     expect(deriveWorkspaceStageProjection({ ...base(), research }).research).toMatchObject({
       status: 'outdated',
-      nextAction: 'Generate fresh Research Candidate',
+      nextAction: '生成新版研究候选',
     });
   });
 
@@ -92,21 +92,21 @@ describe('workspace stage projection', () => {
     });
     expect(result['opinion-blog']).toMatchObject({
       status: 'outdated',
-      nextAction: 'Re-interpret with current Research',
+      nextAction: '基于当前研究重新解读',
     });
   });
 
   it('does not require Opinion in Research-based mode', () => {
     const result = deriveWorkspaceStageProjection({ ...base(), opinion: null, blog: null });
-    expect(result['opinion-blog']).toMatchObject({ status: 'ready', nextAction: 'Generate Blog Candidate' });
-    expect(result.xiaohongshu).toMatchObject({ status: 'ready', nextAction: 'Generate Xiaohongshu Candidate' });
+    expect(result['opinion-blog']).toMatchObject({ status: 'ready', nextAction: '生成文章候选' });
+    expect(result.xiaohongshu).toMatchObject({ status: 'ready', nextAction: '生成小红书候选' });
   });
 
   it('requires an explicit content-mode choice when the package is deferred', () => {
     const result = deriveWorkspaceStageProjection({ ...base(), configuredMode: 'deferred' });
     expect(result['opinion-blog']).toMatchObject({
       status: 'ready',
-      nextAction: 'Choose a content mode',
+      nextAction: '选择内容模式',
     });
   });
 

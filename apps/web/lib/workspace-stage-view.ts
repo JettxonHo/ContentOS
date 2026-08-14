@@ -7,6 +7,7 @@ import type {
   SourceResource,
   XiaohongshuResource,
 } from '@contentos/contracts';
+import { UI_COPY } from './ui-copy';
 
 export type WorkspaceStageId = 'details' | 'sources' | 'research' | 'opinion-blog' | 'xiaohongshu';
 export type WorkspaceStageStatus = 'loading' | 'ready' | 'in_review' | 'approved' | 'outdated' | 'blocked';
@@ -61,12 +62,12 @@ interface CandidateResource {
 }
 
 const LABELS: Record<WorkspaceStageStatus, string> = {
-  loading: 'Loading…',
-  ready: 'Ready',
-  in_review: 'In review',
-  approved: 'Approved',
-  outdated: 'Outdated',
-  blocked: 'Blocked',
+  loading: UI_COPY.status.loading,
+  ready: UI_COPY.status.ready,
+  in_review: UI_COPY.status.in_review,
+  approved: UI_COPY.status.approved,
+  outdated: UI_COPY.status.outdated,
+  blocked: UI_COPY.status.blocked,
 };
 
 export function workspaceStageStatusLabel(status: WorkspaceStageStatus): string {
@@ -87,25 +88,23 @@ function candidateStatus(resource: CandidateResource, dirty = false): WorkspaceS
 }
 
 function blogStage(blog: BlogResource | null, generateReason: string): WorkspaceStageView {
-  if (!blog) return view('ready', 'Generate Blog Candidate', generateReason);
+  if (!blog) return view('ready', '生成文章候选', generateReason);
   const status = candidateStatus(blog);
-  if (status === 'outdated')
-    return view('outdated', 'Generate fresh Blog Candidate', 'The current candidate uses older approved dependencies.');
-  if (status === 'approved')
-    return view('approved', 'Export article.md', 'The exact Approved Blog Version is current.');
-  return view('in_review', 'Review the Blog Candidate', 'Save, checkpoint, and approve the current candidate.');
+  if (status === 'outdated') return view('outdated', '生成新版文章候选', '当前候选仍绑定旧的已批准依赖。');
+  if (status === 'approved') return view('approved', '导出 article.md', '当前精确文章版本已批准且依赖有效。');
+  return view('in_review', '审核文章候选', '保存当前草稿，保存为不可变版本，再由你批准。');
 }
 
 export function deriveWorkspaceStageProjection(input: WorkspaceStageProjectionInput): WorkspaceStageProjection {
   const archived = input.lifecycle === 'archived';
   const details = archived
-    ? view('blocked', 'Review package history', 'Archived packages are read-only.')
-    : view('ready', 'Edit package metadata', 'Package settings are current and editable.');
+    ? view('blocked', '查看项目历史', '已归档项目为只读。')
+    : view('ready', '编辑项目信息', '项目设置可编辑。');
   const unavailable = archived
-    ? view('blocked', 'Review package history', 'Archived packages are read-only.')
+    ? view('blocked', '查看项目历史', '已归档项目为只读。')
     : input.loading
-      ? view('loading', 'Wait for authoritative status', 'Loading current Artifact and Approval state.')
-      : view('blocked', 'Reload authoritative status', 'Current stage state could not be loaded safely.');
+      ? view('loading', '等待状态读取', '正在读取当前内容与批准状态。')
+      : view('blocked', '重新读取状态', '无法安全读取当前阶段状态。');
 
   if (archived || input.loading || input.readError) {
     return {
@@ -124,24 +123,20 @@ export function deriveWorkspaceStageProjection(input: WorkspaceStageProjectionIn
   );
   const sourceView =
     sources.length === 0
-      ? view('ready', 'Add the Primary Source', 'Research starts from one human-approved Primary Source.')
+      ? view('ready', '添加主资料', '研究从一份经人工批准的主资料开始。')
       : sourceReviewPending
-        ? view('in_review', 'Review and approve Sources', 'At least one Source still needs an exact Version Approval.')
-        : view('approved', 'Continue to Research', 'Every current Source has an exact Approved Version.');
+        ? view('in_review', '审核并批准资料', '至少一份资料仍需批准精确版本。')
+        : view('approved', '进入研究', '每份当前资料都已有精确批准版本。');
 
   const researchView = !primaryApproved
-    ? view('blocked', 'Approve the Primary Source', 'Research requires an exact Approved Primary Source Version.')
+    ? view('blocked', '批准主资料', '研究需要精确批准的主资料版本。')
     : !input.research
-      ? view('ready', 'Generate Research', 'The Approved Source foundation is ready.')
+      ? view('ready', '生成研究候选', '已批准的资料基础已经就绪。')
       : candidateStatus(input.research) === 'outdated'
-        ? view(
-            'outdated',
-            'Generate fresh Research Candidate',
-            'The current Research Candidate uses older Approved Sources.',
-          )
+        ? view('outdated', '生成新版研究候选', '当前研究候选仍使用旧的已批准资料。')
         : candidateStatus(input.research) === 'approved'
-          ? view('approved', 'Continue to content creation', 'The exact Approved Research Version is current.')
-          : view('in_review', 'Review the Research Candidate', 'Save, checkpoint, and approve the current candidate.');
+          ? view('approved', '进入内容创作', '当前精确研究版本已批准且依赖有效。')
+          : view('in_review', '审核研究候选', '保存当前草稿，保存为不可变版本，再由你批准。');
 
   const researchCurrent = Boolean(input.research?.approvedVersionId && !input.research.outdated);
   let opinionBlogView: WorkspaceStageView;
@@ -153,27 +148,23 @@ export function deriveWorkspaceStageProjection(input: WorkspaceStageProjectionIn
         : 'deferred'
       : input.configuredMode);
   if (!researchCurrent) {
-    opinionBlogView = view(
-      'blocked',
-      'Approve current Research',
-      'Content creation requires current Approved Research.',
-    );
+    opinionBlogView = view('blocked', '批准当前研究', '内容创作需要当前有效的已批准研究。');
   } else if (effectiveMode === 'research_based') {
-    opinionBlogView = blogStage(input.blog, 'Research-based creation uses Approved Research without personal claims.');
+    opinionBlogView = blogStage(input.blog, '研究驱动创作只使用已批准研究，不代替创作者表达个人经历。');
   } else if (effectiveMode === 'deferred') {
-    opinionBlogView = view('ready', 'Choose a content mode', 'Choose Creator-led or Research-based before generation.');
+    opinionBlogView = view('ready', '选择内容模式', '生成前请选择创作者主导或研究驱动。');
   } else if (input.opinion?.outdated) {
     opinionBlogView = view(
       'outdated',
-      'Re-interpret with current Research',
-      'Approved Research changed; review and re-confirm the retained response against it.',
+      '基于当前研究重新解读',
+      '已批准研究发生变化；请保留原回答，重新解读、审核并确认。',
     );
   } else if (!input.opinion?.confirmedVersionId) {
     opinionBlogView = input.opinion
-      ? view('in_review', 'Review and confirm Human Opinion', 'Only the user can confirm an exact Opinion Version.')
-      : view('ready', 'Respond to the Opinion question', 'Creator-led content requires a current confirmed Opinion.');
+      ? view('in_review', '审核并确认观点', '只有你可以确认精确观点版本。')
+      : view('ready', '回答观点问题', '创作者主导内容需要当前有效的已确认观点。');
   } else {
-    opinionBlogView = blogStage(input.blog, 'Current Approved Research and Human Opinion are ready.');
+    opinionBlogView = blogStage(input.blog, '当前已批准研究和已确认观点均已就绪。');
   }
 
   const xhsRequested = input.requestedOutputs.includes('xiaohongshu');
@@ -182,33 +173,21 @@ export function deriveWorkspaceStageProjection(input: WorkspaceStageProjectionIn
     xhsMode !== 'creator_led' || Boolean(input.opinion?.confirmedVersionId && !input.opinion.outdated);
   let xiaohongshuView: WorkspaceStageView;
   if (!xhsRequested) {
-    xiaohongshuView = view('blocked', 'Enable Xiaohongshu output', 'This output is not requested for the package.');
+    xiaohongshuView = view('blocked', '启用小红书输出', '此项目尚未请求小红书输出。');
   } else if (!researchCurrent) {
-    xiaohongshuView = view('blocked', 'Approve current Research', 'Xiaohongshu requires current Approved Research.');
+    xiaohongshuView = view('blocked', '批准当前研究', '小红书需要当前有效的已批准研究。');
   } else if (!opinionReady) {
-    xiaohongshuView = view(
-      'blocked',
-      'Confirm current Human Opinion',
-      'Creator-led Xiaohongshu requires an Opinion bound to current Research.',
-    );
+    xiaohongshuView = view('blocked', '确认当前观点', '创作者主导的小红书内容需要绑定当前研究的观点。');
   } else if (!input.xiaohongshu) {
-    xiaohongshuView = view('ready', 'Generate Xiaohongshu Candidate', 'The current Content Foundation is ready.');
+    xiaohongshuView = view('ready', '生成小红书候选', '当前内容基础已经就绪。');
   } else {
     const status = candidateStatus(input.xiaohongshu);
     xiaohongshuView =
       status === 'outdated'
-        ? view(
-            'outdated',
-            'Generate fresh Xiaohongshu Candidate',
-            'The current candidate uses older approved dependencies.',
-          )
+        ? view('outdated', '生成新版小红书候选', '当前候选仍绑定旧的已批准依赖。')
         : status === 'approved'
-          ? view('approved', 'Export post.md and pages.json', 'The exact Approved Xiaohongshu Version is current.')
-          : view(
-              'in_review',
-              'Review the Xiaohongshu Candidate',
-              'Save, checkpoint, and approve the current candidate.',
-            );
+          ? view('approved', '导出 post.md 与 pages.json', '当前精确小红书版本已批准且依赖有效。')
+          : view('in_review', '审核小红书候选', '保存当前草稿，保存为不可变版本，再由你批准。');
   }
 
   return {
@@ -229,47 +208,44 @@ export function deriveCandidateAction(input: {
   readonly exportLabel?: string;
 }): CandidateAction {
   const { resource, dirty, active, busy, noun } = input;
+  const nounLabel = noun === 'Research' ? '研究' : noun === 'Blog' ? '文章' : '小红书';
   if (!resource) {
     return {
       id: 'generate',
-      label: `Generate ${noun} Candidate`,
-      reason: active
-        ? `Create the first ${noun} Candidate from current approved dependencies.`
-        : 'Archived packages are read-only.',
+      label: `生成${nounLabel}候选`,
+      reason: active ? `基于当前已批准依赖创建第一份${nounLabel}候选。` : '已归档项目为只读。',
       disabled: !active || busy,
     };
   }
   if (resource.reviewCandidateOutdated) {
     return {
       id: 'refresh',
-      label: `Generate fresh ${noun} Candidate`,
-      reason: dirty
-        ? 'Discard or save the local draft before replacing the stale candidate.'
-        : 'Approved dependencies changed.',
+      label: `生成新版${nounLabel}候选`,
+      reason: dirty ? '替换旧候选前，请先保存或放弃本地草稿。' : '已批准依赖发生变化。',
       disabled: !active || busy || dirty,
     };
   }
   if (dirty) {
     return {
       id: 'save',
-      label: 'Save changes',
-      reason: 'The Working Copy differs from its last saved revision.',
+      label: '保存修改',
+      reason: '当前草稿与上次保存的版本不同。',
       disabled: !active || busy,
     };
   }
   if (resource.workingCopy.checkpointedRevision !== resource.workingCopy.revision) {
     return {
       id: 'checkpoint',
-      label: 'Create immutable Version',
-      reason: 'Save is complete; checkpoint this exact Working Copy before Approval.',
+      label: '保存为版本',
+      reason: '草稿已保存；批准前请把当前内容保存为不可变版本。',
       disabled: !active || busy,
     };
   }
   if (resource.approvedVersionId !== resource.latestVersion.id) {
     return {
       id: 'approve',
-      label: 'Approve exact Version',
-      reason: 'The current checkpointed Version is eligible for human Approval.',
+      label: '批准此版本',
+      reason: '当前不可变版本已满足人工批准条件。',
       disabled: !active || busy,
     };
   }
@@ -277,14 +253,14 @@ export function deriveCandidateAction(input: {
     return {
       id: 'export',
       label: input.exportLabel,
-      reason: 'The exact Approved Version is current.',
+      reason: '当前精确版本已批准且依赖有效。',
       disabled: busy || resource.outdated,
     };
   }
   return {
     id: 'complete',
-    label: 'Approved and current',
-    reason: 'No review action is pending for this exact Version.',
+    label: '已批准且有效',
+    reason: '当前精确版本没有待处理审核动作。',
     disabled: true,
   };
 }
