@@ -1,6 +1,6 @@
 # V0.3-UX-001 — 主编助手 ChatGPT 式对话面板
 
-**Status:** In Review
+**Status:** Completed
 **Base:** `main@3904bebbf257ded57ba45f2db0088c23330cdf61`
 **Branch:** `codex/v0-3-ux-001`
 
@@ -107,4 +107,4 @@ Figma 三节点、controller 截图、状态/动作输入、唯一图标依赖�
 - `git diff --check` PASS；1440/1024/720 无横向溢出。
 - [Design QA](../../../design-qa.md) final result `passed`：首轮两个 P2（首屏 composer、高度；最新回复可见性）均已修正，最终无 P0/P1/P2。
 - 独立终审 `/root/v0_3_ux_final_review`：首轮 4 个阻塞 finding（XHS 状态文案、action-null truth、textarea focus-visible、exact-viewport QA）均已修正；corrected-head 五轴复核 PASS / no blocking findings。
-- Provider attempts/cost：`0 / ¥0`。commit、PR、required CI 与 merge 仍 pending，因此本实现尚未对 `main` 生效。
+- Provider attempts/cost：`0 / ¥0`。PR [#304](https://github.com/JettxonHo/ContentOS/pull/304) 的 required CI run [33059999697](https://github.com/JettxonHo/ContentOS/actions/runs/33059999697) 四个 jobs 全部成功；PR 于 `2026-08-27T09:48:55Z` squash merge 为 `45c5cccd9933383c57c24e08f6aaf9a0d94bcfae`，本实现已对 `main` 生效。
