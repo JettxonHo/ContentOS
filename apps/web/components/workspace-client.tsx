@@ -23,7 +23,7 @@ import { WorkflowRecoveryController } from '../lib/workflow-recovery';
 import { deriveWorkspaceStageProjection, type WorkspaceStageId } from '../lib/workspace-stage-view';
 import { CONTENT_MODE_LABEL, OUTPUT_LABEL, UI_COPY } from '../lib/ui-copy';
 import { AppShell, StatusMessage } from './app-shell';
-import { NextActionCard } from './next-action-card';
+import { ChiefEditorAssistant } from './chief-editor-assistant';
 import { SourceIntakePanel } from './source-intake-panel';
 import { SourceReviewPanel } from './source-review-panel';
 import { ResearchReviewPanel } from './research-review-panel';
@@ -701,44 +701,25 @@ export function WorkspaceClient({ apiOrigin, contentPackageId }: { apiOrigin: st
                 )}
               </section>
 
-              <aside className="workspace-context-panel" aria-labelledby="context-title">
-                <p className="eyebrow">当前阶段</p>
-                <h2 id="context-title">{stageRows.find((row) => row.id === section)?.title}</h2>
-                {currentStage ? (
-                  <NextActionCard
-                    status={currentStage.status}
-                    label={currentStage.label}
-                    actionLabel={contextAction?.label ?? currentStage.nextAction}
-                    reason={contextAction?.reason ?? currentStage.reason}
-                    disabled={contextAction?.disabled ?? true}
-                    disabledReason={contextAction?.reason ?? currentStage.reason}
-                    busy={contextAction?.busy ?? false}
-                    {...(contextAction && !contextAction.disabled ? { onAction: contextAction.onAction } : {})}
-                    meta={contextFacts}
-                  />
-                ) : null}
-                <button className="secondary-button activity-entry" type="button" onClick={() => setShowActivity(true)}>
-                  运行记录
-                </button>
-                <p className="stage-note">当前生成仍使用确定性 Fake Provider，不代表产品已接入真实 Provider。</p>
-                {contentPackage.lifecycle === 'active' ? (
-                  <button
-                    className="danger-text-button"
-                    type="button"
-                    onClick={() => {
-                      if (reviewDirty || reviewBusy) {
-                        setSourceError('归档项目前，请先保存或放弃未保存的资料草稿。');
-                        return;
-                      }
-                      setConfirmArchive(true);
-                    }}
-                  >
-                    归档项目
-                  </button>
-                ) : (
-                  <p className="archived-note">该项目已归档并以只读方式保留。</p>
-                )}
-              </aside>
+              {currentStage ? (
+                <ChiefEditorAssistant
+                  packageTitle={contentPackage.title}
+                  stageId={section}
+                  stageTitle={stageRows.find((row) => row.id === section)?.title ?? '当前阶段'}
+                  stage={currentStage}
+                  action={contextAction}
+                  facts={contextFacts}
+                  active={contentPackage.lifecycle === 'active'}
+                  onOpenActivity={() => setShowActivity(true)}
+                  onArchive={() => {
+                    if (reviewDirty || reviewBusy) {
+                      setSourceError('归档项目前，请先保存或放弃未保存的资料草稿。');
+                      return;
+                    }
+                    setConfirmArchive(true);
+                  }}
+                />
+              ) : null}
             </div>
           </WorkspaceActionRegistrationContext.Provider>
         ) : null}

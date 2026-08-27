@@ -104,6 +104,14 @@ test('G2/G3: owner approves and exports independent Blog and Xiaohongshu text Ve
   await page.getByLabel('创作模式').selectOption('creator_led');
   await page.getByRole('button', { name: '生成文章候选', exact: true }).click();
   await expect(page.getByLabel('文章 Markdown')).toContainText('Readers should apply updated verified evidence.');
+  await expect(page.locator('.chief-editor-assistant')).toContainText('强调治理分工');
+  await expect(page.locator('.chief-editor-assistant')).toContainText('强调落地执行');
+  const visualQaDirectory = process.env.CONTENTOS_VISUAL_QA_DIRECTORY;
+  if (visualQaDirectory) {
+    mkdirSync(visualQaDirectory, { recursive: true });
+    await page.setViewportSize({ width: 1440, height: 1024 });
+    await page.screenshot({ path: join(visualQaDirectory, 'assistant-state-blog-review-1440.png') });
+  }
   await page.getByLabel('文章摘要').fill('Owner-reviewed Blog summary.');
   await page.getByRole('button', { name: '保存修改' }).click();
   await expect(page.getByText('文章草稿已保存。')).toBeVisible();
@@ -111,6 +119,10 @@ test('G2/G3: owner approves and exports independent Blog and Xiaohongshu text Ve
   await page.getByRole('button', { name: '保存为版本' }).click();
   await page.getByRole('button', { name: '批准此版本' }).click();
   await expect(page.getByText('已批准精确文章版本。')).toBeVisible();
+  await expect(page.locator('.chief-editor-assistant')).toContainText('当前精确版本已批准并锁定');
+  if (visualQaDirectory) {
+    await page.screenshot({ path: join(visualQaDirectory, 'assistant-state-blog-approved-1440.png') });
+  }
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: '导出 article.md', exact: true }).click();
   const download = await downloadPromise;
@@ -153,7 +165,6 @@ test('G2/G3: owner approves and exports independent Blog and Xiaohongshu text Ve
   await page.getByRole('button', { name: /^小红书：/ }).click();
   await expect(page.getByLabel('正文说明')).toHaveValue('Owner-reviewed Xiaohongshu caption.');
   await expect(page.locator('.section-heading .lifecycle')).toHaveText('已批准');
-  const visualQaDirectory = process.env.CONTENTOS_VISUAL_QA_DIRECTORY;
   for (const width of [1440, 1024]) {
     await page.setViewportSize({ width, height: 900 });
     expect(

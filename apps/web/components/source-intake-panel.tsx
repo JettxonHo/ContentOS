@@ -172,7 +172,13 @@ export function SourceIntakePanel({
       }
       setNotice(mode === 'url' ? '网页资料已提交，正在等待抓取。' : '资料已添加到当前项目。');
       setComposerOpen(false);
-      if (createdSourceId) setTimeout(() => sourceRefs.current.get(createdSourceId)?.focus(), 0);
+      if (createdSourceId) {
+        setTimeout(
+          () =>
+            requestAnimationFrame(() => requestAnimationFrame(() => sourceRefs.current.get(createdSourceId)?.focus())),
+          0,
+        );
+      }
     } catch (cause) {
       if (onTerminal(cause)) return;
       if (cause instanceof WebApiError && cause.code === 'SOURCE_ROLE_LIMIT_EXCEEDED') {
