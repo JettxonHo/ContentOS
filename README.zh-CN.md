@@ -36,6 +36,8 @@ M5 验收生效后，仓库基于有界外部观察完成了三轮纯表现层�
 
 这是一个把"AI 生成内容"约束为**来源可追溯、版本不可变、人工批准才算数**的单用户内容工作室——它的价值主张不在生成速度，而在审核与溯源结构。
 
+<img src="docs/assets/readme/contentos-flow.png" alt="私有素材进，人工批准的双平台成稿出" width="100%">
+
 ## MVP 边界
 
 正式 MVP 是一个私有、单用户、桌面优先、有人类审阅的 Web 应用。它从共享的 Content Foundation 独立生成已批准的 Blog Markdown 和 Xiaohongshu 文本，并支持手工可移植文本导出与发布。Design、图片生成、PNG Render、复杂资产包、生产部署、公开注册、自动发布、多用户协作以及不受支持的媒体输入属于 post-MVP 或明确不在范围内。请阅读完整的 [MVP Scope](docs/product/mvp-scope.md) 与已批准的执行 [Goal](GOAL.md)。

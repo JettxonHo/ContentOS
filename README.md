@@ -34,6 +34,8 @@ Chat and suggestions cannot save, apply, approve, export or call a Provider; rea
 
 This is a single-user content studio that constrains "AI-generated content" to be **source-traceable, version-immutable, and real only after human approval** — its value proposition is not generation speed, but the review and provenance structure.
 
+<img src="docs/assets/readme/contentos-flow.png" alt="Private sources in, human-approved dual-platform copy out" width="100%">
+
 ## MVP boundary
 
 The formal MVP is a private, single-user, desktop-first web application with human review. It independently produces approved Blog Markdown and approved Xiaohongshu text from a shared Content Foundation, then supports manual portable-text export and publishing. Design, image generation, PNG rendering, rich asset packages, production deployment, public registration, automatic publishing, multi-user collaboration, and unsupported media inputs are post-MVP or out of scope. Read the complete [MVP Scope](docs/product/mvp-scope.md) and approved execution [Goal](GOAL.md).
