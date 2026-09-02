@@ -1,16 +1,88 @@
+<div align="center">
+
 # ContentOS
 
-语言： [English](README.md) | 简体中文
+**私有素材进，人工批准的双平台成稿出。**
 
-ContentOS 是一个单用户、桌面优先的 Personal AI Content Studio（个人 AI 内容工作室）。它将私有、可审阅的来源材料转化为可追溯的内容流程：
+![Next.js](https://img.shields.io/badge/Next.js-React-000000?logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-严格合同-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-权威存储-4169E1?logo=postgresql&logoColor=white)
 
-```text
-Source → Research → Human Opinion 或 Research-based Mode
-→ 已批准 Blog Markdown + 已批准 Xiaohongshu 文本
-→ 手工文本导出
-```
+语言：简体中文 | [English](README.md)
 
-它不是批量写作工具，也不是自动化发布系统。
+[快速开始](#快速开始) · [Issues](https://github.com/JettxonHo/ContentOS/issues) · [决策注册表](docs/decisions/decisions.md)
+
+</div>
+
+> 这个项目回答的问题：**个人创作者用 AI 写东西，怎么不丢掉"自己的声音"？**——答案是分层：事实归素材、观点归你、AI 只做候选，三层混不到一起。
+
+## 目录
+
+- [它是什么](#它是什么)
+- [功能特性](#功能特性)
+- [真实运行界面](#真实运行界面)
+- [验证状态](#验证状态)
+- [它和其他 AI 写作工具的区别](#它和其他-ai-写作工具的区别)
+- [快速开始](#快速开始)
+- [常见问题](#常见问题)
+
+## 它是什么
+
+一个单用户、桌面优先的个人 AI 内容工作室。你给它私有的来源素材，它把素材整理成研究笔记，你在上面写下自己的观点，最后得到**经你批准**的博客 Markdown 与小红书文案，手工导出发布。
+
+它不是批量写作工具，也不是自动发布系统——它的价值不在生成速度，而在审核与溯源结构。
+
+<img src="docs/assets/readme/contentos-flow.png" alt="私有来源素材 → 研究整理 → 人工观点 → 双平台成稿" width="100%">
+
+## 功能特性
+
+- **来源 → 研究 → 观点 → 成稿**：四层流水线，每层的产物都是独立可审阅的资源
+- **不可变版本与批准**：内容版本一旦批准即不可变；上游素材过期时旧版本自动关闭导出
+- **防 AI 冒充亲历**：Research-based 模式被禁止编造第一人称经历；个人观点只能由你显式写下
+- **主编助手面板**：对话式查看当前阶段状态与下一步（V0.3）——只读建议，不能替你保存或批准
+- **小红书分页编辑器**：八页结构的专注编辑体验（V0.2 中文工作台）
+- **手工导出**：`article.md` / `post.md` / `pages.json` 便携文本导出，发布动作永远在你手里
+
+## 真实运行界面
+
+| 中文创作工作台 | 主编助手面板 | 小红书分页编辑器 |
+|---|---|---|
+| <img src="docs/assets/readme/workbench-zh-01.png" alt="中文创作工作台全景" width="100%"> | <img src="docs/assets/readme/chief-editor-02.png" alt="主编助手对话面板" width="100%"> | <img src="docs/assets/readme/xiaohongshu-editor-03.png" alt="小红书八页分页编辑器" width="100%"> |
+
+## 验证状态
+
+> 截至 2026-09-02，与 M5 验收记录及 Roadmap 口径一致。
+
+| 验证 | 状态 |
+|---|---|
+| text-first MVP | M0–M5 全部完成，正式验收记录已在主分支生效（首轮必需 CI 通过） |
+| UX 迭代 | 基于外部观察完成 V0.1–V0.3 三轮：真实引导、中文工作台重设计、主编助手面板；V0.3 单轮 628 项本地 + 188 项集成 + 20 项浏览器测试全过 |
+| 未实现边界 | 真实 Provider、生产部署、自动发布仍未实现；对话与建议不能保存、批准、导出或调用模型 |
+
+## 它和其他 AI 写作工具的区别
+
+- **三层分离**：事实、观点、AI 候选各有归属，AI 不能冒认你的经历
+- **来源过期就锁死导出**：防止把基于旧素材的内容发出去
+- **版本不可变**：批准与驳回都留下痕迹，没有"悄悄改掉"这回事
+
+## 快速开始
+
+见下方"Current setup / 当前设置"（pnpm 工作区，含基础设施与迁移步骤）。
+
+## 常见问题
+
+**它会自动帮我发布吗？**
+不会。导出是手工的便携文本，发布动作永远由你完成。自动发布明确不在产品范围内。
+
+**支持多人协作吗？**
+不支持。它是刻意单用户、桌面优先的设计；多用户与公开注册属于明确的范围外。
+
+**主编助手能替我批准内容吗？**
+不能。它只解释当前状态和建议下一步，没有保存、批准、导出或调用模型的能力。
+
+---
+
+> 以下为产品与治理文档（原 README 内容保留不变，从"## 当前状态"开始）
 
 ## 当前状态
 

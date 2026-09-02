@@ -1,16 +1,88 @@
+<div align="center">
+
 # ContentOS
 
-Language: English | [简体中文](README.zh-CN.md)
+**Private source material in — human-approved, dual-platform content out.**
 
-ContentOS is a single-user, desktop-first Personal AI Content Studio. It turns private, reviewable source material into a traceable content flow:
+![Next.js](https://img.shields.io/badge/Next.js-React-000000?logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict%20contracts-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-authoritative-4169E1?logo=postgresql&logoColor=white)
 
-```text
-Source → Research → Human Opinion or Research-based Mode
-→ approved Blog Markdown + approved Xiaohongshu text
-→ manual text export
-```
+Language: [简体中文](README.zh-CN.md) | English
 
-It is not a bulk-writing tool or an autonomous publishing system.
+[Quick start](#quick-start) · [Issues](https://github.com/JettxonHo/ContentOS/issues) · [Decision Register](docs/decisions/decisions.md)
+
+</div>
+
+> The question this project answers: **how does a solo creator use AI without losing their own voice?** The answer is layering: facts belong to sources, opinions belong to you, AI only makes candidates — the three never blend.
+
+## Contents
+
+- [What it is](#what-it-is)
+- [Features](#features)
+- [Real running UI](#real-running-ui)
+- [Verification status](#verification-status)
+- [What makes it different](#what-makes-it-different-from-other-ai-writing-tools)
+- [Quick start](#quick-start)
+- [FAQ](#faq)
+
+## What it is
+
+A single-user, desktop-first personal AI content studio. You feed it private source material; it turns sources into research notes; you write your own opinion on top; and you get **human-approved** blog Markdown and Xiaohongshu text for manual export.
+
+It is not a bulk-writing tool and not an auto-publishing system — its value is not generation speed but its review and traceability structure.
+
+<img src="docs/assets/readme/contentos-flow.png" alt="Sources → Research → Human opinion → Dual-platform drafts" width="100%">
+
+## Features
+
+- **Source → Research → Opinion → Drafts**: a four-layer pipeline where every layer is an independently reviewable resource
+- **Immutable versions & approval**: approved content versions are immutable; stale upstream sources automatically close export of older versions
+- **No fabricated personal experience**: Research-based mode is forbidden from inventing first-person claims; opinions can only be written explicitly by you
+- **Chief-editor assistant panel** (V0.3): conversational view of current stage and next action — read-only suggestions, it cannot save or approve for you
+- **Xiaohongshu paged editor** (V0.2 Chinese workspace): a focused eight-page editing experience
+- **Manual export**: portable `article.md` / `post.md` / `pages.json` text export; the publish action stays in your hands
+
+## Real running UI
+
+| Chinese creator workspace | Chief-editor assistant | Xiaohongshu page editor |
+|---|---|---|
+| <img src="docs/assets/readme/workbench-zh-01.png" alt="Creator workspace overview" width="100%"> | <img src="docs/assets/readme/chief-editor-02.png" alt="Chief-editor assistant panel" width="100%"> | <img src="docs/assets/readme/xiaohongshu-editor-03.png" alt="Xiaohongshu paged editor" width="100%"> |
+
+## Verification status
+
+> As of 2026-09-02, consistent with the M5 acceptance record and Roadmap.
+
+| Verification | Status |
+|---|---|
+| Text-first MVP | M0–M5 complete; formal acceptance record effective on main (required CI green) |
+| UX iterations | V0.1–V0.3 shipped from bounded external observations: truthful guidance, Chinese workspace redesign, chief-editor panel; V0.3 alone passed 628 local + 188 integration + 20 browser tests |
+| Honest boundary | Real Provider, production deployment and automatic publishing remain unimplemented; chat and suggestions cannot save, approve, export or call a model |
+
+## What makes it different from other AI writing tools
+
+- **Three-layer separation**: facts, opinions and AI candidates each have an owner; AI cannot impersonate your experiences
+- **Stale sources lock export**: prevents publishing content built on outdated material
+- **Immutable versions**: approvals and rejections both leave a record — nothing is silently overwritten
+
+## Quick start
+
+See "Current setup" below (pnpm workspace with infrastructure and migration steps).
+
+## FAQ
+
+**Does it publish automatically?**
+No. Export is manual portable text; the publish action is always yours. Automatic publishing is explicitly out of scope.
+
+**Does it support multi-user collaboration?**
+No. It is deliberately single-user and desktop-first; multi-user and public registration are explicitly out of scope.
+
+**Can the chief-editor assistant approve content for me?**
+No. It only explains current state and suggests next actions; it cannot save, approve, export or call a model.
+
+---
+
+> The sections below remain the authoritative product and governance documentation (unchanged, starting at "## Current status").
 
 ## Current status
 
