@@ -18,6 +18,22 @@ The repository has completed **M0–M5** and the formal private text-first MVP. 
 
 This repository now provides workspace installation, quality checks, builds, five process entry points, isolated local state services, authentication, Source/Workflow/Fetcher foundations, Research, Human Opinion, and independently approved Blog/Xiaohongshu text with eligible `article.md`, `post.md`, and `pages.json` downloads. The effective M5 record validates this complete private text-first path on current main. PostgreSQL and the API remain authoritative; Raw Provider output is server-side only. No real Provider, generic Agent runtime, Render, image/ZIP Export Package, automatic publishing, production deployment, or development server exists yet.
 
+## Post-MVP UX iterations (V0.1–V0.3)
+
+After M5 acceptance became effective, three bounded presentation-layer iterations shipped from bounded external observations (none change Domain/API/persistence truth or the Fake Provider boundary):
+
+| Version | Content | Merge |
+|---|---|---|
+| V0.1 | Truthful workspace guidance derived from existing resources; explicit stale-Opinion recovery; versioned external manual Blog/Xiaohongshu prompt & eval artifacts | PR #301, CI 4/4 |
+| V0.2 | Chinese-first creator workspace and IA redesign | PR #303, CI 4/4 |
+| V0.3 | Figma-approved deterministic chief-editor conversation panel; 628 local + 188 integration + 20 browser tests green | PR #304, CI 4/4 |
+
+Chat and suggestions cannot save, apply, approve, export or call a Provider; real Provider, production deployment and automatic publishing remain unimplemented.
+
+## One sentence for visitors
+
+This is a single-user content studio that constrains "AI-generated content" to be **source-traceable, version-immutable, and real only after human approval** — its value proposition is not generation speed, but the review and provenance structure.
+
 ## MVP boundary
 
 The formal MVP is a private, single-user, desktop-first web application with human review. It independently produces approved Blog Markdown and approved Xiaohongshu text from a shared Content Foundation, then supports manual portable-text export and publishing. Design, image generation, PNG rendering, rich asset packages, production deployment, public registration, automatic publishing, multi-user collaboration, and unsupported media inputs are post-MVP or out of scope. Read the complete [MVP Scope](docs/product/mvp-scope.md) and approved execution [Goal](GOAL.md).

@@ -20,6 +20,22 @@ Source → Research → Human Opinion 或 Research-based Mode
 
 `M2-WEB-001B` 现在已接入活动 Workspace：它允许显式保存标准化 Working Copy、审核不可变 Version、确认当前准确 Review Candidate 的人工 Approval，并通过既有 SSE/Polling 恢复控制器显示有界安全 REST Timeline。Source Approval 不会推进 `source_review`，也不会追加 Workflow Timeline Event；归档 Package 仍不提供这些命令。
 
+## MVP 之后的三轮 UX 迭代（V0.1–V0.3）
+
+M5 验收生效后，仓库基于有界外部观察完成了三轮纯表现层迭代（均不改变 Domain / API / 持久化事实与 Fake Provider 边界）：
+
+| 版本 | 内容 | 合并 |
+|---|---|---|
+| V0.1 | 真实可信的工作台引导：阶段状态与下一步动作由既有资源派生，过期 Opinion 恢复显式化；新增版本化的外部人工 Blog / 小红书 Prompt 与评测资产 | PR #301，CI 四项全绿 |
+| V0.2 | 中文创作工作台与信息架构重设计：全局中文外壳、横向阶段导航、渐进披露的 Run Log、响应式四面板编辑 | PR #303，CI 四项全绿 |
+| V0.3 | 主编助手对话面板：Figma 审定、确定性的会话外壳；本地 628 项测试 + 集成 188 + 浏览器 20 全过 | PR #304，CI 四项全绿 |
+
+对话与建议不能保存、应用、批准、导出或调用 Provider；真实 Provider、生产部署与自动发布仍未实现。
+
+## 对访客的一句话
+
+这是一个把"AI 生成内容"约束为**来源可追溯、版本不可变、人工批准才算数**的单用户内容工作室——它的价值主张不在生成速度，而在审核与溯源结构。
+
 ## MVP 边界
 
 正式 MVP 是一个私有、单用户、桌面优先、有人类审阅的 Web 应用。它从共享的 Content Foundation 独立生成已批准的 Blog Markdown 和 Xiaohongshu 文本，并支持手工可移植文本导出与发布。Design、图片生成、PNG Render、复杂资产包、生产部署、公开注册、自动发布、多用户协作以及不受支持的媒体输入属于 post-MVP 或明确不在范围内。请阅读完整的 [MVP Scope](docs/product/mvp-scope.md) 与已批准的执行 [Goal](GOAL.md)。
