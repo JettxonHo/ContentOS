@@ -38,6 +38,10 @@ M5 验收生效后，仓库基于有界外部观察完成了三轮纯表现层�
 
 <img src="docs/assets/readme/contentos-flow.png" alt="私有素材进，人工批准的双平台成稿出" width="100%">
 
+<img src="docs/assets/readme/workbench-zh-01.png" alt="中文创作工作台：五阶段导航与主编助手" width="32%"> <img src="docs/assets/readme/chief-editor-02.png" alt="主编助手对话面板：本地受控预览" width="32%"> <img src="docs/assets/readme/xiaohongshu-editor-03.png" alt="小红书分页编辑器：八页候选与逐页编辑" width="32%">
+
+以上均为本地实跑截图（2026-09，deterministic Fake Provider）：资料录入 → 批准 → 研究 → 观点确认 → 文章批准 → 小红书八页候选批准，全流程不调用真实模型。
+
 ## MVP 边界
 
 正式 MVP 是一个私有、单用户、桌面优先、有人类审阅的 Web 应用。它从共享的 Content Foundation 独立生成已批准的 Blog Markdown 和 Xiaohongshu 文本，并支持手工可移植文本导出与发布。Design、图片生成、PNG Render、复杂资产包、生产部署、公开注册、自动发布、多用户协作以及不受支持的媒体输入属于 post-MVP 或明确不在范围内。请阅读完整的 [MVP Scope](docs/product/mvp-scope.md) 与已批准的执行 [Goal](GOAL.md)。

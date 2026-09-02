@@ -36,6 +36,10 @@ This is a single-user content studio that constrains "AI-generated content" to b
 
 <img src="docs/assets/readme/contentos-flow.png" alt="Private sources in, human-approved dual-platform copy out" width="100%">
 
+<img src="docs/assets/readme/workbench-zh-01.png" alt="Chinese-first creator workspace with five-stage navigation" width="32%"> <img src="docs/assets/readme/chief-editor-02.png" alt="Chief-editor assistant panel with bounded local preview" width="32%"> <img src="docs/assets/readme/xiaohongshu-editor-03.png" alt="Xiaohongshu eight-page editor" width="32%">
+
+Real local run (2026-09, deterministic Fake Provider): source intake → approval → research → opinion confirmation → article approval → eight-page Xiaohongshu approval; no real model is called.
+
 ## MVP boundary
 
 The formal MVP is a private, single-user, desktop-first web application with human review. It independently produces approved Blog Markdown and approved Xiaohongshu text from a shared Content Foundation, then supports manual portable-text export and publishing. Design, image generation, PNG rendering, rich asset packages, production deployment, public registration, automatic publishing, multi-user collaboration, and unsupported media inputs are post-MVP or out of scope. Read the complete [MVP Scope](docs/product/mvp-scope.md) and approved execution [Goal](GOAL.md).
